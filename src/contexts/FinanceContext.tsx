@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type TransactionType = 'income' | 'expense' | 'debt';
+export type TransactionType = 'income' | 'expense' | 'debt'
 
 export interface Transaction {
-  id: string;
-  type: TransactionType;
-  amount: number;
-  currency: 'VES' | 'USD' | 'EUR';
-  tags: string[];
-  description?: string;
-  date: string; // ISO
+  id: string
+  type: TransactionType
+  amount: number
+  currency: 'VES' | 'USD' | 'EUR'
+  tags: string[]
+  description?: string
+  date: string
 }
 
 interface FinanceContextValue {
@@ -18,6 +18,8 @@ interface FinanceContextValue {
   editTransaction: (id: string, patch: Partial<Omit<Transaction, 'id' | 'date'>>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
+  exportTransactions: () => void;
+  importTransactions: (file: File) => Promise<void>;
 }
 
 const STORAGE_KEY = 'finanzapp_transactions_v1';
@@ -27,35 +29,22 @@ const FinanceContext = createContext<FinanceContextValue | undefined>(undefined)
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Helper wrappers: try @capacitor/storage dynamically, fall back to localStorage
   const storageGet = async (key: string) => {
-      try {
-        // If running inside a Capacitor native container and Storage plugin is available
-        const win: any = window as any
-        if (win && win.Capacitor) {
-          // Capacitor v3+ exposes plugins differently; try common variants
-          const StoragePlugin = win.Capacitor?.Storage || win.Capacitor?.Plugins?.Storage
-          if (StoragePlugin && typeof StoragePlugin.get === 'function') {
-            return await StoragePlugin.get({ key })
-          }
-        }
-      } catch (e) {
-        // ignore and fallback
-      }
-      return { value: localStorage.getItem(key) }
+    try {
+      const win: any = window as any
+      const StoragePlugin = win.Capacitor?.Storage || win.Capacitor?.Plugins?.Storage
+      if (StoragePlugin && typeof StoragePlugin.get === 'function') return await StoragePlugin.get({ key })
+    } catch (e) {}
+    return { value: localStorage.getItem(key) }
   }
 
   const storageSet = async (key: string, value: string) => {
-      try {
-        const win: any = window as any
-        const StoragePlugin = win.Capacitor?.Storage || win.Capacitor?.Plugins?.Storage
-        if (StoragePlugin && typeof StoragePlugin.set === 'function') {
-          return await StoragePlugin.set({ key, value })
-        }
-      } catch (e) {
-        // ignore and fallback
-      }
-      localStorage.setItem(key, value)
+    try {
+      const win: any = window as any
+      const StoragePlugin = win.Capacitor?.Storage || win.Capacitor?.Plugins?.Storage
+      if (StoragePlugin && typeof StoragePlugin.set === 'function') return await StoragePlugin.set({ key, value })
+    } catch (e) {}
+    localStorage.setItem(key, value)
   }
 
   useEffect(() => {
@@ -102,8 +91,48 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setTransactions([]);
   };
 
+  const exportTransactions = () => {
+    try {
+      const data = JSON.stringify(transactions, null, 2)
+      const blob = new Blob([data], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const name = `finanzapp_transactions_${new Date().toISOString().slice(0,10)}.json`
+      a.href = url
+      a.download = name
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Export failed', e)
+    }
+  }
+
+  const importTransactions = async (file: File) => {
+    try {
+      const txt = await file.text()
+      const parsed = JSON.parse(txt)
+      if (!Array.isArray(parsed)) throw new Error('Invalid backup format')
+      // Basic validation & normalization
+      const normalized: Transaction[] = parsed.map((p: any) => ({
+        id: p.id ?? (Date.now().toString(36) + Math.random().toString(36).slice(2,8)),
+        date: p.date ?? new Date().toISOString(),
+        type: p.type ?? 'expense',
+        amount: Number(p.amount) || 0,
+        currency: p.currency === 'USD' || p.currency === 'EUR' ? p.currency : 'VES',
+        tags: Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(',').map((s: string) => s.trim()) : []),
+        description: p.description ?? ''
+      }))
+      setTransactions(normalized)
+    } catch (e) {
+      console.error('Import failed', e)
+      throw e
+    }
+  }
+
   return (
-    <FinanceContext.Provider value={{ transactions, addTransaction, editTransaction, deleteTransaction, clearAll }}>
+    <FinanceContext.Provider value={{ transactions, addTransaction, editTransaction, deleteTransaction, clearAll, exportTransactions, importTransactions }}>
       {children}
     </FinanceContext.Provider>
   );

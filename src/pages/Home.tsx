@@ -63,14 +63,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     let mounted = true
     import('../utils/rates').then(({ fetchRates }) => {
-      fetchRates()
-        .then((r) => {
-          if (mounted) setRates(r)
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (mounted) setLoadingRates(false)
-        })
+      fetchRates().then((r) => { if (mounted) setRates(r) }).finally(() => { if (mounted) setLoadingRates(false) })
     })
     return () => { mounted = false }
   }, [])
@@ -98,132 +91,99 @@ const Home: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>FinanzApp</IonTitle>
+          <div className="w-full flex items-center justify-between px-4">
+            <h1 className="text-xl font-semibold">FinanzApp</h1>
+            <div className="text-sm muted">Balance: {balance.toFixed(2)} VES</div>
+          </div>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <IonGrid>
-          <IonRow>
-            <IonCol>
-              <IonCard>
-                  <IonCardHeader>
-                    <IonCardTitle>Resumen del mes</IonCardTitle>
-                  </IonCardHeader>
-                  <IonCardContent>
-                    <IonText>
-                      <h2>Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} VES</h2>
-                      <p>Gastos: {totalExpenses.toLocaleString(undefined, { maximumFractionDigits: 2 })} VES</p>
-                      {balance > 0 ? (
-                        <p style={{ color: 'green' }}>Logro: Ahorro</p>
-                      ) : (
-                        <p style={{ color: 'crimson' }}>Alerta: Balance negativo</p>
-                      )}
-                    </IonText>
-                  </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
-          <IonRow>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle>BCV</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  {loadingRates ? (
-                    <p>Cargando tasas...</p>
-                  ) : (
-                    <>
-                      <p>USD: {rates.USD.toLocaleString()}</p>
-                      <p>EUR: {rates.EUR.toLocaleString()}</p>
-                    </>
-                  )}
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle>Binance P2P</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <p>Compra: --</p>
-                  <p>Venta: --</p>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
-          <IonRow>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle>Calculadora</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <IonButton expand="block" onClick={() => setCalcOpen(true)}>Abrir Calculadora</IonButton>
-                  <IonButton expand="block" color="secondary" onClick={() => setAddOpen(true)} className="ion-margin-top">Agregar Transacción</IonButton>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle>Resumen Rápido</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <p>Flujo actual: --</p>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
-
-        <Calculator isOpen={calcOpen} onClose={() => setCalcOpen(false)} rates={rates} />
-
-        <IonModal isOpen={addOpen} onDidDismiss={() => setAddOpen(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Nueva Transacción</IonTitle>
-              <IonButton slot="end" onClick={() => setAddOpen(false)}>Cerrar</IonButton>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonItem>
-              <IonLabel>Tipo</IonLabel>
-              <IonSelect value={form.type} onIonChange={(e) => setForm(f => ({ ...f, type: e.detail.value }))}>
-                <IonSelectOption value="income">Ingreso</IonSelectOption>
-                <IonSelectOption value="expense">Egreso</IonSelectOption>
-                <IonSelectOption value="debt">Deuda</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-            <IonItem>
-              <IonLabel position="stacked">Cantidad</IonLabel>
-              <IonInput value={form.amount} inputmode="decimal" placeholder="0.00" onIonChange={(e: any) => setForm(f => ({ ...f, amount: String(e.detail.value ?? '') }))} />
-            </IonItem>
-            <IonItem>
-              <IonLabel>Moneda</IonLabel>
-              <IonSelect value={form.currency} onIonChange={(e) => setForm(f => ({ ...f, currency: e.detail.value }))}>
-                <IonSelectOption value="VES">VES</IonSelectOption>
-                <IonSelectOption value="USD">USD</IonSelectOption>
-                <IonSelectOption value="EUR">EUR</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-            <IonItem>
-              <IonLabel position="stacked">Tags (separados por coma)</IonLabel>
-              <IonInput value={form.tags} onIonChange={(e: any) => setForm(f => ({ ...f, tags: String(e.detail.value ?? '') }))} />
-            </IonItem>
-            <IonItem>
-              <IonLabel position="stacked">Descripción</IonLabel>
-              <IonTextarea value={form.description} onIonChange={(e: any) => setForm(f => ({ ...f, description: String(e.detail.value ?? '') }))} />
-            </IonItem>
-
-            <div style={{ padding: 16 }}>
-              <IonButton expand="block" onClick={submit}>Guardar</IonButton>
+        <div className="max-w-3xl mx-auto p-4">
+          <div className="card mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} VES</h2>
+                <p className="muted">Gastos: {totalExpenses.toLocaleString(undefined, { maximumFractionDigits: 2 })} VES</p>
+              </div>
+              <div>
+                {balance > 0 ? <span className="px-3 py-1 rounded bg-green-100 text-green-800">Ahorro</span> : <span className="px-3 py-1 rounded bg-red-100 text-red-800">Negativo</span>}
+              </div>
             </div>
-          </IonContent>
-        </IonModal>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="card">
+              <h3 className="font-semibold mb-2">BCV</h3>
+              {loadingRates ? <p className="muted">Cargando tasas...</p> : <>
+                <p>USD: <strong>{rates.USD.toLocaleString()}</strong></p>
+                <p>EUR: <strong>{rates.EUR.toLocaleString()}</strong></p>
+              </>}
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold mb-2">Binance P2P</h3>
+              <p className="muted">Compra: --</p>
+              <p className="muted">Venta: --</p>
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold mb-2">Calculadora</h3>
+              <IonButton expand="block" onClick={() => setCalcOpen(true)}>Abrir Calculadora</IonButton>
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold mb-2">Acciones</h3>
+              <IonButton expand="block" color="secondary" onClick={() => setAddOpen(true)}>Agregar Transacción</IonButton>
+            </div>
+          </div>
+
+          <Calculator isOpen={calcOpen} onClose={() => setCalcOpen(false)} rates={rates} />
+
+          <IonModal isOpen={addOpen} onDidDismiss={() => setAddOpen(false)}>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Nueva Transacción</IonTitle>
+                <IonButton slot="end" onClick={() => setAddOpen(false)}>Cerrar</IonButton>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <div className="max-w-xl mx-auto">
+                <IonItem>
+                  <IonLabel>Tipo</IonLabel>
+                  <IonSelect value={form.type} onIonChange={(e) => setForm(f => ({ ...f, type: e.detail.value }))}>
+                    <IonSelectOption value="income">Ingreso</IonSelectOption>
+                    <IonSelectOption value="expense">Egreso</IonSelectOption>
+                    <IonSelectOption value="debt">Deuda</IonSelectOption>
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Cantidad</IonLabel>
+                  <IonInput value={form.amount} inputmode="decimal" placeholder="0.00" onIonChange={(e: any) => setForm(f => ({ ...f, amount: String(e.detail.value ?? '') }))} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Moneda</IonLabel>
+                  <IonSelect value={form.currency} onIonChange={(e) => setForm(f => ({ ...f, currency: e.detail.value }))}>
+                    <IonSelectOption value="VES">VES</IonSelectOption>
+                    <IonSelectOption value="USD">USD</IonSelectOption>
+                    <IonSelectOption value="EUR">EUR</IonSelectOption>
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Tags (separados por coma)</IonLabel>
+                  <IonInput value={form.tags} onIonChange={(e: any) => setForm(f => ({ ...f, tags: String(e.detail.value ?? '') }))} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Descripción</IonLabel>
+                  <IonTextarea value={form.description} onIonChange={(e: any) => setForm(f => ({ ...f, description: String(e.detail.value ?? '') }))} />
+                </IonItem>
+
+                <div className="p-4">
+                  <IonButton expand="block" onClick={submit}>Guardar</IonButton>
+                </div>
+              </div>
+            </IonContent>
+          </IonModal>
+        </div>
       </IonContent>
     </IonPage>
   )

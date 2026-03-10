@@ -1,48 +1,49 @@
-export interface Rates {
-  USD: number
-  EUR: number
-}
+export interface Rates { USD: number; EUR: number }
 
-// Try multiple community endpoints; fall back to placeholders if CORS or network fails.
+// Returns VES per USD and VES per EUR
 export async function fetchRates(): Promise<Rates> {
-  // List of candidate endpoints (may require replacement with a working community API)
-  const candidates = [
-    'https://ve.dolarapi.com/api',
-    'https://s3.amazonaws.com/dolartoday/data.json'
-  ]
+  // Use exchangerate.host which supports CORS
+  try {
+    const usdRes = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=VES')
+    const eurRes = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=VES')
+    if (usdRes.ok && eurRes.ok) {
+      const u = await usdRes.json()
+      const e = await eurRes.json()
+      const usdToVES = Number(u?.rates?.VES)
+      const eurToVES = Number(e?.rates?.VES)
+      if (usdToVES && eurToVES) return { USD: usdToVES, EUR: eurToVES }
+    }
+  } catch (err) {
+    console.warn('fetchRates: exchangerate.host failed', err)
+  }
 
+  // Fallback: try a couple of other public endpoints that may work
+  const candidates = [
+    'https://api.exchangerate-api.com/v4/latest/USD',
+    'https://open.er-api.com/v6/latest/USD'
+  ]
   for (const url of candidates) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url)
       if (!res.ok) continue
       const j = await res.json()
-
-      // Try detect common shapes
-      if (j && typeof j === 'object') {
-        // Example: dolartoday-like
-        if (j.USD && typeof j.USD === 'object' && j.USD.transfer) {
-          return { USD: Number(j.USD.transfer), EUR: Number(j.EUR?.transfer ?? j.USD.transfer) }
+      const usdToVES = j?.rates?.VES || (j?.rates && j.rates.VES)
+      if (usdToVES) {
+        // attempt to derive EUR->VES using USD->EUR if available
+        const usdToEur = j?.rates?.EUR
+        if (usdToEur) {
+          const eurToVES = usdToVES / usdToEur
+          return { USD: Number(usdToVES), EUR: Number(eurToVES) }
         }
-
-        // Example: simple object with rates
-        if (j.USD && j.EUR && typeof j.USD === 'number') {
-          return { USD: Number(j.USD), EUR: Number(j.EUR) }
-        }
-
-        // Example: data.json with 'USD' as object
-        if (j.USD && typeof j.USD === 'object' && j.USD.rate) {
-          return { USD: Number(j.USD.rate), EUR: Number(j.EUR?.rate ?? j.USD.rate) }
-        }
+        return { USD: Number(usdToVES), EUR: Number(usdToVES) }
       }
     } catch (e) {
-      // continue to next candidate
       console.warn('fetchRates candidate failed', url, e)
       continue
     }
   }
 
-  // Fallback hardcoded rates (user should replace with preferred API)
-  console.warn('All rate fetch attempts failed — using fallback rates')
+  console.warn('fetchRates: using fallback hardcoded rates')
   return { USD: 30000, EUR: 32000 }
 }
 

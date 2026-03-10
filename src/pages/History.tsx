@@ -43,37 +43,43 @@ const History: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Historial</IonTitle>
+          <div className="w-full flex items-center justify-between px-4">
+            <h1 className="text-lg font-semibold">Historial</h1>
+            <div className="text-sm muted">{filtered.length} transacciones</div>
+          </div>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <IonSegment value={range} onIonChange={(e) => setRange((e.detail.value ?? '1m') as '1w' | '1m' | '3m' | '1y')}>
-          <IonSegmentButton value="1w">
-            <IonLabel>1 Semana</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="1m">
-            <IonLabel>1 Mes</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="3m">
-            <IonLabel>3 Meses</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="1y">
-            <IonLabel>1 Año</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
+        <div className="max-w-3xl mx-auto p-4">
+          <div className="mb-4">
+            <IonSegment value={range} onIonChange={(e) => setRange((e.detail.value ?? '1m') as '1w' | '1m' | '3m' | '1y')}>
+              <IonSegmentButton value="1w">
+                <IonLabel>1 Semana</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="1m">
+                <IonLabel>1 Mes</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="3m">
+                <IonLabel>3 Meses</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="1y">
+                <IonLabel>1 Año</IonLabel>
+              </IonSegmentButton>
+            </IonSegment>
+          </div>
 
-        <IonList>
-          {filtered.length === 0 ? (
-            <IonItem>
-              <IonText>No hay transacciones en este periodo</IonText>
-            </IonItem>
-          ) : (
-            filtered.map((t: any) => (
-              <IonItem key={t.id}>
-                <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong>{t.description ?? t.type}</strong>
-                    <div style={{ display: 'flex', gap: 8 }}>
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="p-4 rounded bg-gray-50/50 text-muted">No hay transacciones en este periodo</div>
+            ) : (
+              filtered.map((t: any) => (
+                <div key={t.id} className="p-3 rounded shadow-sm bg-white/5 flex flex-col">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong className="block">{t.description ?? t.type}</strong>
+                      <small className="text-sm text-muted">{new Date(t.date).toLocaleString()} • {t.tags?.join(', ')}</small>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <IonButton size="small" fill="clear" onClick={() => { setEditing(t); setEditOpen(true); }}>
                         <IonIcon icon={pencilIcon} />
                       </IonButton>
@@ -82,46 +88,45 @@ const History: React.FC = () => {
                       </IonButton>
                     </div>
                   </div>
-                  <small>{new Date(t.date).toLocaleString()} • {t.tags?.join(', ')}</small>
                 </div>
-              </IonItem>
-            ))
-          )}
-        </IonList>
-
-        <IonModal isOpen={editOpen} onDidDismiss={() => setEditOpen(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Editar Transacción</IonTitle>
-              <IonButton slot="end" onClick={() => setEditOpen(false)}>Cerrar</IonButton>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            {editing && (
-              <div>
-                <IonItem>
-                  <IonLabel>Descripción</IonLabel>
-                  <IonInput value={editing.description} onIonChange={(e: any) => setEditing({ ...editing, description: e.detail.value })} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="stacked">Cantidad</IonLabel>
-                  <IonInput value={String(editing.amount)} inputmode="decimal" onIonChange={(e: any) => setEditing({ ...editing, amount: Number(e.detail.value) })} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Moneda</IonLabel>
-                  <IonSelect value={editing.currency} onIonChange={(e) => setEditing({ ...editing, currency: e.detail.value })}>
-                    <IonSelectOption value="VES">VES</IonSelectOption>
-                    <IonSelectOption value="USD">USD</IonSelectOption>
-                    <IonSelectOption value="EUR">EUR</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <div style={{ padding: 16 }}>
-                  <IonButton expand="block" onClick={async () => { await editTransaction(editing.id, { description: editing.description, amount: editing.amount, currency: editing.currency }); setEditOpen(false); }}>Guardar</IonButton>
-                </div>
-              </div>
+              ))
             )}
-          </IonContent>
-        </IonModal>
+          </div>
+
+          <IonModal isOpen={editOpen} onDidDismiss={() => setEditOpen(false)}>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Editar Transacción</IonTitle>
+                <IonButton slot="end" onClick={() => setEditOpen(false)}>Cerrar</IonButton>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              {editing && (
+                <div className="max-w-xl mx-auto">
+                  <IonItem>
+                    <IonLabel>Descripción</IonLabel>
+                    <IonInput value={editing.description} onIonChange={(e: any) => setEditing({ ...editing, description: e.detail.value })} />
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel position="stacked">Cantidad</IonLabel>
+                    <IonInput value={String(editing.amount)} inputmode="decimal" onIonChange={(e: any) => setEditing({ ...editing, amount: Number(e.detail.value) })} />
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Moneda</IonLabel>
+                    <IonSelect value={editing.currency} onIonChange={(e) => setEditing({ ...editing, currency: e.detail.value })}>
+                      <IonSelectOption value="VES">VES</IonSelectOption>
+                      <IonSelectOption value="USD">USD</IonSelectOption>
+                      <IonSelectOption value="EUR">EUR</IonSelectOption>
+                    </IonSelect>
+                  </IonItem>
+                  <div className="p-4">
+                    <IonButton expand="block" onClick={async () => { await editTransaction(editing.id, { description: editing.description, amount: editing.amount, currency: editing.currency }); setEditOpen(false); }}>Guardar</IonButton>
+                  </div>
+                </div>
+              )}
+            </IonContent>
+          </IonModal>
+        </div>
       </IonContent>
     </IonPage>
   )

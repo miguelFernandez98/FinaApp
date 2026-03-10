@@ -18,16 +18,9 @@ import {
   IonText,
 } from '@ionic/react';
 
-interface Rates {
-  USD: number; // VES per 1 USD
-  EUR: number; // VES per 1 EUR
-}
+interface Rates { USD: number; EUR: number }
 
-interface CalculatorProps {
-  isOpen: boolean;
-  onClose: () => void;
-  rates: Rates; // pass current exchange rates
-}
+interface CalculatorProps { isOpen: boolean; onClose: () => void; rates: Rates }
 
 const currencyOptions = ['VES', 'USD', 'EUR'] as const;
 type Currency = typeof currencyOptions[number];
@@ -38,27 +31,14 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, rates }
   const [to, setTo] = useState<Currency>('USD');
 
   const result = useMemo(() => {
-    if (amount === '' || Number.isNaN(Number(amount))) return '';
-    const a = Number(amount);
-    // Convert any currency -> VES
-    const toVES = (value: number, cur: Currency) => {
-      if (cur === 'VES') return value;
-      if (cur === 'USD') return value * rates.USD;
-      if (cur === 'EUR') return value * rates.EUR;
-      return value;
-    };
-    // Convert VES -> target currency
-    const fromVES = (valueVES: number, cur: Currency) => {
-      if (cur === 'VES') return valueVES;
-      if (cur === 'USD') return valueVES / rates.USD;
-      if (cur === 'EUR') return valueVES / rates.EUR;
-      return valueVES;
-    };
-
-    const asVES = toVES(a, from);
-    const converted = fromVES(asVES, to);
-    return converted;
-  }, [amount, from, to, rates]);
+    if (amount === '' || Number.isNaN(Number(amount))) return ''
+    const a = Number(amount)
+    const toVES = (value: number, cur: Currency) =>
+      cur === 'VES' ? value : cur === 'USD' ? value * rates.USD : value * rates.EUR
+    const fromVES = (valueVES: number, cur: Currency) =>
+      cur === 'VES' ? valueVES : cur === 'USD' ? valueVES / rates.USD : valueVES / rates.EUR
+    return fromVES(toVES(a, from), to)
+  }, [amount, from, to, rates])
 
   const clear = () => {
     setAmount('');
@@ -77,64 +57,48 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, rates }
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <IonGrid>
-          <IonRow>
-            <IonCol>
-              <IonItem>
-                <IonLabel position="stacked">Cantidad</IonLabel>
-                <IonInput
-                  inputmode="decimal"
-                  value={amount}
-                  onIonChange={(e: any) => {
-                    // Ionic's IonInput provides the value in e.detail.value
-                    const val = e?.detail?.value ?? ''
-                    setAmount(val === null ? '' : String(val))
-                  }}
-                  placeholder="0.00"
-                />
-              </IonItem>
-            </IonCol>
-          </IonRow>
+        <div className="container">
+          <div className="card space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Cantidad</label>
+              <IonInput
+                className="mt-2"
+                inputmode="decimal"
+                value={amount}
+                onIonChange={(e: any) => setAmount(String(e?.detail?.value ?? ''))}
+                placeholder="0.00"
+              />
+            </div>
 
-          <IonRow>
-            <IonCol>
-              <IonItem>
-                <IonLabel>Desde</IonLabel>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium">Desde</label>
                 <IonSelect value={from} onIonChange={(e) => setFrom(e.detail.value)}>
                   {currencyOptions.map((c) => (
                     <IonSelectOption key={c} value={c}>{c}</IonSelectOption>
                   ))}
                 </IonSelect>
-              </IonItem>
-            </IonCol>
-            <IonCol>
-              <IonItem>
-                <IonLabel>Hacia</IonLabel>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Hacia</label>
                 <IonSelect value={to} onIonChange={(e) => setTo(e.detail.value)}>
                   {currencyOptions.map((c) => (
                     <IonSelectOption key={c} value={c}>{c}</IonSelectOption>
                   ))}
                 </IonSelect>
-              </IonItem>
-            </IonCol>
-          </IonRow>
+              </div>
+            </div>
 
-          <IonRow className="ion-margin-top">
-            <IonCol>
-              <IonText>
-                <h2>Resultado</h2>
-                <p style={{ fontSize: 20 }}>{result === '' ? '-' : `${result.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`}</p>
-              </IonText>
-            </IonCol>
-          </IonRow>
+            <div>
+              <h3 className="text-sm font-medium">Resultado</h3>
+              <p className="text-lg mt-2">{result === '' ? '-' : `${result.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`}</p>
+            </div>
 
-          <IonRow>
-            <IonCol>
+            <div>
               <IonButton expand="block" onClick={() => { setAmount(''); }}>Limpiar</IonButton>
-            </IonCol>
-          </IonRow>
-
-        </IonGrid>
+            </div>
+          </div>
+        </div>
       </IonContent>
     </IonModal>
   );
