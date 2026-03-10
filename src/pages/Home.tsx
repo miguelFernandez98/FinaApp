@@ -33,6 +33,9 @@ const Home: React.FC = () => {
   const [calcOpen, setCalcOpen] = useState(false)
   const [rates, setRates] = useState<{ USD: number; EUR: number }>({ USD: 0, EUR: 0 })
   const [loadingRates, setLoadingRates] = useState(true)
+  const [binanceBuy, setBinanceBuy] = useState<number | null>(null)
+  const [binanceSell, setBinanceSell] = useState<number | null>(null)
+  const [loadingBinance, setLoadingBinance] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
 
   const { addTransaction } = useFinance()
@@ -62,9 +65,30 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     let mounted = true
-    import('../utils/rates').then(({ fetchRates }) => {
-      fetchRates().then((r) => { if (mounted) setRates(r) }).finally(() => { if (mounted) setLoadingRates(false) })
-    })
+    ;(async () => {
+      const mod = await import('../utils/rates')
+      try {
+        const r = await mod.fetchRates()
+        if (mounted) setRates(r)
+      } catch (_) {
+        // ignore
+      } finally {
+        if (mounted) setLoadingRates(false)
+      }
+
+      // Try Binance P2P medians (buy/sell)
+      try {
+        const bin = await mod.fetchBinanceP2P()
+        if (mounted) {
+          setBinanceBuy(bin.buy)
+          setBinanceSell(bin.sell)
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setLoadingBinance(false)
+      }
+    })()
     return () => { mounted = false }
   }, [])
 
@@ -122,8 +146,12 @@ const Home: React.FC = () => {
 
             <div className="card">
               <h3 className="font-semibold mb-2">Binance P2P</h3>
-              <p className="muted">Compra: --</p>
-              <p className="muted">Venta: --</p>
+              {loadingBinance ? <p className="muted">Cargando...</p> : (
+                <>
+                  <p className="muted">Compra (buy USDT): {binanceBuy ? (<strong>{binanceBuy.toLocaleString()} VES</strong>) : <span className="muted">N/A</span>}</p>
+                  <p className="muted">Venta (sell USDT): {binanceSell ? (<strong>{binanceSell.toLocaleString()} VES</strong>) : <span className="muted">N/A</span>}</p>
+                </>
+              )}
             </div>
 
             <div className="card">

@@ -29,6 +29,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, rates }
   const [amount, setAmount] = useState<string>('');
   const [from, setFrom] = useState<Currency>('VES');
   const [to, setTo] = useState<Currency>('USD');
+  const [copied, setCopied] = useState(false)
 
   const result = useMemo(() => {
     if (amount === '' || Number.isNaN(Number(amount))) return ''
@@ -45,6 +46,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, rates }
     setFrom('VES');
     setTo('USD');
   };
+
+  const copyResult = async () => {
+    if (result === '' || typeof result === 'string' && result === '') return
+    try {
+      const text = `${Number(result).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (e) {
+      console.warn('Copy failed', e)
+    }
+  }
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
@@ -92,6 +105,17 @@ export const Calculator: React.FC<CalculatorProps> = ({ isOpen, onClose, rates }
             <div>
               <h3 className="text-sm font-medium">Resultado</h3>
               <p className="text-lg mt-2">{result === '' ? '-' : `${result.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`}</p>
+              {result !== '' && (
+                <div className="mt-2 flex items-center gap-2">
+                  <IonButton size="small" onClick={copyResult}>{copied ? 'Copiado' : 'Copiar'}</IonButton>
+                  <div className="text-sm text-muted">Equivalente VES: {(() => {
+                    const num = Number(result)
+                    if (Number.isNaN(num)) return '-'
+                    const inVES = to === 'VES' ? num : to === 'USD' ? num * rates.USD : num * rates.EUR
+                    return inVES.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' VES'
+                  })()}</div>
+                </div>
+              )}
             </div>
 
             <div>

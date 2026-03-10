@@ -8,7 +8,7 @@ import {
   IonIcon,
   IonRouterOutlet,
 } from '@ionic/react'
-import { IonReactRouter } from '@ionic/react-router'
+import { IonReactRouter as IonReactRouterTyped } from '@ionic/react-router'
 import { home as homeIcon, list as listIcon, cog as cogIcon } from 'ionicons/icons'
 import { Route, Redirect } from 'react-router-dom'
 import { FinanceProvider } from './contexts/FinanceContext'
@@ -21,7 +21,15 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <FinanceProvider>
-        <IonReactRouter>
+        {
+          // IonReactRouter type can be incompatible with some TS/react-router versions.
+          // Use a local `Router` cast to `any` to avoid the TS children prop error while
+          // keeping runtime behavior unchanged.
+        }
+        {(() => {
+          const Router: any = IonReactRouterTyped as any
+          return (
+            <Router>
           <IonTabs>
             <IonRouterOutlet>
               <Route path="/home" component={Home} exact={true} />
@@ -47,7 +55,9 @@ const App: React.FC = () => {
               </IonTabButton>
             </IonTabBar>
           </IonTabs>
-        </IonReactRouter>
+            </Router>
+          )
+        })()}
       </FinanceProvider>
     </IonApp>
   )
