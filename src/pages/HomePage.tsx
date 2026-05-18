@@ -1,8 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../context";
 import { MONTH_NAMES } from "../data/categories";
-import { formatMoney, getCatById, getGreeting } from "../utils/helpers";
+import {
+  formatMoney,
+  getCatById,
+  getGreeting,
+  calculatePreviousBalance,
+  calculateMonthDebtAmount,
+  getPendingDebtsForMonth,
+} from "../utils/helpers";
 import TransactionModal from "../components/TransactionModal";
+import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import { fetchBinanceRate, fetchBCVRate } from "../utils/exchangeRates";
@@ -10,6 +18,7 @@ import type { Transaction } from "../types";
 
 export default function HomePage() {
   const {
+    transactions,
     getMonthTransactions,
     currentMonth,
     currentYear,
@@ -36,7 +45,28 @@ export default function HomePage() {
         .reduce((s, t) => s + t.amount, 0),
     [txns],
   );
-  const balance = income - expense;
+  const previousBalance = useMemo(
+    () => calculatePreviousBalance(transactions, currentMonth, currentYear),
+    [transactions, currentMonth, currentYear],
+  );
+  const debtAmount = useMemo(
+    () => calculateMonthDebtAmount(transactions, currentMonth, currentYear),
+    [transactions, currentMonth, currentYear],
+  );
+  const balance = previousBalance + income - expense - debtAmount;
+  const pendingDebts = useMemo(
+    () => getPendingDebtsForMonth(transactions, currentMonth, currentYear),
+    [transactions, currentMonth, currentYear],
+  );
+  const pendingDebtsTotal = useMemo(
+    () =>
+      pendingDebts.reduce(
+        (sum, t) =>
+          sum + (t.debtPaidAmount ? t.amount - t.debtPaidAmount : t.amount),
+        0,
+      ),
+    [pendingDebts],
+  );
 
   const recent = useMemo(
     () =>
@@ -125,6 +155,22 @@ export default function HomePage() {
         </button>
       </div>
 
+      {previousBalance !== 0 && (
+        <div className="previous-balance-row">
+          <div>
+            <i className="fa-solid fa-arrow-up-right-dots" /> Saldo anterior
+          </div>
+          <div
+            style={{
+              color: previousBalance >= 0 ? "var(--success)" : "var(--danger)",
+            }}
+          >
+            {previousBalance < 0 ? "-" : ""}
+            {formatMoney(previousBalance, currency)}
+          </div>
+        </div>
+      )}
+
       {/* Balance hero */}
       <div className="balance-hero">
         <p className="balance-label">Balance total</p>
@@ -156,6 +202,60 @@ export default function HomePage() {
       {/* Calculadora de divisas */}
       <CurrencyCalculator />
 
+      {pendingDebts.length > 0 && (
+        <div className="glass-card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">Deudas pendientes</h3>
+              <span className="card-subtitle">
+                Vence {MONTH_NAMES[currentMonth]} {currentYear}
+              </span>
+            </div>
+            <div
+              style={{
+                color: "var(--danger)",
+                fontWeight: 700,
+                textAlign: "right",
+              }}
+            >
+              {formatMoney(pendingDebtsTotal, currency)}
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
+            {pendingDebts.slice(0, 3).map((debt) => (
+              <div
+                key={debt.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                    {getCatById(debt.category).name}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+                    {debt.debtDueDate
+                      ? `Límite: ${debt.debtDueDate}`
+                      : "Sin fecha límite"}
+                  </div>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>
+                  {formatMoney(
+                    debt.debtPaidAmount
+                      ? debt.amount - debt.debtPaidAmount
+                      : debt.amount,
+                    currency,
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Gráfico */}
       <div className="glass-card">
         <div className="card-header">
@@ -186,9 +286,9 @@ export default function HomePage() {
           </div>
         ) : (
           recent.map((t) => (
-            <TxnItem
+            <TransactionItem
               key={t.id}
-              t={t}
+              transaction={t}
               onEdit={() => {
                 setEditingId(t.id);
                 setModalOpen(true);
@@ -207,39 +307,6 @@ export default function HomePage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function TxnItem({ t, onEdit }: { t: Transaction; onEdit: () => void }) {
-  const { currency } = useApp();
-  const cat = getCatById(t.category);
-  const sign = t.type === "income" ? "+" : "-";
-  const color = t.type === "income" ? "var(--success)" : "var(--danger)";
-  const bgColor = t.type === "income" ? "var(--success-dim)" : `${cat.color}18`;
-  const dateStr = new Date(t.date).toLocaleDateString("es", {
-    day: "numeric",
-    month: "short",
-  });
-
-  return (
-    <div className="txn-item" onClick={onEdit}>
-      <div
-        className="txn-icon"
-        style={{ background: bgColor, color: cat.color }}
-      >
-        <i className={`fa-solid ${cat.icon}`} />
-      </div>
-      <div className="txn-info">
-        <div className="txn-desc">{t.description || cat.name}</div>
-        <div className="txn-meta">
-          {cat.name} · {dateStr}
-        </div>
-      </div>
-      <div className="txn-amount" style={{ color }}>
-        {sign}
-        {formatMoney(t.amount, currency)}
-      </div>
     </div>
   );
 }

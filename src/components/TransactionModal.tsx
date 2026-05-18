@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context";
 import { CATEGORIES } from "../data/categories";
-import { getCatById } from "../utils/helpers";
 import type { Transaction } from "../types";
 
 interface Props {
@@ -20,11 +19,16 @@ export default function TransactionModal({ editingId, onClose }: Props) {
     exchangeRates,
   } = useApp();
 
-  const [type, setType] = useState<"expense" | "income">("expense");
+  const [type, setType] = useState<"expense" | "income" | "debt">("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedCat, setSelectedCat] = useState("");
+  const [debtStatus, setDebtStatus] = useState<"pending" | "partial" | "paid">(
+    "pending",
+  );
+  const [debtPaidAmount, setDebtPaidAmount] = useState("");
+  const [debtDueDate, setDebtDueDate] = useState("");
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcAmount, setCalcAmount] = useState("");
   const [calcFrom, setCalcFrom] = useState<"VES" | "USD_BCV" | "USD_BINANCE">(
@@ -43,6 +47,9 @@ export default function TransactionModal({ editingId, onClose }: Props) {
         setDescription(t.description);
         setDate(t.date);
         setSelectedCat(t.category);
+        setDebtStatus(t.debtStatus ?? "pending");
+        setDebtPaidAmount(t.debtPaidAmount?.toString() ?? "");
+        setDebtDueDate(t.debtDueDate ?? "");
       }
     } else {
       setType("expense");
@@ -50,6 +57,9 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setSelectedCat(filteredCats[0]?.id || "");
+      setDebtStatus("pending");
+      setDebtPaidAmount("");
+      setDebtDueDate("");
     }
   }, [editingId, transactions]);
 
@@ -73,6 +83,21 @@ export default function TransactionModal({ editingId, onClose }: Props) {
     showToast("Monto convertido a bolívares");
   };
 
+  const handleCopyAmount = async () => {
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount) || numAmount === 0) return;
+    try {
+      await navigator.clipboard.writeText(numAmount.toString());
+      showToast("Monto copiado");
+    } catch {
+      showToast(
+        "No se pudo copiar el monto",
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+    }
+  };
+
   const handleSave = () => {
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) {
@@ -91,6 +116,25 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       );
       return;
     }
+
+    const paidAmount = parseFloat(debtPaidAmount) || 0;
+    if (type === "debt" && debtStatus === "partial" && paidAmount <= 0) {
+      showToast(
+        "Ingresa el monto pagado parcial",
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
+    if (type === "debt" && paidAmount > numAmount) {
+      showToast(
+        "El monto pagado no puede ser mayor al total",
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
+
     const cat = selectedCat || filteredCats[0]?.id || "other_expense";
 
     const data: Omit<Transaction, "id" | "createdAt"> = {
@@ -99,6 +143,13 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       category: cat,
       description: description.trim(),
       date,
+      ...(type === "debt"
+        ? {
+            debtStatus,
+            debtPaidAmount: paidAmount || undefined,
+            debtDueDate: debtDueDate || undefined,
+          }
+        : {}),
     };
 
     if (editingId) {
@@ -148,6 +199,12 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           >
             Ingreso
           </button>
+          <button
+            className={`type-btn ${type === "debt" ? "active-debt" : ""}`}
+            onClick={() => setType("debt")}
+          >
+            Deuda
+          </button>
         </div>
 
         {/* Monto */}
@@ -166,18 +223,44 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             />
             <button
               type="button"
-              onClick={() => setShowCalculator(!showCalculator)}
+              onClick={handleCopyAmount}
               style={{
                 position: "absolute",
                 right: 12,
                 top: "50%",
                 transform: "translateY(-50%)",
+                background: "var(--card)",
+                color: "var(--fg)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                width: 36,
+                height: 36,
+                display: "grid",
+                placeItems: "center",
+                cursor:
+                  amount && parseFloat(amount) !== 0
+                    ? "pointer"
+                    : "not-allowed",
+              }}
+            >
+              <i className="fa-solid fa-copy" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCalculator(!showCalculator)}
+              style={{
+                position: "absolute",
+                right: 54,
+                top: "50%",
+                transform: "translateY(-50%)",
                 background: "var(--accent)",
                 color: "white",
                 border: "none",
-                borderRadius: 6,
-                padding: "4px 8px",
-                fontSize: 12,
+                borderRadius: 10,
+                width: 36,
+                height: 36,
+                display: "grid",
+                placeItems: "center",
                 cursor: "pointer",
               }}
             >
@@ -186,44 +269,47 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           </div>
         </div>
 
-        {/* Calculadora integrada */}
-        {showCalculator && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: 12,
-              background: "var(--card)",
-              borderRadius: 8,
-              border: "1px solid var(--border)",
-            }}
-          >
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input
-                type="number"
-                className="input-field"
-                placeholder="Monto en USD"
-                value={calcAmount}
-                onChange={(e) => setCalcAmount(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <select
-                className="input-field"
-                value={calcFrom}
-                onChange={(e) => setCalcFrom(e.target.value as any)}
-                style={{ width: 120 }}
-              >
-                <option value="USD_BCV">BCV</option>
-                <option value="USD_BINANCE">Binance</option>
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={convertAmount}
-              className="btn-primary"
-              style={{ width: "100%", fontSize: 14 }}
+        {type === "debt" && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Estado de la deuda</label>
+            <select
+              className="input-field"
+              value={debtStatus}
+              onChange={(e) => setDebtStatus(e.target.value as any)}
             >
-              Convertir a Bolívares
-            </button>
+              <option value="pending">Pendiente</option>
+              <option value="partial">Parcialmente pagada</option>
+              <option value="paid">Pagada</option>
+            </select>
+          </div>
+        )}
+
+        {type === "debt" && debtStatus === "partial" && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Monto pagado</label>
+            <input
+              type="number"
+              className="input-field"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              value={debtPaidAmount}
+              onChange={(e) => setDebtPaidAmount(e.target.value)}
+            />
+          </div>
+        )}
+
+        {type === "debt" && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Fecha límite (opcional)</label>
+            <input
+              type="date"
+              className="input-field"
+              value={debtDueDate}
+              onChange={(e) => setDebtDueDate(e.target.value)}
+              style={{ cursor: "pointer" }}
+            />
           </div>
         )}
 

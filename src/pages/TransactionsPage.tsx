@@ -1,13 +1,18 @@
 import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../context";
 import { MONTH_NAMES } from "../data/categories";
-import { formatMoney, getCatById } from "../utils/helpers";
+import {
+  formatMoney,
+  getCatById,
+  getMonthTransactionsWithDebtCarry,
+} from "../utils/helpers";
 import TransactionModal from "../components/TransactionModal";
+import TransactionItem from "../components/TransactionItem";
 import type { Transaction, FilterType } from "../types";
 
 export default function TransactionsPage() {
   const {
-    getMonthTransactions,
+    transactions,
     currentMonth,
     currentYear,
     currency,
@@ -21,8 +26,13 @@ export default function TransactionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const txns = useMemo(
-    () => getMonthTransactions(currentMonth, currentYear),
-    [getMonthTransactions, currentMonth, currentYear],
+    () =>
+      getMonthTransactionsWithDebtCarry(
+        transactions,
+        currentMonth,
+        currentYear,
+      ),
+    [transactions, currentMonth, currentYear],
   );
 
   const usedCats = useMemo(
@@ -78,13 +88,19 @@ export default function TransactionsPage() {
 
       {/* Filtros de tipo */}
       <div className="filters-scroll">
-        {(["all", "expense", "income"] as FilterType[]).map((f) => (
+        {(["all", "expense", "income", "debt"] as FilterType[]).map((f) => (
           <button
             key={f}
             className={`filter-chip ${currentFilter === f ? "active" : ""}`}
             onClick={() => setFilter(f)}
           >
-            {f === "all" ? "Todos" : f === "expense" ? "Gastos" : "Ingresos"}
+            {f === "all"
+              ? "Todos"
+              : f === "expense"
+                ? "Gastos"
+                : f === "income"
+                  ? "Ingresos"
+                  : "Deudas"}
           </button>
         ))}
       </div>
@@ -145,53 +161,14 @@ export default function TransactionsPage() {
               </div>
               <div className="glass-card" style={{ padding: "4px 14px" }}>
                 {items.map((t) => (
-                  <div
+                  <TransactionItem
                     key={t.id}
-                    className="txn-item"
-                    onClick={() => {
+                    transaction={t}
+                    onEdit={() => {
                       setEditingId(t.id);
                       setModalOpen(true);
                     }}
-                  >
-                    <div
-                      className="txn-icon"
-                      style={{
-                        background:
-                          t.type === "income"
-                            ? "var(--success-dim)"
-                            : `${getCatById(t.category).color}18`,
-                        color: getCatById(t.category).color,
-                      }}
-                    >
-                      <i
-                        className={`fa-solid ${getCatById(t.category).icon}`}
-                      />
-                    </div>
-                    <div className="txn-info">
-                      <div className="txn-desc">
-                        {t.description || getCatById(t.category).name}
-                      </div>
-                      <div className="txn-meta">
-                        {getCatById(t.category).name} ·{" "}
-                        {new Date(t.date).toLocaleDateString("es", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </div>
-                    </div>
-                    <div
-                      className="txn-amount"
-                      style={{
-                        color:
-                          t.type === "income"
-                            ? "var(--success)"
-                            : "var(--danger)",
-                      }}
-                    >
-                      {t.type === "income" ? "+" : "-"}
-                      {formatMoney(t.amount, currency)}
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
             </div>

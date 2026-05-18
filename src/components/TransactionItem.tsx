@@ -1,0 +1,95 @@
+import { getCatById, formatMoney } from "../utils/helpers";
+import type { Transaction } from "../types";
+import { useApp } from "../context";
+
+interface Props {
+  transaction: Transaction;
+  onEdit: () => void;
+}
+
+export default function TransactionItem({ transaction, onEdit }: Props) {
+  const { currency } = useApp();
+  const category = getCatById(transaction.category);
+  const isDebt = transaction.type === "debt";
+  const isPaidDebt = isDebt && transaction.debtStatus === "paid";
+  const sign = transaction.type === "income" ? "+" : "-";
+  const amountColor =
+    transaction.type === "income" ? "var(--success)" : "var(--danger)";
+  const iconBg =
+    transaction.type === "income"
+      ? "var(--success-dim)"
+      : `${category.color}18`;
+  const dateStr = new Date(transaction.date).toLocaleDateString("es", {
+    day: "numeric",
+    month: "short",
+  });
+
+  const badgeText = (() => {
+    if (!isDebt || !transaction.debtStatus) return "";
+    if (transaction.debtStatus === "pending") return "Pendiente";
+    if (transaction.debtStatus === "partial") {
+      const paid = transaction.debtPaidAmount ?? 0;
+      return `Parcial: ${formatMoney(paid, currency)} de ${formatMoney(
+        transaction.amount,
+        currency,
+      )}`;
+    }
+    return "Pagada";
+  })();
+
+  return (
+    <div
+      className="txn-item"
+      onClick={onEdit}
+      style={
+        isPaidDebt ? { opacity: 0.55, textDecoration: "line-through" } : {}
+      }
+    >
+      <div
+        className="txn-icon"
+        style={{ background: iconBg, color: category.color }}
+      >
+        <i className={`fa-solid ${category.icon}`} />
+      </div>
+      <div className="txn-info">
+        <div className="txn-desc">
+          {transaction.description || category.name}
+        </div>
+        <div className="txn-meta">
+          {category.name} · {dateStr}
+        </div>
+        {isDebt && transaction.debtStatus && (
+          <span
+            className="txn-badge"
+            style={{
+              marginTop: 6,
+              display: "inline-block",
+              padding: "4px 8px",
+              borderRadius: 9999,
+              fontSize: 11,
+              fontWeight: 700,
+              color:
+                transaction.debtStatus === "pending"
+                  ? "var(--danger)"
+                  : transaction.debtStatus === "partial"
+                    ? "var(--warning)"
+                    : "var(--fg-muted)",
+              background:
+                transaction.debtStatus === "pending"
+                  ? "rgba(255, 92, 92, 0.1)"
+                  : transaction.debtStatus === "partial"
+                    ? "rgba(250, 204, 21, 0.14)"
+                    : "rgba(255,255,255,0.06)",
+            }}
+          >
+            {badgeText}
+          </span>
+        )}
+      </div>
+      <div className="txn-amount" style={{ color: amountColor }}>
+        {sign}
+        {formatMoney(transaction.amount, currency)}
+      </div>
+    </div>
+  );
+}
