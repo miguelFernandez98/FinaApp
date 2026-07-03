@@ -2,20 +2,34 @@ import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../context";
 import { formatMoney } from "../utils/helpers";
 
+type CurrencyType = "VES" | "USD_BCV" | "USD_BINANCE";
+
 export default function CurrencyCalculator() {
   const { exchangeRates, currency } = useApp();
   const [amount, setAmount] = useState("");
-  const [fromCurrency, setFromCurrency] = useState<
-    "VES" | "USD_BCV" | "USD_BINANCE"
-  >("VES");
-  const [toCurrency, setToCurrency] = useState<
-    "VES" | "USD_BCV" | "USD_BINANCE"
-  >("USD_BCV");
 
-  // Debug: mostrar tasas en consola
+  const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
+  const [toCurrency, setToCurrency] = useState<CurrencyType>("USD_BCV");
+
   useEffect(() => {
     console.log("💱 Current exchange rates:", exchangeRates);
   }, [exchangeRates]);
+
+  const handleFromChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFrom = e.target.value as CurrencyType;
+    if (newFrom === toCurrency) {
+      setToCurrency(fromCurrency);
+    }
+    setFromCurrency(newFrom);
+  };
+
+  const handleToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTo = e.target.value as CurrencyType;
+    if (newTo === fromCurrency) {
+      setFromCurrency(toCurrency);
+    }
+    setToCurrency(newTo);
+  };
 
   const convertAmount = (
     value: number,
@@ -32,13 +46,10 @@ export default function CurrencyCalculator() {
 
     const fromRate = rates[from as keyof typeof rates];
     const toRate = rates[to as keyof typeof rates];
-
     if (!fromRate || !toRate) return null;
 
-    // Convertir a VES primero, luego al destino
     const inVES = from === "VES" ? value : value * fromRate;
     const result = to === "VES" ? inVES : inVES / toRate;
-
     return result;
   };
 
@@ -47,7 +58,8 @@ export default function CurrencyCalculator() {
     if (isNaN(numAmount) || fromCurrency === toCurrency) return null;
 
     const converted = convertAmount(numAmount, fromCurrency, toCurrency);
-    return converted !== null ? formatMoney(converted, currency) : null;
+    const symbol = toCurrency === "VES" ? "Bs." : "$";
+    return converted !== null ? formatMoney(converted, symbol) : null;
   }, [amount, fromCurrency, toCurrency, exchangeRates, currency]);
 
   return (
@@ -79,7 +91,7 @@ export default function CurrencyCalculator() {
             <select
               className="input-field"
               value={fromCurrency}
-              onChange={(e) => setFromCurrency(e.target.value as any)}
+              onChange={handleFromChange}
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
@@ -92,7 +104,7 @@ export default function CurrencyCalculator() {
             <select
               className="input-field"
               value={toCurrency}
-              onChange={(e) => setToCurrency(e.target.value as any)}
+              onChange={handleToChange}
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
