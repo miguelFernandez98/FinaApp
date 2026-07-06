@@ -24,6 +24,7 @@ import {
 import { generateId } from "./utils/helpers";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
+import { getMonthTransactions as getMonthTransactionsForMonth } from "./utils/helpers";
 
 interface AppContextValue extends AppState {
   currentPage: PageId;
@@ -121,12 +122,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * @returns Transacciones con fecha dentro del mes.
    */
   const getMonthTransactions = useCallback(
-    (month: number, year: number) => {
-      return transactions.filter((t) => {
-        const d = new Date(t.date);
-        return d.getMonth() === month && d.getFullYear() === year;
-      });
-    },
+    (month: number, year: number) =>
+      getMonthTransactionsForMonth(transactions, month, year),
     [transactions],
   );
 

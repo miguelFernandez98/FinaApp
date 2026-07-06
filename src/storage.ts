@@ -1,6 +1,7 @@
 import type { AppState } from "./types";
 
 const STORAGE_KEY = "finanzapp_state";
+const EXCHANGE_RATES_KEY = "finanzapp_exchange_rates";
 
 const DEFAULT_STATE: AppState = {
   transactions: [],
@@ -57,7 +58,7 @@ export function saveState(state: AppState): void {
 
 export function saveExchangeRates(rates: StoredExchange): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rates));
+    localStorage.setItem(EXCHANGE_RATES_KEY, JSON.stringify(rates));
   } catch (e) {
     console.warn("Error guardando exchange rates:", e);
   }
@@ -65,7 +66,7 @@ export function saveExchangeRates(rates: StoredExchange): void {
 
 export function loadExchangeRates(): StoredExchange | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(EXCHANGE_RATES_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {

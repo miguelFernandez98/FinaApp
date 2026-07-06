@@ -9,6 +9,9 @@ export interface Transaction {
   debtStatus?: "pending" | "partial" | "paid";
   debtPaidAmount?: number;
   debtDueDate?: string;
+  isRecurring?: boolean;
+  recurrenceDays?: number[];
+  recurringId?: string;
 }
 
 export interface Category {

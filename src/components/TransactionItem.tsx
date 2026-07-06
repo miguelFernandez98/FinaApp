@@ -24,8 +24,12 @@ export default function TransactionItem({ transaction, onEdit }: Props) {
     month: "short",
   });
 
+  const isRecurringTxn = transaction.isRecurring || !!transaction.recurringId;
   const badgeText = (() => {
-    if (!isDebt || !transaction.debtStatus) return "";
+    if (transaction.type !== "debt") {
+      return isRecurringTxn ? "Constante" : "";
+    }
+    if (!transaction.debtStatus) return "";
     if (transaction.debtStatus === "pending") return "Pendiente";
     if (transaction.debtStatus === "partial") {
       const paid = transaction.debtPaidAmount ?? 0;
@@ -58,7 +62,7 @@ export default function TransactionItem({ transaction, onEdit }: Props) {
         <div className="txn-meta">
           {category.name} · {dateStr}
         </div>
-        {isDebt && transaction.debtStatus && (
+        {badgeText && (
           <span
             className="txn-badge"
             style={{

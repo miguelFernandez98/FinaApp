@@ -179,7 +179,7 @@ export default function TransactionsPage() {
                     key={t.id}
                     transaction={t}
                     onEdit={() => {
-                      setEditingId(t.id);
+                      setEditingId(t.recurringId ?? t.id);
                       setModalOpen(true);
                     }}
                   />

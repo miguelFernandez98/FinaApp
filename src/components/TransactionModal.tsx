@@ -29,6 +29,8 @@ export default function TransactionModal({ editingId, onClose }: Props) {
   );
   const [debtPaidAmount, setDebtPaidAmount] = useState("");
   const [debtDueDate, setDebtDueDate] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceDaysInput, setRecurrenceDaysInput] = useState("");
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcAmount, setCalcAmount] = useState("");
   const [calcFrom, setCalcFrom] = useState<"VES" | "USD_BCV" | "USD_BINANCE">(
@@ -40,7 +42,9 @@ export default function TransactionModal({ editingId, onClose }: Props) {
   // Cargar datos al editar
   useEffect(() => {
     if (editingId) {
-      const t = transactions.find((tx) => tx.id === editingId);
+      const t = transactions.find(
+        (tx) => tx.id === editingId || tx.recurringId === editingId,
+      );
       if (t) {
         setType(t.type);
         setAmount(String(t.amount));
@@ -50,6 +54,8 @@ export default function TransactionModal({ editingId, onClose }: Props) {
         setDebtStatus(t.debtStatus ?? "pending");
         setDebtPaidAmount(t.debtPaidAmount?.toString() ?? "");
         setDebtDueDate(t.debtDueDate ?? "");
+        setIsRecurring(!!t.isRecurring);
+        setRecurrenceDaysInput(t.recurrenceDays?.join(",") ?? "");
       }
     } else {
       setType("expense");
@@ -126,6 +132,18 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       );
       return;
     }
+    const recurrenceDays = recurrenceDaysInput
+      .split(",")
+      .map((value) => parseInt(value.trim(), 10))
+      .filter((value) => !Number.isNaN(value) && value >= 1 && value <= 31);
+    if (isRecurring && recurrenceDays.length === 0) {
+      showToast(
+        "Define al menos un día de recurrencia",
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
     if (type === "debt" && paidAmount > numAmount) {
       showToast(
         "El monto pagado no puede ser mayor al total",
@@ -150,6 +168,15 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             debtDueDate: debtDueDate || undefined,
           }
         : {}),
+      ...(type !== "debt" && isRecurring
+        ? {
+            isRecurring: true,
+            recurrenceDays,
+          }
+        : {
+            isRecurring: false,
+            recurrenceDays: undefined,
+          }),
     };
 
     if (editingId) {
@@ -269,6 +296,39 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           </div>
         </div>
 
+        {type !== "debt" && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Registro constante</label>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+              <span style={{ fontSize: 14, color: "var(--fg-muted)" }}>
+                Aplicar cada mes en día fijo
+              </span>
+            </div>
+          </div>
+        )}
+        {type !== "debt" && isRecurring && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Días de recurrencia</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Ej: 15, 30"
+              value={recurrenceDaysInput}
+              onChange={(e) => setRecurrenceDaysInput(e.target.value)}
+            />
+            <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 6 }}>
+              Ingresa uno o varios días del mes.
+            </p>
+          </div>
+        )}
         {type === "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Estado de la deuda</label>

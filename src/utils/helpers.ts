@@ -104,18 +104,79 @@ export function isDebtVisibleInMonth(
  * @param year Año seleccionado.
  * @returns Transacciones visibles en la tabla del mes.
  */
+export function getRecurringOccurrences(
+  transaction: Transaction,
+  month: number,
+  year: number,
+): Transaction[] {
+  if (!transaction.isRecurring || !transaction.recurrenceDays?.length)
+    return [];
+
+  const startDate = new Date(transaction.date);
+  const startMonth = startDate.getMonth();
+  const startYear = startDate.getFullYear();
+  const startDay = startDate.getDate();
+
+  if (year < startYear || (year === startYear && month < startMonth)) {
+    return [];
+  }
+
+  return transaction.recurrenceDays
+    .filter((day) => day >= 1 && day <= 31)
+    .map((day) => {
+      const actualDay = Math.min(day, daysInMonth(year, month));
+      if (year === startYear && month === startMonth && actualDay < startDay) {
+        return null;
+      }
+      const date = new Date(year, month, actualDay).toISOString().split("T")[0];
+
+      return {
+        ...transaction,
+        id: `${transaction.id}-${year}-${month}-${actualDay}`,
+        date,
+        recurringId: transaction.id,
+      };
+    })
+    .filter((item): item is Transaction => item !== null);
+}
+
+export function getMonthTransactions(
+  transactions: Transaction[],
+  month: number,
+  year: number,
+): Transaction[] {
+  return transactions.flatMap((t) => {
+    if (t.isRecurring && t.type !== "debt") {
+      return getRecurringOccurrences(t, month, year);
+    }
+
+    const date = new Date(t.date);
+    const matchesMonth =
+      date.getMonth() === month && date.getFullYear() === year;
+    return matchesMonth ? [t] : [];
+  });
+}
+
 export function getMonthTransactionsWithDebtCarry(
   transactions: Transaction[],
   month: number,
   year: number,
 ): Transaction[] {
-  return transactions.filter((t) => {
-    const date = new Date(t.date);
-    const matchesMonth =
-      date.getMonth() === month && date.getFullYear() === year;
-    if (t.type !== "debt") return matchesMonth;
+  const monthTransactions = getMonthTransactions(
+    transactions,
+    month,
+    year,
+  ).filter((t) => t.type !== "debt");
+
+  const visibleDebts = transactions.filter((t) => {
+    if (t.type !== "debt") return false;
+    if (t.isRecurring) {
+      return getRecurringOccurrences(t, month, year).length > 0;
+    }
     return isDebtVisibleInMonth(t, month, year);
   });
+
+  return [...monthTransactions, ...visibleDebts];
 }
 
 /**
@@ -202,14 +263,11 @@ export function calculatePreviousBalance(
   let balance = 0;
 
   while (monthKey(currentMonth, currentYear) <= monthKey(endMonth, endYear)) {
-    const monthTransactions = transactions.filter((t) => {
-      const date = new Date(t.date);
-      return (
-        date.getMonth() === currentMonth &&
-        date.getFullYear() === currentYear &&
-        t.type !== "debt"
-      );
-    });
+    const monthTransactions = getMonthTransactions(
+      transactions,
+      currentMonth,
+      currentYear,
+    ).filter((t) => t.type !== "debt");
 
     const income = monthTransactions
       .filter((t) => t.type === "income")
