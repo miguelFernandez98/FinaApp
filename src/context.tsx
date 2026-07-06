@@ -15,7 +15,12 @@ import type {
   PageId,
   FilterType,
 } from "./types";
-import { loadState, saveState } from "./storage";
+import {
+  loadState,
+  saveState,
+  loadExchangeRates,
+  saveExchangeRates,
+} from "./storage";
 import { generateId } from "./utils/helpers";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
@@ -83,7 +88,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     lastUpdated: null,
   });
 
-  // Cargar estado al montar
   useEffect(() => {
     const saved = loadState();
     setTransactions(saved.transactions);
@@ -91,10 +95,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrencyState(saved.currency);
   }, []);
 
-  // Guardar estado cuando cambian datos
   useEffect(() => {
     saveState({ transactions, budgets, currency });
   }, [transactions, budgets, currency]);
+
+  useEffect(() => {
+    const cached = loadExchangeRates();
+    if (cached && (cached.binance !== null || cached.bcv !== null)) {
+      setExchangeRates(cached);
+      if (!navigator.onLine) {
+        showToast(
+          "Usando tasas en caché (sin conexión)",
+          "fa-info-circle",
+          "var(--warning)",
+        );
+      }
+    }
+    refreshExchangeRates();
+  }, []);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -258,21 +276,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newState.currency);
   }, []);
 
-  /**
-   * Refresca las tasas de cambio desde las APIs externas.
-   */
   const refreshExchangeRates = useCallback(async () => {
     console.log("🔄 Refreshing exchange rates...");
     try {
       const rates = await fetchAllRates();
       console.log("✅ Exchange rates updated:", rates);
       setExchangeRates(rates);
+      saveExchangeRates(rates);
     } catch (error) {
       console.error("❌ Error refreshing exchange rates:", error);
+      const cached = loadExchangeRates();
+      if (cached && (cached.binance !== null || cached.bcv !== null)) {
+        setExchangeRates(cached);
+        showToast(
+          "Usando tasas en caché (sin conexión)",
+          "fa-info-circle",
+          "var(--warning)",
+        );
+      } else {
+        showToast(
+          "No se pudieron cargar tasas (sin conexión ni caché)",
+          "fa-exclamation-triangle",
+          "var(--danger)",
+        );
+      }
     }
-  }, []);
+  }, [showToast]);
 
-  // Cargar tasas de cambio al montar
   useEffect(() => {
     refreshExchangeRates();
   }, [refreshExchangeRates]);

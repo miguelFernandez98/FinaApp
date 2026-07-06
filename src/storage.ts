@@ -8,6 +8,12 @@ const DEFAULT_STATE: AppState = {
   currency: "$",
 };
 
+export type StoredExchange = {
+  binance: number | null;
+  bcv: number | null;
+  lastUpdated: number | null;
+};
+
 /**
  * Carga el estado de la aplicación desde localStorage.
  * Mantiene compatibilidad con datos existentes cuando faltan campos nuevos.
@@ -46,5 +52,29 @@ export function saveState(state: AppState): void {
     );
   } catch (e) {
     console.warn("Error guardando estado:", e);
+  }
+}
+
+export function saveExchangeRates(rates: StoredExchange): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rates));
+  } catch (e) {
+    console.warn("Error guardando exchange rates:", e);
+  }
+}
+
+export function loadExchangeRates(): StoredExchange | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      binance: parsed.binance ?? null,
+      bcv: parsed.bcv ?? null,
+      lastUpdated: parsed.lastUpdated ?? null,
+    };
+  } catch (e) {
+    console.warn("Error cargando exchange rates:", e);
+    return null;
   }
 }
