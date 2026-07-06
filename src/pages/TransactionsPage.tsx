@@ -20,6 +20,7 @@ export default function TransactionsPage() {
     currentCatFilter,
     setFilter,
     setCatFilter,
+    changeMonth,
   } = useApp();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -85,6 +86,19 @@ export default function TransactionsPage() {
       <h1 className="page-title" style={{ marginBottom: 20 }}>
         Movimientos
       </h1>
+
+      {/* Selector de mes */}
+      <div className="month-selector">
+        <button className="month-arrow" onClick={() => changeMonth(-1)}>
+          <i className="fa-solid fa-chevron-left" />
+        </button>
+        <span className="month-label">
+          {MONTH_NAMES[currentMonth]} {currentYear}
+        </span>
+        <button className="month-arrow" onClick={() => changeMonth(1)}>
+          <i className="fa-solid fa-chevron-right" />
+        </button>
+      </div>
 
       {/* Filtros de tipo */}
       <div className="filters-scroll">

@@ -6,8 +6,14 @@ import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 
 export default function StatsPage() {
-  const { getMonthTransactions, currentMonth, currentYear, currency, budgets } =
-    useApp();
+  const {
+    changeMonth,
+    getMonthTransactions,
+    currentMonth,
+    currentYear,
+    currency,
+    budgets,
+  } = useApp();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
 
   const txns = useMemo(
@@ -68,6 +74,19 @@ export default function StatsPage() {
       <h1 className="page-title" style={{ marginBottom: 20 }}>
         Estadísticas
       </h1>
+
+      {/* Selector de mes */}
+      <div className="month-selector">
+        <button className="month-arrow" onClick={() => changeMonth(-1)}>
+          <i className="fa-solid fa-chevron-left" />
+        </button>
+        <span className="month-label">
+          {MONTH_NAMES[currentMonth]} {currentYear}
+        </span>
+        <button className="month-arrow" onClick={() => changeMonth(1)}>
+          <i className="fa-solid fa-chevron-right" />
+        </button>
+      </div>
 
       {/* Resumen */}
       <div className="glass-card" style={{ marginBottom: 20 }}>

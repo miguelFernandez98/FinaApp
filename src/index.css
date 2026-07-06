@@ -692,6 +692,7 @@ h4 {
 .cat-option {
   display: flex;
   flex-direction: column;
+  text-align: center;
   align-items: center;
   gap: 6px;
   padding: 10px 4px;

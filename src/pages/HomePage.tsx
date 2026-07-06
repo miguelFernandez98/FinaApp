@@ -76,7 +76,6 @@ export default function HomePage() {
     [txns],
   );
 
-  // Escuchar el botón global de agregar
   useEffect(() => {
     const handler = () => {
       setEditingId(null);
@@ -89,7 +88,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Limpiar el click del botón central para evitar doble navegación
   useEffect(() => {
     const btn = document.getElementById("global-add-btn");
     if (btn) {
@@ -101,7 +99,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Probar las APIs de exchange rates
   useEffect(() => {
     const testAPIs = async () => {
       console.log("Testing exchange rate APIs...");

@@ -148,7 +148,7 @@ export default function CurrencyCalculator() {
           }}
         >
           <div>
-            <div style={{ color: "var(--fg-muted)" }}>BCV:</div>
+            <div style={{ color: "var(--accent)" }}>BCV:</div>
             <div>
               {exchangeRates.bcv
                 ? formatMoney(exchangeRates.bcv, "Bs.")
@@ -156,7 +156,7 @@ export default function CurrencyCalculator() {
             </div>
           </div>
           <div>
-            <div style={{ color: "var(--fg-muted)" }}>Binance:</div>
+            <div style={{ color: "#F0B90B" }}>Binance:</div>
             <div>
               {exchangeRates.binance
                 ? formatMoney(exchangeRates.binance, "Bs.")
