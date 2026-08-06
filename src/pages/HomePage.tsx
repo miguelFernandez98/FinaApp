@@ -13,6 +13,7 @@ import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
+import MonthSelector from "../components/MonthSelector";
 
 export default function HomePage() {
   const {
@@ -21,7 +22,6 @@ export default function HomePage() {
     currentMonth,
     currentYear,
     currency,
-    changeMonth,
   } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -118,17 +118,7 @@ export default function HomePage() {
       </div>
 
       {/* Selector de mes */}
-      <div className="month-selector">
-        <button className="month-arrow" onClick={() => changeMonth(-1)}>
-          <i className="fa-solid fa-chevron-left" />
-        </button>
-        <span className="month-label">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-        <button className="month-arrow" onClick={() => changeMonth(1)}>
-          <i className="fa-solid fa-chevron-right" />
-        </button>
-      </div>
+      <MonthSelector />
 
       {previousBalance !== 0 && (
         <div className="previous-balance-row">

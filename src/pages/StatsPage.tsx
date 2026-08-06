@@ -1,14 +1,13 @@
 import { useState, useMemo } from "react";
 import { useApp } from "../AppContext";
-import { MONTH_NAMES } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
+import MonthSelector from "../components/MonthSelector";
 
 export default function StatsPage() {
   const {
-    changeMonth,
     getMonthTransactions,
     currentMonth,
     currentYear,
@@ -79,17 +78,7 @@ export default function StatsPage() {
       </h1>
 
       {/* Selector de mes */}
-      <div className="month-selector">
-        <button className="month-arrow" onClick={() => changeMonth(-1)}>
-          <i className="fa-solid fa-chevron-left" />
-        </button>
-        <span className="month-label">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-        <button className="month-arrow" onClick={() => changeMonth(1)}>
-          <i className="fa-solid fa-chevron-right" />
-        </button>
-      </div>
+      <MonthSelector />
 
       {/* Resumen */}
       <div className="glass-card" style={{ marginBottom: 20 }}>

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../AppContext";
-import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
   getCategoryById,
@@ -9,6 +9,7 @@ import {
 } from "../utils/transactions";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
+import MonthSelector from "../components/MonthSelector";
 import type { Transaction, FilterType } from "../types";
 
 export default function TransactionsPage() {
@@ -21,7 +22,6 @@ export default function TransactionsPage() {
     currentCategoryFilter,
     setFilter,
     setCategoryFilter,
-    changeMonth,
   } = useApp();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -90,19 +90,7 @@ export default function TransactionsPage() {
       </h1>
 
       {/* Selector de mes */}
-      {currentTypeFilter !== "future" && (
-        <div className="month-selector">
-          <button className="month-arrow" onClick={() => changeMonth(-1)}>
-            <i className="fa-solid fa-chevron-left" />
-          </button>
-          <span className="month-label">
-            {MONTH_NAMES[currentMonth]} {currentYear}
-          </span>
-          <button className="month-arrow" onClick={() => changeMonth(1)}>
-            <i className="fa-solid fa-chevron-right" />
-          </button>
-        </div>
-      )}
+      {currentTypeFilter !== "future" && <MonthSelector />}
 
       {/* Filtros de tipo */}
       <div className="filters-scroll">
