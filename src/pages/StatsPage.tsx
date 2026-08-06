@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
-import { formatMoney, getCatById } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES } from "../utils/date";
+import { formatMoney } from "../utils/format";
+import { getCategoryById } from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 
@@ -16,28 +17,30 @@ export default function StatsPage() {
   } = useApp();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
 
-  const txns = useMemo(
+  const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
     [getMonthTransactions, currentMonth, currentYear],
   );
 
   const income = useMemo(
     () =>
-      txns.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0),
-    [txns],
+      visibleTransactions
+        .filter((t) => t.type === "income")
+        .reduce((s, t) => s + t.amount, 0),
+    [visibleTransactions],
   );
   const expense = useMemo(
     () =>
-      txns
+      visibleTransactions
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + t.amount, 0),
-    [txns],
+    [visibleTransactions],
   );
   const balance = income - expense;
 
   // Top categorías
   const topCats = useMemo(() => {
-    const expenses = txns.filter((t) => t.type === "expense");
+    const expenses = visibleTransactions.filter((t) => t.type === "expense");
     const catMap: Record<string, number> = {};
     expenses.forEach((t) => {
       catMap[t.category] = (catMap[t.category] || 0) + t.amount;
@@ -51,11 +54,11 @@ export default function StatsPage() {
         amount,
         pct: total > 0 ? ((amount / total) * 100).toFixed(1) : "0",
       }));
-  }, [txns]);
+  }, [visibleTransactions]);
 
   // Presupuestos
   const budgetItems = useMemo(() => {
-    const expenses = txns.filter((t) => t.type === "expense");
+    const expenses = visibleTransactions.filter((t) => t.type === "expense");
     return Object.entries(budgets)
       .filter(([, budget]) => budget > 0)
       .map(([id, budget]) => {
@@ -64,10 +67,10 @@ export default function StatsPage() {
           .reduce((s, t) => s + t.amount, 0);
         const pct = Math.min((spent / budget) * 100, 100);
         const over = spent > budget;
-        const cat = getCatById(id);
+        const cat = getCategoryById(id);
         return { id, budget, spent, pct, over, cat };
       });
-  }, [txns, budgets]);
+  }, [visibleTransactions, budgets]);
 
   return (
     <div className="page">
@@ -220,15 +223,15 @@ export default function StatsPage() {
               <div
                 className="top-cat-icon"
                 style={{
-                  background: `${getCatById(item.id).color}20`,
-                  color: getCatById(item.id).color,
+                  background: `${getCategoryById(item.id).color}20`,
+                  color: getCategoryById(item.id).color,
                 }}
               >
-                <i className={`fa-solid ${getCatById(item.id).icon}`} />
+                <i className={`fa-solid ${getCategoryById(item.id).icon}`} />
               </div>
               <div className="top-cat-info">
                 <div style={{ fontSize: 13, fontWeight: 500 }}>
-                  {getCatById(item.id).name}
+                  {getCategoryById(item.id).name}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--fg-muted)" }}>
                   {item.pct}% del total

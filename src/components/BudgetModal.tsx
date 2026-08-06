@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useApp } from "../context";
+import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 
-interface Props {
+interface BudgetModalProps {
   onClose: () => void;
 }
 
-export default function BudgetModal({ onClose }: Props) {
+export default function BudgetModal({ onClose }: BudgetModalProps) {
   const { budgets, setBudgets, showToast } = useApp();
 
   const expenseCats = CATEGORIES.filter((c) => c.type === "expense");

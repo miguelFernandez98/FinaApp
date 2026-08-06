@@ -22,23 +22,24 @@ No tests, no CI, no codegen.
 - **State**: React Context (`src/context.tsx` — `AppProvider` / `useApp`). Persisted to `localStorage` under key `finanzapp_state`.
 - **Pages** (tab-based, driven by `BottomNav`): `home`, `transactions`, `stats`, `profile` — all rendered simultaneously, swapped via `currentPage` state.
 - **Overlays**: `Toast` (2.5s auto-dismiss) and `ConfirmDialog` at root level.
-- **Exchange rates**: Fetched from Binance/BCV API on mount via `src/utils/exchangeRates.ts`; cached in `localStorage` under `finanzapp_exchange_rates`.
-- **Charts**: chart.js + react-chartjs-2 (`BarChart`, `DonutChart`). Global chart registration in `src/chartSetup.ts`, plus `chart.js/auto` import in `main.tsx`.
+- **Exchange rates**: Fetched from yadio/dolarapi (parallel + BCV) on mount via `src/utils/exchangeRates.ts`; cached in `localStorage` under `finanzapp_exchange_rates`.
+- **Charts**: chart.js + react-chartjs-2 (`BarChart`, `DonutChart`) with `chart.js/auto` import in `main.tsx`.
 
-on## Structure
+## Structure
 
 ```
 src/
   main.tsx          — entrypoint
   App.tsx           — page router + layout
-  context.tsx       — global state (React Context)
+  AppContext.tsx    — global state (React Context)
   storage.ts        — localStorage read/write
-  types.ts          — Transaction, Category, AppState, etc.
-  chartSetup.ts     — Chart.js registration
+  types.ts          — Transaction, Category, PersistedState, etc.
   data/categories.ts — category definitions
   utils/
-    helpers.ts      — generateId, getMonthTransactions
-    exchangeRates.ts — Binance/BCV rate fetching
+    format.ts       — formatMoney
+    date.ts         — MONTH_NAMES, daysInMonth, toISODate, parseISODate
+    transactions.ts — generateId, getCategoryById, recurrences, debts, balances
+    exchangeRates.ts — parallel/BCV rate fetching
   pages/            — 4 tab pages
   components/       — shared UI components
 ```

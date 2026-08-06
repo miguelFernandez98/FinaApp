@@ -1,10 +1,10 @@
 export interface ExchangeRates {
-  binance: number | null;
+  parallel: number | null;
   bcv: number | null;
   lastUpdated: number | null;
 }
 
-export async function fetchBinanceRate(): Promise<number | null> {
+export async function fetchParallelRate(): Promise<number | null> {
   try {
     const response = await fetch("https://api.yadio.io/exrates/USD");
     const data = await response.json();
@@ -14,7 +14,7 @@ export async function fetchBinanceRate(): Promise<number | null> {
     }
     throw new Error("yadio sin tasa VES");
   } catch (error) {
-    console.error("Error fetching Binance rate from yadio:", error);
+    console.error("Error fetching parallel rate from yadio:", error);
     try {
       const fallbackResponse = await fetch(
         "https://ve.dolarapi.com/v1/dolares/paralelo",
@@ -60,13 +60,13 @@ export async function fetchBCVRate(): Promise<number | null> {
 }
 
 export async function fetchAllRates(): Promise<ExchangeRates> {
-  const [binance, bcv] = await Promise.all([
-    fetchBinanceRate(),
+  const [parallel, bcv] = await Promise.all([
+    fetchParallelRate(),
     fetchBCVRate(),
   ]);
 
   return {
-    binance,
+    parallel,
     bcv,
     lastUpdated: Date.now(),
   };

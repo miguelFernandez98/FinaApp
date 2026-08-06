@@ -1,15 +1,20 @@
-import { getCatById, formatMoney, parseISODate } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { parseISODate } from "../utils/date";
+import { formatMoney } from "../utils/format";
+import { getCategoryById } from "../utils/transactions";
 import type { Transaction } from "../types";
-import { useApp } from "../context";
 
-interface Props {
+interface TransactionItemProps {
   transaction: Transaction;
   onEdit: () => void;
 }
 
-export default function TransactionItem({ transaction, onEdit }: Props) {
+export default function TransactionItem({
+  transaction,
+  onEdit,
+}: TransactionItemProps) {
   const { currency } = useApp();
-  const category = getCatById(transaction.category);
+  const category = getCategoryById(transaction.category);
   const isDebt = transaction.type === "debt";
   const isPaidDebt = isDebt && transaction.debtStatus === "paid";
   const sign = transaction.type === "income" ? "+" : "-";

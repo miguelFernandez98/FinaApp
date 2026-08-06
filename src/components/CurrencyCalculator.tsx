@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useApp } from "../context";
-import { formatMoney } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { formatMoney } from "../utils/format";
 
-type CurrencyType = "VES" | "USD_BCV" | "USD_BINANCE";
+type CurrencyType = "VES" | "USD_BCV" | "USD_PARALLEL";
 
 export default function CurrencyCalculator() {
   const { exchangeRates } = useApp();
@@ -37,7 +37,7 @@ export default function CurrencyCalculator() {
       const rates = {
         VES: 1,
         USD_BCV: exchangeRates.bcv,
-        USD_BINANCE: exchangeRates.binance,
+        USD_PARALLEL: exchangeRates.parallel,
       };
       const fromRate = rates[from as keyof typeof rates];
       const toRate = rates[to as keyof typeof rates];
@@ -94,7 +94,7 @@ export default function CurrencyCalculator() {
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_BINANCE">Dólar Binance</option>
+              <option value="USD_PARALLEL">Dólar Paralelo</option>
             </select>
           </div>
 
@@ -107,7 +107,7 @@ export default function CurrencyCalculator() {
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_BINANCE">Dólar Binance</option>
+              <option value="USD_PARALLEL">Dólar Paralelo</option>
             </select>
           </div>
         </div>
@@ -155,10 +155,10 @@ export default function CurrencyCalculator() {
             </div>
           </div>
           <div>
-            <div style={{ color: "#F0B90B" }}>Binance:</div>
+            <div style={{ color: "#F0B90B" }}>Paralelo:</div>
             <div>
-              {exchangeRates.binance
-                ? formatMoney(exchangeRates.binance, "Bs.")
+              {exchangeRates.parallel
+                ? formatMoney(exchangeRates.parallel, "Bs.")
                 : "Cargando..."}
             </div>
           </div>

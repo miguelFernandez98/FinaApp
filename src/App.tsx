@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
-import { AppProvider, useApp } from "./context";
+import { AppProvider, useApp } from "./AppContext";
 import BottomNav from "./components/BottomNav";
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
 import HomePage from "./pages/HomePage";
 import TransactionsPage from "./pages/TransactionsPage";
 import StatsPage from "./pages/StatsPage";
-import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 import type { PageId } from "./types";
 
 function AppContent() {
@@ -22,7 +22,7 @@ function AppContent() {
     home: <HomePage />,
     transactions: <TransactionsPage />,
     stats: <StatsPage />,
-    profile: <ProfilePage />,
+    settings: <SettingsPage />,
   };
 
   return (

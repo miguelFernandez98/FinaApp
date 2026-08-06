@@ -1,9 +1,10 @@
 import { useRef } from "react";
-import { useApp } from "../context";
-import { generateId, daysInMonth, toISODate } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { generateId } from "../utils/transactions";
+import { daysInMonth, toISODate } from "../utils/date";
 import type { Transaction } from "../types";
 
-export default function ProfilePage() {
+export default function SettingsPage() {
   const {
     currency,
     setCurrency,
@@ -11,7 +12,7 @@ export default function ProfilePage() {
     budgets,
     showConfirm,
     showToast,
-    replaceAllData,
+    importState,
   } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +45,7 @@ export default function ProfilePage() {
             "Importar datos",
             "Se reemplazarán todos los datos actuales.",
             () => {
-              replaceAllData({
+              importState({
                 transactions: data.transactions,
                 budgets: data.budgets || {},
                 currency: data.currency || "$",
@@ -262,7 +263,7 @@ export default function ProfilePage() {
           services: 70,
         };
 
-        replaceAllData({
+        importState({
           transactions: sampleTxns,
           budgets: sampleBudgets,
           currency: "$",
@@ -277,7 +278,7 @@ export default function ProfilePage() {
       "Borrar todo",
       "Se eliminarán todas las transacciones y presupuestos permanentemente.",
       () => {
-        replaceAllData({ transactions: [], budgets: {}, currency: "$" });
+        importState({ transactions: [], budgets: {}, currency: "$" });
         showToast("Datos eliminados", "fa-trash", "var(--danger)");
       },
     );

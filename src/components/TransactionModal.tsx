@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { useApp } from "../context";
+import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
-import { toISODate } from "../utils/helpers";
-import type { Transaction } from "../types";
+import { toISODate } from "../utils/date";
+import type { Transaction, TransactionType, DebtStatus } from "../types";
 
-interface Props {
+interface TransactionModalProps {
   editingId: string | null;
   onClose: () => void;
 }
 
-export default function TransactionModal({ editingId, onClose }: Props) {
+export default function TransactionModal({
+  editingId,
+  onClose,
+}: TransactionModalProps) {
   const {
     transactions,
     addTransaction,
@@ -25,7 +28,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       ) ?? null)
     : null;
 
-  const [type, setType] = useState<"expense" | "income" | "debt">(
+  const [transactionType, setTransactionType] = useState<TransactionType>(
     editingTransaction?.type ?? "expense",
   );
   const [amount, setAmount] = useState(
@@ -37,10 +40,10 @@ export default function TransactionModal({ editingId, onClose }: Props) {
   const [date, setDate] = useState(
     editingTransaction?.date ?? toISODate(new Date()),
   );
-  const [selectedCat, setSelectedCat] = useState(
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
     editingTransaction?.category ?? "",
   );
-  const [debtStatus, setDebtStatus] = useState<"pending" | "partial" | "paid">(
+  const [debtStatus, setDebtStatus] = useState<DebtStatus>(
     editingTransaction?.debtStatus ?? "pending",
   );
   const [debtPaidAmount, setDebtPaidAmount] = useState(
@@ -59,12 +62,14 @@ export default function TransactionModal({ editingId, onClose }: Props) {
     !!editingTransaction?.recurringBackfill,
   );
 
-  const filteredCats = CATEGORIES.filter((c) => c.type === type);
+  const filteredCats = CATEGORIES.filter((c) => c.type === transactionType);
 
-  const handleTypeChange = (next: "expense" | "income" | "debt") => {
-    setType(next);
+  const handleTypeChange = (next: TransactionType) => {
+    setTransactionType(next);
     if (!editingId) {
-      setSelectedCat(CATEGORIES.filter((c) => c.type === next)[0]?.id || "");
+      setSelectedCategoryId(
+        CATEGORIES.filter((c) => c.type === next)[0]?.id || "",
+      );
     }
   };
 
@@ -103,7 +108,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
     }
 
     const paidAmount = parseFloat(debtPaidAmount) || 0;
-    if (type === "debt" && debtStatus === "partial" && paidAmount <= 0) {
+    if (transactionType === "debt" && debtStatus === "partial" && paidAmount <= 0) {
       showToast(
         "Ingresa el monto pagado parcial",
         "fa-circle-exclamation",
@@ -123,7 +128,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       );
       return;
     }
-    if (type === "debt" && paidAmount > numAmount) {
+    if (transactionType === "debt" && paidAmount > numAmount) {
       showToast(
         "El monto pagado no puede ser mayor al total",
         "fa-circle-exclamation",
@@ -132,22 +137,22 @@ export default function TransactionModal({ editingId, onClose }: Props) {
       return;
     }
 
-    const cat = selectedCat || filteredCats[0]?.id || "other_expense";
+    const cat = selectedCategoryId || filteredCats[0]?.id || "other_expense";
 
     const data: Omit<Transaction, "id" | "createdAt"> = {
-      type,
+      type: transactionType,
       amount: numAmount,
       category: cat,
       description: description.trim(),
       date,
-      ...(type === "debt"
+      ...(transactionType === "debt"
         ? {
             debtStatus,
             debtPaidAmount: paidAmount || undefined,
             debtDueDate: debtDueDate || undefined,
           }
         : {}),
-      ...(type !== "debt" && isRecurring
+      ...(transactionType !== "debt" && isRecurring
         ? {
             isRecurring: true,
             recurrenceDays,
@@ -196,19 +201,19 @@ export default function TransactionModal({ editingId, onClose }: Props) {
         {/* Tipo */}
         <div className="type-toggle" style={{ marginBottom: 16 }}>
           <button
-            className={`type-btn ${type === "expense" ? "active-expense" : ""}`}
+            className={`type-btn ${transactionType === "expense" ? "active-expense" : ""}`}
             onClick={() => handleTypeChange("expense")}
           >
             Gasto
           </button>
           <button
-            className={`type-btn ${type === "income" ? "active-income" : ""}`}
+            className={`type-btn ${transactionType === "income" ? "active-income" : ""}`}
             onClick={() => handleTypeChange("income")}
           >
             Ingreso
           </button>
           <button
-            className={`type-btn ${type === "debt" ? "active-debt" : ""}`}
+            className={`type-btn ${transactionType === "debt" ? "active-debt" : ""}`}
             onClick={() => handleTypeChange("debt")}
           >
             Deuda
@@ -256,7 +261,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           </div>
         </div>
 
-        {type !== "debt" && (
+        {transactionType !== "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Registro constante</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -274,7 +279,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             </div>
           </div>
         )}
-        {type !== "debt" && isRecurring && (
+        {transactionType !== "debt" && isRecurring && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Días de recurrencia</label>
             <input
@@ -289,7 +294,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             </p>
           </div>
         )}
-        {type !== "debt" && isRecurring && (
+        {transactionType !== "debt" && isRecurring && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Registro retroactivo</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -311,17 +316,13 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             </p>
           </div>
         )}
-        {type === "debt" && (
+        {transactionType === "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Estado de la deuda</label>
             <select
               className="input-field"
               value={debtStatus}
-              onChange={(e) =>
-                setDebtStatus(
-                  e.target.value as "pending" | "partial" | "paid",
-                )
-              }
+              onChange={(e) => setDebtStatus(e.target.value as DebtStatus)}
             >
               <option value="pending">Pendiente</option>
               <option value="partial">Parcialmente pagada</option>
@@ -330,7 +331,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           </div>
         )}
 
-        {type === "debt" && debtStatus === "partial" && (
+        {transactionType === "debt" && debtStatus === "partial" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Monto pagado</label>
             <input
@@ -346,7 +347,7 @@ export default function TransactionModal({ editingId, onClose }: Props) {
           </div>
         )}
 
-        {type === "debt" && (
+        {transactionType === "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Fecha límite (opcional)</label>
             <input
@@ -366,8 +367,8 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             {filteredCats.map((cat) => (
               <div
                 key={cat.id}
-                className={`cat-option ${selectedCat === cat.id ? "selected" : ""}`}
-                onClick={() => setSelectedCat(cat.id)}
+                className={`cat-option ${selectedCategoryId === cat.id ? "selected" : ""}`}
+                onClick={() => setSelectedCategoryId(cat.id)}
               >
                 <i
                   className={`fa-solid ${cat.icon}`}

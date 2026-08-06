@@ -1,34 +1,6 @@
 import { CATEGORIES } from "../data/categories";
-import type { Category, Transaction } from "../types";
-
-/**
- * Formatea un monto numérico con la moneda actual.
- * @param amount Monto a formatear.
- * @param currency Símbolo de moneda.
- * @returns Texto con moneda y dos decimales.
- */
-export function formatMoney(amount: number, currency: string): string {
-  const abs = Math.abs(amount);
-  return (
-    currency +
-    abs.toLocaleString("es", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  );
-}
-
-/**
- * Busca una categoría por su identificador.
- * @param id Identificador de categoría.
- * @returns La categoría encontrada o la última por defecto.
- */
-export function getCatById(id: string) {
-  return (
-    CATEGORIES.find((c: Category) => c.id === id) ||
-    CATEGORIES[CATEGORIES.length - 1]
-  );
-}
+import type { Transaction } from "../types";
+import { daysInMonth, parseISODate, toISODate } from "./date";
 
 /**
  * Genera un identificador corto único para transacciones.
@@ -39,48 +11,25 @@ export function generateId(): string {
 }
 
 /**
+ * Busca una categoría por su identificador.
+ * @param id Identificador de categoría.
+ * @returns La categoría encontrada o la última por defecto.
+ */
+export function getCategoryById(id: string) {
+  return (
+    CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1]
+  );
+}
+
+/**
  * Devuelve un saludo según la hora del día.
  * @returns Texto de saludo.
  */
-export function getGreeting(): string {
+export function getTimeBasedGreeting(): string {
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return "Buenos días";
   if (h >= 12 && h < 18) return "Buenas tardes";
   return "Buenas noches";
-}
-
-/**
- * Calcula la cantidad de días en un mes específico.
- * @param year Año.
- * @param month Mes (0-11).
- * @returns Número de días del mes.
- */
-export function daysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
-}
-
-/**
- * Convierte una fecha a string "YYYY-MM-DD" usando componentes locales.
- * No usa toISOString() para evitar el desfase de zona horaria (UTC).
- * @param date Fecha a formatear.
- * @returns Fecha local en formato ISO.
- */
-export function toISODate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-/**
- * Convierte un string "YYYY-MM-DD" a Date usando hora local.
- * No usa new Date(str) para evitar que se interprete como medianoche UTC.
- * @param dateStr Fecha local en formato ISO.
- * @returns Date local a medianoche.
- */
-export function parseISODate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d);
 }
 
 /**
@@ -122,11 +71,11 @@ export function isDebtVisibleInMonth(
 }
 
 /**
- * Filtra las transacciones de un mes incluyendo deudas carry-forward.
- * @param transactions Lista completa de transacciones.
- * @param month Mes seleccionado.
- * @param year Año seleccionado.
- * @returns Transacciones visibles en la tabla del mes.
+ * Genera las ocurrencias de una transacción recurrente en un mes dado.
+ * @param transaction Transacción recurrente.
+ * @param month Mes objetivo (0-11).
+ * @param year Año objetivo.
+ * @returns Ocurrencias generadas para ese mes.
  */
 export function getRecurringOccurrences(
   transaction: Transaction,
@@ -193,6 +142,13 @@ export function getRecurringOccurrences(
     .filter((item): item is Transaction => item !== null);
 }
 
+/**
+ * Devuelve las transacciones visibles en un mes, expandiendo las recurrentes.
+ * @param transactions Lista completa de transacciones.
+ * @param month Mes seleccionado (0-11).
+ * @param year Año seleccionado.
+ * @returns Transacciones del mes.
+ */
 export function getMonthTransactions(
   transactions: Transaction[],
   month: number,
@@ -279,6 +235,13 @@ export function getFutureTransactions(
   return result;
 }
 
+/**
+ * Devuelve las transacciones de un mes incluyendo deudas carry-forward.
+ * @param transactions Lista completa de transacciones.
+ * @param month Mes seleccionado (0-11).
+ * @param year Año seleccionado.
+ * @returns Transacciones visibles en la tabla del mes.
+ */
 export function getMonthTransactionsWithDebtCarry(
   transactions: Transaction[],
   month: number,
@@ -304,7 +267,7 @@ export function getMonthTransactionsWithDebtCarry(
 /**
  * Devuelve todas las deudas pendientes o parciales visibles en un mes.
  * @param transactions Lista completa de transacciones.
- * @param month Mes seleccionado.
+ * @param month Mes seleccionado (0-11).
  * @param year Año seleccionado.
  * @returns Deudas no pagadas visibles en ese mes.
  */
@@ -324,7 +287,7 @@ export function getPendingDebtsForMonth(
 /**
  * Calcula el total de deuda activa (pendiente o parcial) en un mes.
  * @param transactions Lista completa de transacciones.
- * @param month Mes seleccionado.
+ * @param month Mes seleccionado (0-11).
  * @param year Año seleccionado.
  * @returns Total de deuda activa para ese mes.
  */

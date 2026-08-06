@@ -1,4 +1,4 @@
-import { useApp } from "../context";
+import { useApp } from "../AppContext";
 
 export default function ConfirmDialog() {
   const { confirm, closeConfirm } = useApp();

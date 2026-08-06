@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { formatMoney } from "../utils/format";
 import {
-  formatMoney,
-  getCatById,
+  getCategoryById,
   getMonthTransactionsWithDebtCarry,
   getFutureTransactions,
-  parseISODate,
-} from "../utils/helpers";
+} from "../utils/transactions";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import type { Transaction, FilterType } from "../types";
@@ -18,18 +17,18 @@ export default function TransactionsPage() {
     currentMonth,
     currentYear,
     currency,
-    currentFilter,
-    currentCatFilter,
+    currentTypeFilter,
+    currentCategoryFilter,
     setFilter,
-    setCatFilter,
+    setCategoryFilter,
     changeMonth,
   } = useApp();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const txns = useMemo(() => {
-    if (currentFilter === "future") {
+  const visibleTransactions = useMemo(() => {
+    if (currentTypeFilter === "future") {
       return getFutureTransactions(transactions);
     }
     return getMonthTransactionsWithDebtCarry(
@@ -37,26 +36,26 @@ export default function TransactionsPage() {
       currentMonth,
       currentYear,
     );
-  }, [transactions, currentMonth, currentYear, currentFilter]);
+  }, [transactions, currentMonth, currentYear, currentTypeFilter]);
 
   const usedCats = useMemo(
-    () => [...new Set(txns.map((t) => t.category))],
-    [txns],
+    () => [...new Set(visibleTransactions.map((t) => t.category))],
+    [visibleTransactions],
   );
 
   const filtered = useMemo(() => {
-    let result = txns;
-    if (currentFilter !== "all" && currentFilter !== "future")
-      result = result.filter((t) => t.type === currentFilter);
-    if (currentCatFilter !== "all")
-      result = result.filter((t) => t.category === currentCatFilter);
+    let result = visibleTransactions;
+    if (currentTypeFilter !== "all" && currentTypeFilter !== "future")
+      result = result.filter((t) => t.type === currentTypeFilter);
+    if (currentCategoryFilter !== "all")
+      result = result.filter((t) => t.category === currentCategoryFilter);
     return result.sort(
       (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
     );
-  }, [txns, currentFilter, currentCatFilter]);
+  }, [visibleTransactions, currentTypeFilter, currentCategoryFilter]);
 
   // Agrupar por fecha
-  const grouped = useMemo(() => {
+  const transactionsByDate = useMemo(() => {
     const map: Record<string, Transaction[]> = {};
     filtered.forEach((t) => {
       if (!map[t.date]) map[t.date] = [];
@@ -91,7 +90,7 @@ export default function TransactionsPage() {
       </h1>
 
       {/* Selector de mes */}
-      {currentFilter !== "future" && (
+      {currentTypeFilter !== "future" && (
         <div className="month-selector">
           <button className="month-arrow" onClick={() => changeMonth(-1)}>
             <i className="fa-solid fa-chevron-left" />
@@ -111,7 +110,7 @@ export default function TransactionsPage() {
           (f) => (
             <button
               key={f}
-              className={`filter-chip ${currentFilter === f ? "active" : ""}`}
+              className={`filter-chip ${currentTypeFilter === f ? "active" : ""}`}
               onClick={() => setFilter(f)}
             >
               {f === "all"
@@ -131,18 +130,18 @@ export default function TransactionsPage() {
       {/* Filtros de categoría */}
       <div className="filters-scroll" style={{ marginBottom: 20 }}>
         <button
-          className={`filter-chip ${currentCatFilter === "all" ? "active" : ""}`}
-          onClick={() => setCatFilter("all")}
+          className={`filter-chip ${currentCategoryFilter === "all" ? "active" : ""}`}
+          onClick={() => setCategoryFilter("all")}
         >
           Todas
         </button>
         {usedCats.map((id) => {
-          const cat = getCatById(id);
+          const cat = getCategoryById(id);
           return (
             <button
               key={id}
-              className={`filter-chip ${currentCatFilter === id ? "active" : ""}`}
-              onClick={() => setCatFilter(id)}
+              className={`filter-chip ${currentCategoryFilter === id ? "active" : ""}`}
+              onClick={() => setCategoryFilter(id)}
             >
               {cat.name}
             </button>
@@ -151,23 +150,23 @@ export default function TransactionsPage() {
       </div>
 
       {/* Lista agrupada */}
-      {grouped.length === 0 ? (
+      {transactionsByDate.length === 0 ? (
         <div className="empty-state">
           <i
             className={
-              currentFilter === "future"
+              currentTypeFilter === "future"
                 ? "fa-solid fa-calendar-plus"
                 : "fa-solid fa-filter"
             }
           />
           <p style={{ fontSize: 13 }}>
-            {currentFilter === "future"
+            {currentTypeFilter === "future"
               ? "No hay movimientos futuros"
               : "Sin resultados para este filtro"}
           </p>
         </div>
       ) : (
-        grouped.map(([date, items]) => {
+        transactionsByDate.map(([date, items]) => {
           const dayTotal = items.reduce(
             (s, t) => s + (t.type === "expense" ? -t.amount : t.amount),
             0,

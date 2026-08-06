@@ -10,7 +10,7 @@ import {
 } from "react";
 import type {
   Transaction,
-  AppState,
+  PersistedState,
   ToastState,
   ConfirmState,
   PageId,
@@ -22,17 +22,19 @@ import {
   loadExchangeRates,
   saveExchangeRates,
 } from "./storage";
-import { generateId } from "./utils/helpers";
+import {
+  generateId,
+  getMonthTransactions as getMonthTransactionsForMonth,
+} from "./utils/transactions";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
-import { getMonthTransactions as getMonthTransactionsForMonth } from "./utils/helpers";
 
-interface AppContextValue extends AppState {
+interface AppContextValue extends PersistedState {
   currentPage: PageId;
   currentMonth: number;
   currentYear: number;
-  currentFilter: FilterType;
-  currentCatFilter: string;
+  currentTypeFilter: FilterType;
+  currentCategoryFilter: string;
   toast: ToastState;
   confirm: ConfirmState;
   exchangeRates: ExchangeRates;
@@ -47,12 +49,12 @@ interface AppContextValue extends AppState {
   setCurrency: (currency: string) => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
-  setCatFilter: (filter: string) => void;
+  setCategoryFilter: (filter: string) => void;
   getMonthTransactions: (month: number, year: number) => Transaction[];
   showToast: (message: string, icon?: string, color?: string) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void) => void;
   closeConfirm: () => void;
-  replaceAllData: (state: AppState) => void;
+  importState: (state: PersistedState) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -74,8 +76,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [currentFilter, setCurrentFilter] = useState<FilterType>("all");
-  const [currentCatFilter, setCurrentCatFilter] = useState("all");
+  const [currentTypeFilter, setCurrentTypeFilter] =
+    useState<FilterType>("all");
+  const [currentCategoryFilter, setCurrentCategoryFilter] = useState("all");
   const [toast, setToast] = useState<ToastState>({
     visible: false,
     message: "",
@@ -90,10 +93,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(() => {
     const cached = loadExchangeRates();
-    if (cached && (cached.binance !== null || cached.bcv !== null)) {
+    if (cached && (cached.parallel !== null || cached.bcv !== null)) {
       return cached;
     }
-    return { binance: null, bcv: null, lastUpdated: null };
+    return { parallel: null, bcv: null, lastUpdated: null };
   });
 
   useEffect(() => {
@@ -200,13 +203,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * Establece el filtro de tipo de transacción.
    * @param f Filtro seleccionado.
    */
-  const setFilter = useCallback((f: FilterType) => setCurrentFilter(f), []);
+  const setFilter = useCallback(
+    (f: FilterType) => setCurrentTypeFilter(f),
+    [],
+  );
 
   /**
    * Establece el filtro de categoría.
    * @param f Identificador de categoría.
    */
-  const setCatFilter = useCallback((f: string) => setCurrentCatFilter(f), []);
+  const setCategoryFilter = useCallback(
+    (f: string) => setCurrentCategoryFilter(f),
+    [],
+  );
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -252,7 +261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * Reemplaza el estado completo de la aplicación.
    * @param newState Nuevo estado de la aplicación.
    */
-  const replaceAllData = useCallback((newState: AppState) => {
+  const importState = useCallback((newState: PersistedState) => {
     setTransactions(newState.transactions);
     setBudgetsState(newState.budgets);
     setCurrencyState(newState.currency);
@@ -273,7 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         console.error("❌ Error refreshing exchange rates:", error);
         const cached = loadExchangeRates();
-        if (cached && (cached.binance !== null || cached.bcv !== null)) {
+        if (cached && (cached.parallel !== null || cached.bcv !== null)) {
           setExchangeRates(cached);
           showToast(
             "Usando tasas en caché (sin conexión)",
@@ -304,8 +313,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentPage,
       currentMonth,
       currentYear,
-      currentFilter,
-      currentCatFilter,
+      currentTypeFilter,
+      currentCategoryFilter,
       toast,
       confirm,
       navigateTo,
@@ -316,12 +325,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       changeMonth,
       setFilter,
-      setCatFilter,
+      setCategoryFilter,
       getMonthTransactions,
       showToast,
       showConfirm,
       closeConfirm,
-      replaceAllData,
+      importState,
       exchangeRates,
     }),
     [
@@ -331,8 +340,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentPage,
       currentMonth,
       currentYear,
-      currentFilter,
-      currentCatFilter,
+      currentTypeFilter,
+      currentCategoryFilter,
       toast,
       confirm,
       navigateTo,
@@ -343,12 +352,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       changeMonth,
       setFilter,
-      setCatFilter,
+      setCategoryFilter,
       getMonthTransactions,
       showToast,
       showConfirm,
       closeConfirm,
-      replaceAllData,
+      importState,
       exchangeRates,
     ],
   );

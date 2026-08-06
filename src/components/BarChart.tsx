@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Bar } from "react-chartjs-2";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
-import { formatMoney, getMonthTransactions } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES } from "../utils/date";
+import { formatMoney } from "../utils/format";
+import { getMonthTransactions } from "../utils/transactions";
 
 export default function BarChart() {
   const { currentMonth, currentYear, transactions, currency } = useApp();

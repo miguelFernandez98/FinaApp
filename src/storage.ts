@@ -1,18 +1,13 @@
-import type { AppState } from "./types";
+import type { PersistedState } from "./types";
+import type { ExchangeRates } from "./utils/exchangeRates";
 
 const STORAGE_KEY = "finanzapp_state";
 const EXCHANGE_RATES_KEY = "finanzapp_exchange_rates";
 
-const DEFAULT_STATE: AppState = {
+const DEFAULT_STATE: PersistedState = {
   transactions: [],
   budgets: {},
   currency: "$",
-};
-
-export type StoredExchange = {
-  binance: number | null;
-  bcv: number | null;
-  lastUpdated: number | null;
 };
 
 /**
@@ -20,7 +15,7 @@ export type StoredExchange = {
  * Mantiene compatibilidad con datos existentes cuando faltan campos nuevos.
  * @returns Estado de la aplicación.
  */
-export function loadState(): AppState {
+export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -41,7 +36,7 @@ export function loadState(): AppState {
  * Guarda el estado de la aplicación en localStorage.
  * @param state Estado de la aplicación.
  */
-export function saveState(state: AppState): void {
+export function saveState(state: PersistedState): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -56,7 +51,7 @@ export function saveState(state: AppState): void {
   }
 }
 
-export function saveExchangeRates(rates: StoredExchange): void {
+export function saveExchangeRates(rates: ExchangeRates): void {
   try {
     localStorage.setItem(EXCHANGE_RATES_KEY, JSON.stringify(rates));
   } catch (e) {
@@ -64,13 +59,13 @@ export function saveExchangeRates(rates: StoredExchange): void {
   }
 }
 
-export function loadExchangeRates(): StoredExchange | null {
+export function loadExchangeRates(): ExchangeRates | null {
   try {
     const raw = localStorage.getItem(EXCHANGE_RATES_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
-      binance: parsed.binance ?? null,
+      parallel: parsed.parallel ?? parsed.binance ?? null,
       bcv: parsed.bcv ?? null,
       lastUpdated: parsed.lastUpdated ?? null,
     };

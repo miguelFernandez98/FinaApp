@@ -1,21 +1,18 @@
 import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { formatMoney } from "../utils/format";
 import {
-  formatMoney,
-  getCatById,
-  getGreeting,
+  getCategoryById,
+  getTimeBasedGreeting,
   calculatePreviousBalance,
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
-  parseISODate,
-} from "../utils/helpers";
+} from "../utils/transactions";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
-import { fetchBinanceRate, fetchBCVRate } from "../utils/exchangeRates";
-//import type { Transaction } from "../types";
 
 export default function HomePage() {
   const {
@@ -29,22 +26,24 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const txns = useMemo(
+  const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
     [getMonthTransactions, currentMonth, currentYear],
   );
 
   const income = useMemo(
     () =>
-      txns.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0),
-    [txns],
+      visibleTransactions
+        .filter((t) => t.type === "income")
+        .reduce((s, t) => s + t.amount, 0),
+    [visibleTransactions],
   );
   const expense = useMemo(
     () =>
-      txns
+      visibleTransactions
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + t.amount, 0),
-    [txns],
+    [visibleTransactions],
   );
   const previousBalance = useMemo(
     () => calculatePreviousBalance(transactions, currentMonth, currentYear),
@@ -71,12 +70,12 @@ export default function HomePage() {
 
   const recent = useMemo(
     () =>
-      [...txns]
+      [...visibleTransactions]
         .sort(
           (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
         )
         .slice(0, 5),
-    [txns],
+    [visibleTransactions],
   );
 
   useEffect(() => {
@@ -102,32 +101,13 @@ export default function HomePage() {
     }
   }, []);
 
-  useEffect(() => {
-    const testAPIs = async () => {
-      try {
-        const binanceRate = await fetchBinanceRate();
-        console.log("Binance rate:", binanceRate);
-      } catch (error) {
-        console.error("Binance error:", error);
-      }
-      try {
-        const bcvRate = await fetchBCVRate();
-        console.log("BCV rate:", bcvRate);
-      } catch (error) {
-        console.error("BCV error:", error);
-      }
-    };
-
-    testAPIs();
-  }, []);
-
   return (
     <div className="page">
       {/* Header */}
       <div className="page-header">
         <div>
-          <p className="greeting-text">{getGreeting()}</p>
-          <h1 className="page-title">Mi Finanzas</h1>
+          <p className="greeting-text">{getTimeBasedGreeting()}</p>
+          <h1 className="page-title">Mis Finanzas</h1>
         </div>
         <div className="avatar-btn" onClick={() => {}}>
           <i
@@ -229,7 +209,7 @@ export default function HomePage() {
               >
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    {getCatById(debt.category).name}
+                    {getCategoryById(debt.category).name}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
                     {debt.debtDueDate
@@ -260,7 +240,7 @@ export default function HomePage() {
           </span>
         </div>
         <div className="chart-container">
-          <DonutChart transactions={txns} />
+          <DonutChart transactions={visibleTransactions} />
         </div>
       </div>
 
