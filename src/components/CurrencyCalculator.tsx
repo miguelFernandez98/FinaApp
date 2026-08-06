@@ -34,17 +34,14 @@ export default function CurrencyCalculator() {
   const convertAmount = useCallback(
     (value: number, from: string, to: string): number | null => {
       if (from === to) return value;
-
       const rates = {
         VES: 1,
         USD_BCV: exchangeRates.bcv,
         USD_BINANCE: exchangeRates.binance,
       };
-
       const fromRate = rates[from as keyof typeof rates];
       const toRate = rates[to as keyof typeof rates];
       if (!fromRate || !toRate) return null;
-
       const inVES = from === "VES" ? value : value * fromRate;
       const result = to === "VES" ? inVES : inVES / toRate;
       return result;
@@ -55,10 +52,11 @@ export default function CurrencyCalculator() {
   const result = useMemo(() => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || fromCurrency === toCurrency) return null;
-
     const converted = convertAmount(numAmount, fromCurrency, toCurrency);
+    if (converted === null) return null;
+    const rounded = Number(converted.toFixed(2));
     const symbol = toCurrency === "VES" ? "Bs." : "$";
-    return converted !== null ? formatMoney(converted, symbol) : null;
+    return formatMoney(rounded, symbol);
   }, [amount, fromCurrency, toCurrency, convertAmount]);
 
   return (
@@ -79,7 +77,9 @@ export default function CurrencyCalculator() {
             type="number"
             className="input-field"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= 22) setAmount(e.target.value);
+            }}
             placeholder="Ingresa el monto"
           />
         </div>
@@ -115,7 +115,7 @@ export default function CurrencyCalculator() {
         {result && (
           <div
             style={{
-              textAlign: "center",
+              textAlign: "start",
               padding: 12,
               background: "var(--card)",
               borderRadius: 8,
@@ -128,10 +128,10 @@ export default function CurrencyCalculator() {
                 marginBottom: 4,
               }}
             >
-              Resultado
+              Resultado:
             </div>
             <div
-              style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)" }}
+              style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)", overflow: "scroll" }}
             >
               {result}
             </div>
