@@ -60,6 +60,30 @@ export function daysInMonth(year: number, month: number): number {
 }
 
 /**
+ * Convierte una fecha a string "YYYY-MM-DD" usando componentes locales.
+ * No usa toISOString() para evitar el desfase de zona horaria (UTC).
+ * @param date Fecha a formatear.
+ * @returns Fecha local en formato ISO.
+ */
+export function toISODate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Convierte un string "YYYY-MM-DD" a Date usando hora local.
+ * No usa new Date(str) para evitar que se interprete como medianoche UTC.
+ * @param dateStr Fecha local en formato ISO.
+ * @returns Date local a medianoche.
+ */
+export function parseISODate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
  * Calcula el monto pendiente de una deuda según su estado.
  * @param transaction Transacción de tipo deuda.
  * @returns Monto pendiente a restar del balance.
@@ -87,10 +111,10 @@ export function isDebtVisibleInMonth(
 ): boolean {
   if (transaction.type !== "debt") return false;
   if (transaction.debtStatus === "paid") {
-    const created = new Date(transaction.date);
+    const created = parseISODate(transaction.date);
     return created.getMonth() === month && created.getFullYear() === year;
   }
-  const created = new Date(transaction.date);
+  const created = parseISODate(transaction.date);
   return (
     created.getFullYear() < year ||
     (created.getFullYear() === year && created.getMonth() <= month)
@@ -112,23 +136,52 @@ export function getRecurringOccurrences(
   if (!transaction.isRecurring || !transaction.recurrenceDays?.length)
     return [];
 
-  const startDate = new Date(transaction.date);
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
+
+  const startDate = parseISODate(transaction.date);
   const startMonth = startDate.getMonth();
   const startYear = startDate.getFullYear();
   const startDay = startDate.getDate();
 
-  if (year < startYear || (year === startYear && month < startMonth)) {
+  const effectiveStartYear = transaction.recurringBackfill
+    ? startYear
+    : todayYear;
+  const effectiveStartMonth = transaction.recurringBackfill
+    ? startMonth
+    : todayMonth;
+  const effectiveStartDay = transaction.recurringBackfill ? startDay : todayDay;
+
+  if (
+    year < effectiveStartYear ||
+    (year === effectiveStartYear && month < effectiveStartMonth)
+  ) {
     return [];
   }
 
+  const monthIsFuture =
+    year > todayYear || (year === todayYear && month > todayMonth);
+
   return transaction.recurrenceDays
     .filter((day) => day >= 1 && day <= 31)
-    .map((day) => {
+    .map((day): Transaction | null => {
       const actualDay = Math.min(day, daysInMonth(year, month));
-      if (year === startYear && month === startMonth && actualDay < startDay) {
+      if (
+        year === effectiveStartYear &&
+        month === effectiveStartMonth &&
+        actualDay < effectiveStartDay
+      ) {
         return null;
       }
-      const date = new Date(year, month, actualDay).toISOString().split("T")[0];
+      if (
+        monthIsFuture ||
+        (year === todayYear && month === todayMonth && actualDay > todayDay)
+      ) {
+        return null;
+      }
+      const date = toISODate(new Date(year, month, actualDay));
 
       return {
         ...transaction,
@@ -150,11 +203,80 @@ export function getMonthTransactions(
       return getRecurringOccurrences(t, month, year);
     }
 
-    const date = new Date(t.date);
+    const date = parseISODate(t.date);
     const matchesMonth =
       date.getMonth() === month && date.getFullYear() === year;
     return matchesMonth ? [t] : [];
   });
+}
+
+/**
+ * Devuelve las transacciones que aún no se han ejecutado.
+ * Para cada transacción recurrente incluye solo su próximo evento
+ * (la siguiente fecha de recurrencia posterior a hoy), y para las
+ * manuales incluye todas las que tengan fecha futura.
+ * @param transactions Lista completa de transacciones.
+ * @returns Transacciones con fecha posterior a hoy.
+ */
+export function getFutureTransactions(
+  transactions: Transaction[],
+): Transaction[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMonth = today.getMonth();
+  const todayYear = today.getFullYear();
+
+  const result: Transaction[] = [];
+
+  transactions.forEach((t) => {
+    if (t.isRecurring && t.type !== "debt") {
+      if (!t.recurrenceDays?.length) return;
+
+      const startDate = parseISODate(t.date);
+      const effectiveStartYear = t.recurringBackfill
+        ? startDate.getFullYear()
+        : todayYear;
+      const effectiveStartMonth = t.recurringBackfill
+        ? startDate.getMonth()
+        : todayMonth;
+
+      const MAX_MONTHS = 120;
+      for (let m = 0; m < MAX_MONTHS; m++) {
+        const monthDate = new Date(todayYear, todayMonth + m, 1);
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth();
+        if (
+          year < effectiveStartYear ||
+          (year === effectiveStartYear && month < effectiveStartMonth)
+        ) {
+          continue;
+        }
+
+        const candidates = t.recurrenceDays
+          .filter((day) => day >= 1 && day <= 31)
+          .map((day) => Math.min(day, daysInMonth(year, month)))
+          .sort((a, b) => a - b);
+
+        for (const actualDay of candidates) {
+          const eventDate = new Date(year, month, actualDay);
+          if (eventDate > today) {
+            result.push({
+              ...t,
+              id: `${t.id}-${year}-${month}-${actualDay}`,
+              date: toISODate(eventDate),
+              recurringId: t.id,
+            });
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    if (parseISODate(t.date) > today) result.push(t);
+  });
+
+  return result;
 }
 
 export function getMonthTransactionsWithDebtCarry(
@@ -236,9 +358,10 @@ function getEarliestTransactionMonth(
 ): [number, number] {
   if (transactions.length === 0) return [0, 0];
   const sorted = [...transactions].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    (a, b) =>
+      parseISODate(a.date).getTime() - parseISODate(b.date).getTime(),
   );
-  const earliest = new Date(sorted[0].date);
+  const earliest = parseISODate(sorted[0].date);
   return [earliest.getMonth(), earliest.getFullYear()];
 }
 

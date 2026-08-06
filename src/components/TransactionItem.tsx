@@ -1,4 +1,4 @@
-import { getCatById, formatMoney } from "../utils/helpers";
+import { getCatById, formatMoney, parseISODate } from "../utils/helpers";
 import type { Transaction } from "../types";
 import { useApp } from "../context";
 
@@ -19,7 +19,7 @@ export default function TransactionItem({ transaction, onEdit }: Props) {
     transaction.type === "income"
       ? "var(--success-dim)"
       : `${category.color}18`;
-  const dateStr = new Date(transaction.date).toLocaleDateString("es", {
+  const dateStr = parseISODate(transaction.date).toLocaleDateString("es", {
     day: "numeric",
     month: "short",
   });

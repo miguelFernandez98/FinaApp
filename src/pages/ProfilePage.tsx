@@ -1,8 +1,7 @@
 import { useRef } from "react";
 import { useApp } from "../context";
-import { generateId, daysInMonth } from "../utils/helpers";
-import { CATEGORIES, MONTH_NAMES } from "../data/categories";
-import type { AppState, Transaction } from "../types";
+import { generateId, daysInMonth, toISODate } from "../utils/helpers";
+import type { Transaction } from "../types";
 
 export default function ProfilePage() {
   const {
@@ -27,7 +26,7 @@ export default function ProfilePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `finanzapp_backup_${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `finanzapp_backup_${toISODate(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Datos exportados");
@@ -83,12 +82,9 @@ export default function ProfilePage() {
 
         const d = (day: number) => {
           const maxDay = daysInMonth(y, m);
-          return new Date(y, m, Math.min(day, maxDay))
-            .toISOString()
-            .split("T")[0];
+          return toISODate(new Date(y, m, Math.min(day, maxDay)));
         };
-        const prevD = (day: number) =>
-          new Date(y, m - 1, day).toISOString().split("T")[0];
+        const prevD = (day: number) => toISODate(new Date(y, m - 1, day));
 
         const sampleTxns: Transaction[] = [
           {

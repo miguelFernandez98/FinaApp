@@ -12,6 +12,7 @@ export interface Transaction {
   isRecurring?: boolean;
   recurrenceDays?: number[];
   recurringId?: string;
+  recurringBackfill?: boolean;
 }
 
 export interface Category {
@@ -43,4 +44,4 @@ export interface ConfirmState {
 }
 
 export type PageId = "home" | "transactions" | "stats" | "profile";
-export type FilterType = "all" | "expense" | "income" | "debt";
+export type FilterType = "all" | "expense" | "income" | "debt" | "future";

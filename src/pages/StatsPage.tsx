@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useApp } from "../context";
 import { MONTH_NAMES } from "../data/categories";
 import { formatMoney, getCatById } from "../utils/helpers";

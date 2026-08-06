@@ -12,50 +12,50 @@ export async function fetchBinanceRate(): Promise<number | null> {
     if (data && data.USD && data.USD.VES) {
       return parseFloat(data.USD.VES);
     }
+    throw new Error("yadio sin tasa VES");
+  } catch (error) {
+    console.error("Error fetching Binance rate from yadio:", error);
     try {
       const fallbackResponse = await fetch(
-        "https://api.bluelytics.com.ar/v2/latest",
+        "https://ve.dolarapi.com/v1/dolares/paralelo",
       );
       const fallbackData = await fallbackResponse.json();
 
-      if (fallbackData && fallbackData.blue && fallbackData.blue.value_buy) {
-        return fallbackData.blue.value_buy * 0.024;
+      if (fallbackData && fallbackData.promedio) {
+        return parseFloat(fallbackData.promedio);
       }
     } catch (fallbackError) {
-      console.log("Fallback API failed");
+      console.error("Fallback dolarapi paralelo failed:", fallbackError);
     }
 
     return null;
-  } catch (error) {
-    console.error("Error fetching Binance rate:", error);
-    return 520.0;
   }
 }
 
 export async function fetchBCVRate(): Promise<number | null> {
   try {
     const response = await fetch(
-      "https://api.exchangerate-api.com/v4/latest/VES",
+      "https://ve.dolarapi.com/v1/dolares/oficial",
     );
     const data = await response.json();
-    if (data && data.rates && data.rates.USD) {
-      return 1 / data.rates.USD;
+    if (data && data.promedio) {
+      return parseFloat(data.promedio);
     }
-
-    return null;
+    throw new Error("dolarapi sin tasa oficial");
   } catch (error) {
-    console.error("Error fetching BCV rate from ExchangeRate-API:", error);
+    console.error("Error fetching BCV rate from dolarapi:", error);
     try {
-      const response = await fetch("https://api.bluelytics.com.ar/v2/latest");
+      const response = await fetch(
+        "https://api.exchangerate-api.com/v4/latest/VES",
+      );
       const data = await response.json();
-
-      if (data && data.oficial && data.oficial.value_buy) {
-        return data.oficial.value_buy * 0.024;
+      if (data && data.rates && data.rates.USD) {
+        return 1 / data.rates.USD;
       }
     } catch (fallbackError) {
-      console.error("Fallback API also failed:", fallbackError);
+      console.error("Fallback ExchangeRate-API also failed:", fallbackError);
     }
-    return 481.22;
+    return null;
   }
 }
 

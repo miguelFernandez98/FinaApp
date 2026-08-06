@@ -8,13 +8,14 @@ import {
   calculatePreviousBalance,
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
+  parseISODate,
 } from "../utils/helpers";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import { fetchBinanceRate, fetchBCVRate } from "../utils/exchangeRates";
-import type { Transaction } from "../types";
+//import type { Transaction } from "../types";
 
 export default function HomePage() {
   const {
@@ -71,7 +72,9 @@ export default function HomePage() {
   const recent = useMemo(
     () =>
       [...txns]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort(
+          (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
+        )
         .slice(0, 5),
     [txns],
   );
@@ -101,17 +104,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const testAPIs = async () => {
-      console.log("Testing exchange rate APIs...");
-
-      console.log("Testing Binance API...");
       try {
         const binanceRate = await fetchBinanceRate();
         console.log("Binance rate:", binanceRate);
       } catch (error) {
         console.error("Binance error:", error);
       }
-
-      console.log("Testing BCV API...");
       try {
         const bcvRate = await fetchBCVRate();
         console.log("BCV rate:", bcvRate);

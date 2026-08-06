@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useApp } from "../context";
 import { CATEGORIES } from "../data/categories";
+import { toISODate } from "../utils/helpers";
 import type { Transaction } from "../types";
 
 interface Props {
@@ -16,77 +17,55 @@ export default function TransactionModal({ editingId, onClose }: Props) {
     deleteTransaction,
     showToast,
     showConfirm,
-    exchangeRates,
   } = useApp();
 
-  const [type, setType] = useState<"expense" | "income" | "debt">("expense");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [selectedCat, setSelectedCat] = useState("");
-  const [debtStatus, setDebtStatus] = useState<"pending" | "partial" | "paid">(
-    "pending",
+  const editingTransaction = editingId
+    ? (transactions.find(
+        (tx) => tx.id === editingId || tx.recurringId === editingId,
+      ) ?? null)
+    : null;
+
+  const [type, setType] = useState<"expense" | "income" | "debt">(
+    editingTransaction?.type ?? "expense",
   );
-  const [debtPaidAmount, setDebtPaidAmount] = useState("");
-  const [debtDueDate, setDebtDueDate] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceDaysInput, setRecurrenceDaysInput] = useState("");
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [calcAmount, setCalcAmount] = useState("");
-  const [calcFrom, setCalcFrom] = useState<"VES" | "USD_BCV" | "USD_BINANCE">(
-    "USD_BCV",
+  const [amount, setAmount] = useState(
+    editingTransaction ? String(editingTransaction.amount) : "",
+  );
+  const [description, setDescription] = useState(
+    editingTransaction?.description ?? "",
+  );
+  const [date, setDate] = useState(
+    editingTransaction?.date ?? toISODate(new Date()),
+  );
+  const [selectedCat, setSelectedCat] = useState(
+    editingTransaction?.category ?? "",
+  );
+  const [debtStatus, setDebtStatus] = useState<"pending" | "partial" | "paid">(
+    editingTransaction?.debtStatus ?? "pending",
+  );
+  const [debtPaidAmount, setDebtPaidAmount] = useState(
+    editingTransaction?.debtPaidAmount?.toString() ?? "",
+  );
+  const [debtDueDate, setDebtDueDate] = useState(
+    editingTransaction?.debtDueDate ?? "",
+  );
+  const [isRecurring, setIsRecurring] = useState(
+    !!editingTransaction?.isRecurring,
+  );
+  const [recurrenceDaysInput, setRecurrenceDaysInput] = useState(
+    editingTransaction?.recurrenceDays?.join(",") ?? "",
+  );
+  const [recurringBackfill, setRecurringBackfill] = useState(
+    !!editingTransaction?.recurringBackfill,
   );
 
   const filteredCats = CATEGORIES.filter((c) => c.type === type);
 
-  // Cargar datos al editar
-  useEffect(() => {
-    if (editingId) {
-      const t = transactions.find(
-        (tx) => tx.id === editingId || tx.recurringId === editingId,
-      );
-      if (t) {
-        setType(t.type);
-        setAmount(String(t.amount));
-        setDescription(t.description);
-        setDate(t.date);
-        setSelectedCat(t.category);
-        setDebtStatus(t.debtStatus ?? "pending");
-        setDebtPaidAmount(t.debtPaidAmount?.toString() ?? "");
-        setDebtDueDate(t.debtDueDate ?? "");
-        setIsRecurring(!!t.isRecurring);
-        setRecurrenceDaysInput(t.recurrenceDays?.join(",") ?? "");
-      }
-    } else {
-      setType("expense");
-      setAmount("");
-      setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
-      setSelectedCat(filteredCats[0]?.id || "");
-      setDebtStatus("pending");
-      setDebtPaidAmount("");
-      setDebtDueDate("");
-    }
-  }, [editingId, transactions]);
-
-  // Resetear categoría al cambiar tipo
-  useEffect(() => {
+  const handleTypeChange = (next: "expense" | "income" | "debt") => {
+    setType(next);
     if (!editingId) {
-      setSelectedCat(filteredCats[0]?.id || "");
+      setSelectedCat(CATEGORIES.filter((c) => c.type === next)[0]?.id || "");
     }
-  }, [type]);
-
-  const convertAmount = () => {
-    const numCalcAmount = parseFloat(calcAmount);
-    if (isNaN(numCalcAmount) || !exchangeRates.bcv || !exchangeRates.binance)
-      return;
-
-    const rate =
-      calcFrom === "USD_BCV" ? exchangeRates.bcv : exchangeRates.binance;
-    const converted = numCalcAmount * rate;
-    setAmount(String(converted));
-    setShowCalculator(false);
-    showToast("Monto convertido a bolívares");
   };
 
   const handleCopyAmount = async () => {
@@ -172,10 +151,12 @@ export default function TransactionModal({ editingId, onClose }: Props) {
         ? {
             isRecurring: true,
             recurrenceDays,
+            recurringBackfill,
           }
         : {
             isRecurring: false,
             recurrenceDays: undefined,
+            recurringBackfill: undefined,
           }),
     };
 
@@ -216,19 +197,19 @@ export default function TransactionModal({ editingId, onClose }: Props) {
         <div className="type-toggle" style={{ marginBottom: 16 }}>
           <button
             className={`type-btn ${type === "expense" ? "active-expense" : ""}`}
-            onClick={() => setType("expense")}
+            onClick={() => handleTypeChange("expense")}
           >
             Gasto
           </button>
           <button
             className={`type-btn ${type === "income" ? "active-income" : ""}`}
-            onClick={() => setType("income")}
+            onClick={() => handleTypeChange("income")}
           >
             Ingreso
           </button>
           <button
             className={`type-btn ${type === "debt" ? "active-debt" : ""}`}
-            onClick={() => setType("debt")}
+            onClick={() => handleTypeChange("debt")}
           >
             Deuda
           </button>
@@ -272,27 +253,6 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             >
               <i className="fa-solid fa-copy" />
             </button>
-            <button
-              type="button"
-              onClick={() => setShowCalculator(!showCalculator)}
-              style={{
-                position: "absolute",
-                right: 54,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                borderRadius: 10,
-                width: 36,
-                height: 36,
-                display: "grid",
-                placeItems: "center",
-                cursor: "pointer",
-              }}
-            >
-              <i className="fa-solid fa-calculator" />
-            </button>
           </div>
         </div>
 
@@ -329,13 +289,39 @@ export default function TransactionModal({ editingId, onClose }: Props) {
             </p>
           </div>
         )}
+        {type !== "debt" && isRecurring && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Registro retroactivo</label>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={recurringBackfill}
+                  onChange={(e) => setRecurringBackfill(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+              <span style={{ fontSize: 14, color: "var(--fg-muted)" }}>
+                Aplicar también en meses anteriores
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 6 }}>
+              Si está desactivado, el registro solo se aplica desde el mes
+              actual, sin alterar meses anteriores.
+            </p>
+          </div>
+        )}
         {type === "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Estado de la deuda</label>
             <select
               className="input-field"
               value={debtStatus}
-              onChange={(e) => setDebtStatus(e.target.value as any)}
+              onChange={(e) =>
+                setDebtStatus(
+                  e.target.value as "pending" | "partial" | "paid",
+                )
+              }
             >
               <option value="pending">Pendiente</option>
               <option value="partial">Parcialmente pagada</option>

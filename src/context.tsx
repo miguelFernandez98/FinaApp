@@ -5,6 +5,7 @@ import {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import type {
@@ -52,7 +53,6 @@ interface AppContextValue extends AppState {
   showConfirm: (title: string, message: string, onConfirm: () => void) => void;
   closeConfirm: () => void;
   replaceAllData: (state: AppState) => void;
-  refreshExchangeRates: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -63,9 +63,14 @@ const AppContext = createContext<AppContextValue | null>(null);
  * @param children Componentes hijos que consumen el contexto.
  */
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgets, setBudgetsState] = useState<Record<string, number>>({});
-  const [currency, setCurrencyState] = useState("$");
+  const [savedState] = useState(loadState);
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    savedState.transactions,
+  );
+  const [budgets, setBudgetsState] = useState<Record<string, number>>(
+    savedState.budgets,
+  );
+  const [currency, setCurrencyState] = useState(savedState.currency);
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -83,37 +88,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     message: "",
     onConfirm: null,
   });
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({
-    binance: null,
-    bcv: null,
-    lastUpdated: null,
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(() => {
+    const cached = loadExchangeRates();
+    if (cached && (cached.binance !== null || cached.bcv !== null)) {
+      return cached;
+    }
+    return { binance: null, bcv: null, lastUpdated: null };
   });
-
-  useEffect(() => {
-    const saved = loadState();
-    setTransactions(saved.transactions);
-    setBudgetsState(saved.budgets);
-    setCurrencyState(saved.currency);
-  }, []);
 
   useEffect(() => {
     saveState({ transactions, budgets, currency });
   }, [transactions, budgets, currency]);
-
-  useEffect(() => {
-    const cached = loadExchangeRates();
-    if (cached && (cached.binance !== null || cached.bcv !== null)) {
-      setExchangeRates(cached);
-      if (!navigator.onLine) {
-        showToast(
-          "Usando tasas en caché (sin conexión)",
-          "fa-info-circle",
-          "var(--warning)",
-        );
-      }
-    }
-    refreshExchangeRates();
-  }, []);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -223,7 +208,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const setCatFilter = useCallback((f: string) => setCurrentCatFilter(f), []);
 
-  let toastTimer: ReturnType<typeof setTimeout>;
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Muestra un toast temporal en pantalla.
@@ -233,9 +218,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const showToast = useCallback(
     (message: string, icon = "fa-check-circle", color = "var(--accent)") => {
-      clearTimeout(toastTimer);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       setToast({ visible: true, message, icon, color });
-      toastTimer = setTimeout(
+      toastTimerRef.current = setTimeout(
         () => setToast((prev) => ({ ...prev, visible: false })),
         2500,
       );
@@ -273,36 +258,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newState.currency);
   }, []);
 
-  const refreshExchangeRates = useCallback(async () => {
-    console.log("🔄 Refreshing exchange rates...");
-    try {
-      const rates = await fetchAllRates();
-      console.log("✅ Exchange rates updated:", rates);
-      setExchangeRates(rates);
-      saveExchangeRates(rates);
-    } catch (error) {
-      console.error("❌ Error refreshing exchange rates:", error);
-      const cached = loadExchangeRates();
-      if (cached && (cached.binance !== null || cached.bcv !== null)) {
-        setExchangeRates(cached);
-        showToast(
-          "Usando tasas en caché (sin conexión)",
-          "fa-info-circle",
-          "var(--warning)",
-        );
-      } else {
-        showToast(
-          "No se pudieron cargar tasas (sin conexión ni caché)",
-          "fa-exclamation-triangle",
-          "var(--danger)",
-        );
-      }
-    }
-  }, [showToast]);
-
   useEffect(() => {
-    refreshExchangeRates();
-  }, [refreshExchangeRates]);
+    let cancelled = false;
+
+    const loadRates = async () => {
+      console.log("🔄 Refreshing exchange rates...");
+      try {
+        const rates = await fetchAllRates();
+        if (cancelled) return;
+        console.log("✅ Exchange rates updated:", rates);
+        setExchangeRates(rates);
+        saveExchangeRates(rates);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("❌ Error refreshing exchange rates:", error);
+        const cached = loadExchangeRates();
+        if (cached && (cached.binance !== null || cached.bcv !== null)) {
+          setExchangeRates(cached);
+          showToast(
+            "Usando tasas en caché (sin conexión)",
+            "fa-info-circle",
+            "var(--warning)",
+          );
+        } else {
+          showToast(
+            "No se pudieron cargar tasas (sin conexión ni caché)",
+            "fa-exclamation-triangle",
+            "var(--danger)",
+          );
+        }
+      }
+    };
+
+    loadRates();
+    return () => {
+      cancelled = true;
+    };
+  }, [showToast]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -331,7 +323,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeConfirm,
       replaceAllData,
       exchangeRates,
-      refreshExchangeRates,
     }),
     [
       transactions,
@@ -359,7 +350,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeConfirm,
       replaceAllData,
       exchangeRates,
-      refreshExchangeRates,
     ],
   );
 
@@ -370,6 +360,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
  * Hook para acceder al contexto global de la aplicación.
  * @returns Valor del contexto de la app.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useApp(): AppContextValue {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useApp debe usarse dentro de AppProvider");

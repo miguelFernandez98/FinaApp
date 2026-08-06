@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useApp } from "../context";
 import { formatMoney } from "../utils/helpers";
 
 type CurrencyType = "VES" | "USD_BCV" | "USD_BINANCE";
 
 export default function CurrencyCalculator() {
-  const { exchangeRates, currency } = useApp();
+  const { exchangeRates } = useApp();
   const [amount, setAmount] = useState("");
 
   const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
@@ -31,27 +31,26 @@ export default function CurrencyCalculator() {
     setToCurrency(newTo);
   };
 
-  const convertAmount = (
-    value: number,
-    from: string,
-    to: string,
-  ): number | null => {
-    if (from === to) return value;
+  const convertAmount = useCallback(
+    (value: number, from: string, to: string): number | null => {
+      if (from === to) return value;
 
-    const rates = {
-      VES: 1,
-      USD_BCV: exchangeRates.bcv,
-      USD_BINANCE: exchangeRates.binance,
-    };
+      const rates = {
+        VES: 1,
+        USD_BCV: exchangeRates.bcv,
+        USD_BINANCE: exchangeRates.binance,
+      };
 
-    const fromRate = rates[from as keyof typeof rates];
-    const toRate = rates[to as keyof typeof rates];
-    if (!fromRate || !toRate) return null;
+      const fromRate = rates[from as keyof typeof rates];
+      const toRate = rates[to as keyof typeof rates];
+      if (!fromRate || !toRate) return null;
 
-    const inVES = from === "VES" ? value : value * fromRate;
-    const result = to === "VES" ? inVES : inVES / toRate;
-    return result;
-  };
+      const inVES = from === "VES" ? value : value * fromRate;
+      const result = to === "VES" ? inVES : inVES / toRate;
+      return result;
+    },
+    [exchangeRates],
+  );
 
   const result = useMemo(() => {
     const numAmount = parseFloat(amount);
@@ -60,7 +59,7 @@ export default function CurrencyCalculator() {
     const converted = convertAmount(numAmount, fromCurrency, toCurrency);
     const symbol = toCurrency === "VES" ? "Bs." : "$";
     return converted !== null ? formatMoney(converted, symbol) : null;
-  }, [amount, fromCurrency, toCurrency, exchangeRates, currency]);
+  }, [amount, fromCurrency, toCurrency, convertAmount]);
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>

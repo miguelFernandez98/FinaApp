@@ -5,6 +5,8 @@ import {
   formatMoney,
   getCatById,
   getMonthTransactionsWithDebtCarry,
+  getFutureTransactions,
+  parseISODate,
 } from "../utils/helpers";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
@@ -26,15 +28,16 @@ export default function TransactionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const txns = useMemo(
-    () =>
-      getMonthTransactionsWithDebtCarry(
-        transactions,
-        currentMonth,
-        currentYear,
-      ),
-    [transactions, currentMonth, currentYear],
-  );
+  const txns = useMemo(() => {
+    if (currentFilter === "future") {
+      return getFutureTransactions(transactions);
+    }
+    return getMonthTransactionsWithDebtCarry(
+      transactions,
+      currentMonth,
+      currentYear,
+    );
+  }, [transactions, currentMonth, currentYear, currentFilter]);
 
   const usedCats = useMemo(
     () => [...new Set(txns.map((t) => t.category))],
@@ -43,12 +46,12 @@ export default function TransactionsPage() {
 
   const filtered = useMemo(() => {
     let result = txns;
-    if (currentFilter !== "all")
+    if (currentFilter !== "all" && currentFilter !== "future")
       result = result.filter((t) => t.type === currentFilter);
     if (currentCatFilter !== "all")
       result = result.filter((t) => t.category === currentCatFilter);
     return result.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
     );
   }, [txns, currentFilter, currentCatFilter]);
 
@@ -88,35 +91,41 @@ export default function TransactionsPage() {
       </h1>
 
       {/* Selector de mes */}
-      <div className="month-selector">
-        <button className="month-arrow" onClick={() => changeMonth(-1)}>
-          <i className="fa-solid fa-chevron-left" />
-        </button>
-        <span className="month-label">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-        <button className="month-arrow" onClick={() => changeMonth(1)}>
-          <i className="fa-solid fa-chevron-right" />
-        </button>
-      </div>
+      {currentFilter !== "future" && (
+        <div className="month-selector">
+          <button className="month-arrow" onClick={() => changeMonth(-1)}>
+            <i className="fa-solid fa-chevron-left" />
+          </button>
+          <span className="month-label">
+            {MONTH_NAMES[currentMonth]} {currentYear}
+          </span>
+          <button className="month-arrow" onClick={() => changeMonth(1)}>
+            <i className="fa-solid fa-chevron-right" />
+          </button>
+        </div>
+      )}
 
       {/* Filtros de tipo */}
       <div className="filters-scroll">
-        {(["all", "expense", "income", "debt"] as FilterType[]).map((f) => (
-          <button
-            key={f}
-            className={`filter-chip ${currentFilter === f ? "active" : ""}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === "all"
-              ? "Todos"
-              : f === "expense"
-                ? "Gastos"
-                : f === "income"
-                  ? "Ingresos"
-                  : "Deudas"}
-          </button>
-        ))}
+        {(["all", "expense", "income", "debt", "future"] as FilterType[]).map(
+          (f) => (
+            <button
+              key={f}
+              className={`filter-chip ${currentFilter === f ? "active" : ""}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === "all"
+                ? "Todos"
+                : f === "expense"
+                  ? "Gastos"
+                  : f === "income"
+                    ? "Ingresos"
+                    : f === "debt"
+                      ? "Deudas"
+                      : "Futuros"}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Filtros de categoría */}
@@ -144,8 +153,18 @@ export default function TransactionsPage() {
       {/* Lista agrupada */}
       {grouped.length === 0 ? (
         <div className="empty-state">
-          <i className="fa-solid fa-filter" />
-          <p style={{ fontSize: 13 }}>Sin resultados para este filtro</p>
+          <i
+            className={
+              currentFilter === "future"
+                ? "fa-solid fa-calendar-plus"
+                : "fa-solid fa-filter"
+            }
+          />
+          <p style={{ fontSize: 13 }}>
+            {currentFilter === "future"
+              ? "No hay movimientos futuros"
+              : "Sin resultados para este filtro"}
+          </p>
         </div>
       ) : (
         grouped.map(([date, items]) => {
@@ -153,7 +172,7 @@ export default function TransactionsPage() {
             (s, t) => s + (t.type === "expense" ? -t.amount : t.amount),
             0,
           );
-          const d = new Date(date);
+          const d = parseISODate(date);
           const dateLabel = d.toLocaleDateString("es", {
             weekday: "short",
             day: "numeric",
