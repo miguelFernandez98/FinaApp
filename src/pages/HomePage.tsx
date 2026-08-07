@@ -1,20 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { formatMoney } from "../utils/format";
 import {
-  formatMoney,
-  getCatById,
-  getGreeting,
+  getCategoryById,
+  getTimeBasedGreeting,
   calculatePreviousBalance,
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
-} from "../utils/helpers";
+} from "../utils/transactions";
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
-import { fetchBinanceRate, fetchBCVRate } from "../utils/exchangeRates";
-import type { Transaction } from "../types";
+import MonthSelector from "../components/MonthSelector";
 
 export default function HomePage() {
   const {
@@ -23,27 +22,32 @@ export default function HomePage() {
     currentMonth,
     currentYear,
     currency,
-    changeMonth,
+    navigateTo,
+    setFilter,
+    setCategoryFilter,
+    showCalculator,
   } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const txns = useMemo(
+  const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
     [getMonthTransactions, currentMonth, currentYear],
   );
 
   const income = useMemo(
     () =>
-      txns.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0),
-    [txns],
+      visibleTransactions
+        .filter((t) => t.type === "income")
+        .reduce((s, t) => s + t.amount, 0),
+    [visibleTransactions],
   );
   const expense = useMemo(
     () =>
-      txns
+      visibleTransactions
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + t.amount, 0),
-    [txns],
+    [visibleTransactions],
   );
   const previousBalance = useMemo(
     () => calculatePreviousBalance(transactions, currentMonth, currentYear),
@@ -55,7 +59,15 @@ export default function HomePage() {
   );
   const balance = previousBalance + income - expense - debtAmount;
   const pendingDebts = useMemo(
-    () => getPendingDebtsForMonth(transactions, currentMonth, currentYear),
+    () =>
+      getPendingDebtsForMonth(transactions, currentMonth, currentYear).sort(
+        (a, b) => {
+          const dateDiff =
+            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          return b.createdAt - a.createdAt;
+        },
+      ),
     [transactions, currentMonth, currentYear],
   );
   const pendingDebtsTotal = useMemo(
@@ -70,13 +82,17 @@ export default function HomePage() {
 
   const recent = useMemo(
     () =>
-      [...txns]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      [...visibleTransactions]
+        .sort((a, b) => {
+          const dateDiff =
+            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          return b.createdAt - a.createdAt;
+        })
         .slice(0, 5),
-    [txns],
+    [visibleTransactions],
   );
 
-  // Escuchar el botón global de agregar
   useEffect(() => {
     const handler = () => {
       setEditingId(null);
@@ -89,7 +105,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Limpiar el click del botón central para evitar doble navegación
   useEffect(() => {
     const btn = document.getElementById("global-add-btn");
     if (btn) {
@@ -101,38 +116,13 @@ export default function HomePage() {
     }
   }, []);
 
-  // Probar las APIs de exchange rates
-  useEffect(() => {
-    const testAPIs = async () => {
-      console.log("Testing exchange rate APIs...");
-
-      console.log("Testing Binance API...");
-      try {
-        const binanceRate = await fetchBinanceRate();
-        console.log("Binance rate:", binanceRate);
-      } catch (error) {
-        console.error("Binance error:", error);
-      }
-
-      console.log("Testing BCV API...");
-      try {
-        const bcvRate = await fetchBCVRate();
-        console.log("BCV rate:", bcvRate);
-      } catch (error) {
-        console.error("BCV error:", error);
-      }
-    };
-
-    testAPIs();
-  }, []);
-
   return (
     <div className="page">
       {/* Header */}
       <div className="page-header">
         <div>
-          <p className="greeting-text">{getGreeting()}</p>
-          <h1 className="page-title">Mi Finanzas</h1>
+          <p className="greeting-text">{getTimeBasedGreeting()}</p>
+          <h1 className="page-title">Mis Finanzas</h1>
         </div>
         <div className="avatar-btn" onClick={() => {}}>
           <i
@@ -143,17 +133,7 @@ export default function HomePage() {
       </div>
 
       {/* Selector de mes */}
-      <div className="month-selector">
-        <button className="month-arrow" onClick={() => changeMonth(-1)}>
-          <i className="fa-solid fa-chevron-left" />
-        </button>
-        <span className="month-label">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-        <button className="month-arrow" onClick={() => changeMonth(1)}>
-          <i className="fa-solid fa-chevron-right" />
-        </button>
-      </div>
+      <MonthSelector />
 
       {previousBalance !== 0 && (
         <div className="previous-balance-row">
@@ -200,13 +180,13 @@ export default function HomePage() {
       </div>
 
       {/* Calculadora de divisas */}
-      <CurrencyCalculator />
+      {showCalculator && <CurrencyCalculator />}
 
       {pendingDebts.length > 0 && (
         <div className="glass-card">
           <div className="card-header">
             <div>
-              <h3 className="card-title">Deudas pendientes</h3>
+              <h3 className="card-title">Deudas total pendiente</h3>
               <span className="card-subtitle">
                 Vence {MONTH_NAMES[currentMonth]} {currentYear}
               </span>
@@ -234,7 +214,7 @@ export default function HomePage() {
               >
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    {getCatById(debt.category).name}
+                    {getCategoryById(debt.category).name}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
                     {debt.debtDueDate
@@ -265,14 +245,23 @@ export default function HomePage() {
           </span>
         </div>
         <div className="chart-container">
-          <DonutChart transactions={txns} />
+          <DonutChart transactions={visibleTransactions} />
         </div>
       </div>
 
       {/* Recientes */}
       <div className="section-header">
         <h3 className="section-title">Recientes</h3>
-        <span className="section-link">Ver todas</span>
+        <span
+          className="section-link"
+          onClick={() => {
+            setFilter("all");
+            setCategoryFilter("all");
+            navigateTo("transactions");
+          }}
+        >
+          Ver todas
+        </span>
       </div>
 
       <div className="glass-card">
@@ -290,7 +279,7 @@ export default function HomePage() {
               key={t.id}
               transaction={t}
               onEdit={() => {
-                setEditingId(t.id);
+                setEditingId(t.recurringId ?? t.id);
                 setModalOpen(true);
               }}
             />

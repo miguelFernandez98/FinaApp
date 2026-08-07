@@ -1,18 +1,21 @@
 import { useRef } from "react";
-import { useApp } from "../context";
-import { generateId, daysInMonth } from "../utils/helpers";
-import { CATEGORIES, MONTH_NAMES } from "../data/categories";
-import type { AppState, Transaction } from "../types";
+import { useApp } from "../AppContext";
+import { generateId } from "../utils/transactions";
+import { daysInMonth, toISODate } from "../utils/date";
+import type { Transaction } from "../types";
+import { version } from "../../package.json";
 
-export default function ProfilePage() {
+export default function SettingsPage() {
   const {
     currency,
     setCurrency,
+    showCalculator,
+    setShowCalculator,
     transactions,
     budgets,
     showConfirm,
     showToast,
-    replaceAllData,
+    importState,
   } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -22,12 +25,16 @@ export default function ProfilePage() {
   };
 
   const handleExport = () => {
-    const data = JSON.stringify({ transactions, budgets, currency }, null, 2);
+    const data = JSON.stringify(
+      { transactions, budgets, currency, showCalculator },
+      null,
+      2,
+    );
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `finanzapp_backup_${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `finanzapp_backup_${toISODate(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Datos exportados");
@@ -45,10 +52,11 @@ export default function ProfilePage() {
             "Importar datos",
             "Se reemplazarán todos los datos actuales.",
             () => {
-              replaceAllData({
+              importState({
                 transactions: data.transactions,
                 budgets: data.budgets || {},
                 currency: data.currency || "$",
+                showCalculator: data.showCalculator ?? true,
               });
               showToast("Datos importados correctamente");
             },
@@ -83,12 +91,9 @@ export default function ProfilePage() {
 
         const d = (day: number) => {
           const maxDay = daysInMonth(y, m);
-          return new Date(y, m, Math.min(day, maxDay))
-            .toISOString()
-            .split("T")[0];
+          return toISODate(new Date(y, m, Math.min(day, maxDay)));
         };
-        const prevD = (day: number) =>
-          new Date(y, m - 1, day).toISOString().split("T")[0];
+        const prevD = (day: number) => toISODate(new Date(y, m - 1, day));
 
         const sampleTxns: Transaction[] = [
           {
@@ -266,10 +271,11 @@ export default function ProfilePage() {
           services: 70,
         };
 
-        replaceAllData({
+        importState({
           transactions: sampleTxns,
           budgets: sampleBudgets,
           currency: "$",
+          showCalculator: true,
         });
         showToast("Datos de ejemplo cargados");
       },
@@ -281,7 +287,7 @@ export default function ProfilePage() {
       "Borrar todo",
       "Se eliminarán todas las transacciones y presupuestos permanentemente.",
       () => {
-        replaceAllData({ transactions: [], budgets: {}, currency: "$" });
+        importState({ transactions: [], budgets: {}, currency: "$", showCalculator: true });
         showToast("Datos eliminados", "fa-trash", "var(--danger)");
       },
     );
@@ -312,7 +318,7 @@ export default function ProfilePage() {
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600 }}>FinanzApp</h3>
           <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-            v1.0 — Datos guardados localmente
+            v{version} — Datos guardados localmente
           </p>
         </div>
       </div>
@@ -335,6 +341,22 @@ export default function ProfilePage() {
           <option value="AR$">AR$ — Peso Argentino</option>
           <option value="R$">R$ — Real Brasileño</option>
         </select>
+      </div>
+
+      {/* Calculadora */}
+      <div className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div className="menu-item" style={{ cursor: "pointer" }}>
+          <i className="fa-solid fa-calculator menu-icon" />
+          <span style={{ flex: 1 }}>Mostrar calculadora de divisas</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={showCalculator}
+              onChange={(e) => setShowCalculator(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
       </div>
 
       {/* Acciones */}

@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Bar } from "react-chartjs-2";
-import { useApp } from "../context";
-import { MONTH_NAMES } from "../data/categories";
-import { formatMoney } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { MONTH_NAMES } from "../utils/date";
+import { formatMoney } from "../utils/format";
+import { getMonthTransactions } from "../utils/transactions";
 
 export default function BarChart() {
   const { currentMonth, currentYear, transactions, currency } = useApp();
@@ -21,10 +22,7 @@ export default function BarChart() {
       }
       labels.push(MONTH_NAMES[m].substring(0, 3));
 
-      const monthTxns = transactions.filter((t) => {
-        const d = new Date(t.date);
-        return d.getMonth() === m && d.getFullYear() === y;
-      });
+      const monthTxns = getMonthTransactions(transactions, m, y);
 
       incomeData.push(
         monthTxns

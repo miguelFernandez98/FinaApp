@@ -1,15 +1,20 @@
-import { getCatById, formatMoney } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { parseISODate } from "../utils/date";
+import { formatMoney } from "../utils/format";
+import { getCategoryById } from "../utils/transactions";
 import type { Transaction } from "../types";
-import { useApp } from "../context";
 
-interface Props {
+interface TransactionItemProps {
   transaction: Transaction;
   onEdit: () => void;
 }
 
-export default function TransactionItem({ transaction, onEdit }: Props) {
+export default function TransactionItem({
+  transaction,
+  onEdit,
+}: TransactionItemProps) {
   const { currency } = useApp();
-  const category = getCatById(transaction.category);
+  const category = getCategoryById(transaction.category);
   const isDebt = transaction.type === "debt";
   const isPaidDebt = isDebt && transaction.debtStatus === "paid";
   const sign = transaction.type === "income" ? "+" : "-";
@@ -19,13 +24,17 @@ export default function TransactionItem({ transaction, onEdit }: Props) {
     transaction.type === "income"
       ? "var(--success-dim)"
       : `${category.color}18`;
-  const dateStr = new Date(transaction.date).toLocaleDateString("es", {
+  const dateStr = parseISODate(transaction.date).toLocaleDateString("es", {
     day: "numeric",
     month: "short",
   });
 
+  const isRecurringTxn = transaction.isRecurring || !!transaction.recurringId;
   const badgeText = (() => {
-    if (!isDebt || !transaction.debtStatus) return "";
+    if (transaction.type !== "debt") {
+      return isRecurringTxn ? "Constante" : "";
+    }
+    if (!transaction.debtStatus) return "";
     if (transaction.debtStatus === "pending") return "Pendiente";
     if (transaction.debtStatus === "partial") {
       const paid = transaction.debtPaidAmount ?? 0;
@@ -58,7 +67,7 @@ export default function TransactionItem({ transaction, onEdit }: Props) {
         <div className="txn-meta">
           {category.name} · {dateStr}
         </div>
-        {isDebt && transaction.debtStatus && (
+        {badgeText && (
           <span
             className="txn-badge"
             style={{

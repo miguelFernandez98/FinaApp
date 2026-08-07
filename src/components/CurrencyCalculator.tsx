@@ -1,54 +1,63 @@
-import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../context";
-import { formatMoney } from "../utils/helpers";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useApp } from "../AppContext";
+import { formatMoney } from "../utils/format";
+
+type CurrencyType = "VES" | "USD_BCV" | "USD_PARALLEL";
 
 export default function CurrencyCalculator() {
-  const { exchangeRates, currency } = useApp();
+  const { exchangeRates } = useApp();
   const [amount, setAmount] = useState("");
-  const [fromCurrency, setFromCurrency] = useState<
-    "VES" | "USD_BCV" | "USD_BINANCE"
-  >("VES");
-  const [toCurrency, setToCurrency] = useState<
-    "VES" | "USD_BCV" | "USD_BINANCE"
-  >("USD_BCV");
 
-  // Debug: mostrar tasas en consola
+  const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
+  const [toCurrency, setToCurrency] = useState<CurrencyType>("USD_BCV");
+
   useEffect(() => {
     console.log("💱 Current exchange rates:", exchangeRates);
   }, [exchangeRates]);
 
-  const convertAmount = (
-    value: number,
-    from: string,
-    to: string,
-  ): number | null => {
-    if (from === to) return value;
-
-    const rates = {
-      VES: 1,
-      USD_BCV: exchangeRates.bcv,
-      USD_BINANCE: exchangeRates.binance,
-    };
-
-    const fromRate = rates[from as keyof typeof rates];
-    const toRate = rates[to as keyof typeof rates];
-
-    if (!fromRate || !toRate) return null;
-
-    // Convertir a VES primero, luego al destino
-    const inVES = from === "VES" ? value : value * fromRate;
-    const result = to === "VES" ? inVES : inVES / toRate;
-
-    return result;
+  const handleFromChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFrom = e.target.value as CurrencyType;
+    if (newFrom === toCurrency) {
+      setToCurrency(fromCurrency);
+    }
+    setFromCurrency(newFrom);
   };
+
+  const handleToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTo = e.target.value as CurrencyType;
+    if (newTo === fromCurrency) {
+      setFromCurrency(toCurrency);
+    }
+    setToCurrency(newTo);
+  };
+
+  const convertAmount = useCallback(
+    (value: number, from: string, to: string): number | null => {
+      if (from === to) return value;
+      const rates = {
+        VES: 1,
+        USD_BCV: exchangeRates.bcv,
+        USD_PARALLEL: exchangeRates.parallel,
+      };
+      const fromRate = rates[from as keyof typeof rates];
+      const toRate = rates[to as keyof typeof rates];
+      if (!fromRate || !toRate) return null;
+      const inVES = from === "VES" ? value : value * fromRate;
+      const result = to === "VES" ? inVES : inVES / toRate;
+      return result;
+    },
+    [exchangeRates],
+  );
 
   const result = useMemo(() => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || fromCurrency === toCurrency) return null;
-
     const converted = convertAmount(numAmount, fromCurrency, toCurrency);
-    return converted !== null ? formatMoney(converted, currency) : null;
-  }, [amount, fromCurrency, toCurrency, exchangeRates, currency]);
+    if (converted === null) return null;
+    const rounded = Number(converted.toFixed(2));
+    const symbol = toCurrency === "VES" ? "Bs." : "$";
+    return formatMoney(rounded, symbol);
+  }, [amount, fromCurrency, toCurrency, convertAmount]);
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>
@@ -68,7 +77,9 @@ export default function CurrencyCalculator() {
             type="number"
             className="input-field"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= 18) setAmount(e.target.value);
+            }}
             placeholder="Ingresa el monto"
           />
         </div>
@@ -79,11 +90,11 @@ export default function CurrencyCalculator() {
             <select
               className="input-field"
               value={fromCurrency}
-              onChange={(e) => setFromCurrency(e.target.value as any)}
+              onChange={handleFromChange}
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_BINANCE">Dólar Binance</option>
+              <option value="USD_PARALLEL">Dólar Paralelo</option>
             </select>
           </div>
 
@@ -92,11 +103,11 @@ export default function CurrencyCalculator() {
             <select
               className="input-field"
               value={toCurrency}
-              onChange={(e) => setToCurrency(e.target.value as any)}
+              onChange={handleToChange}
             >
               <option value="VES">Bolívares (VES)</option>
               <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_BINANCE">Dólar Binance</option>
+              <option value="USD_PARALLEL">Dólar Paralelo</option>
             </select>
           </div>
         </div>
@@ -104,7 +115,7 @@ export default function CurrencyCalculator() {
         {result && (
           <div
             style={{
-              textAlign: "center",
+              textAlign: "start",
               padding: 12,
               background: "var(--card)",
               borderRadius: 8,
@@ -117,10 +128,10 @@ export default function CurrencyCalculator() {
                 marginBottom: 4,
               }}
             >
-              Resultado
+              Resultado:
             </div>
             <div
-              style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)" }}
+              style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)", overflow: "scroll" }}
             >
               {result}
             </div>
@@ -136,7 +147,7 @@ export default function CurrencyCalculator() {
           }}
         >
           <div>
-            <div style={{ color: "var(--fg-muted)" }}>BCV:</div>
+            <div style={{ color: "var(--accent)" }}>BCV:</div>
             <div>
               {exchangeRates.bcv
                 ? formatMoney(exchangeRates.bcv, "Bs.")
@@ -144,10 +155,10 @@ export default function CurrencyCalculator() {
             </div>
           </div>
           <div>
-            <div style={{ color: "var(--fg-muted)" }}>Binance:</div>
+            <div style={{ color: "#F0B90B" }}>Paralelo:</div>
             <div>
-              {exchangeRates.binance
-                ? formatMoney(exchangeRates.binance, "Bs.")
+              {exchangeRates.parallel
+                ? formatMoney(exchangeRates.parallel, "Bs.")
                 : "Cargando..."}
             </div>
           </div>

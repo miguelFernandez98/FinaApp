@@ -1,88 +1,148 @@
+import { Capacitor } from "@capacitor/core";
+
 export interface ExchangeRates {
-  binance: number | null;
+  parallel: number | null;
   bcv: number | null;
   lastUpdated: number | null;
 }
 
-export async function fetchBinanceRate(): Promise<number | null> {
+function average(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+async function fetchYadioRate(): Promise<number | null> {
   try {
-    // Usar API específica venezolana que no tiene problemas de CORS
     const response = await fetch("https://api.yadio.io/exrates/USD");
     const data = await response.json();
 
     if (data && data.USD && data.USD.VES) {
-      // Yadio.io proporciona tasa USD/VES paralela
       return parseFloat(data.USD.VES);
     }
-
-    // Fallback: usar otra API venezolana
-    try {
-      const fallbackResponse = await fetch(
-        "https://api.bluelytics.com.ar/v2/latest",
-      );
-      const fallbackData = await fallbackResponse.json();
-
-      if (fallbackData && fallbackData.blue && fallbackData.blue.value_buy) {
-        // Convertir ARS a VES aproximado (tasas similares en mercados paralelos)
-        return fallbackData.blue.value_buy * 0.024;
-      }
-    } catch (fallbackError) {
-      console.log("Fallback API failed");
-    }
-
-    return null;
   } catch (error) {
-    console.error("Error fetching Binance rate:", error);
-    // Fallback: tasa paralela aproximada actualizada (18 abril 2026)
-    return 520.0;
+    console.error("Error fetching parallel rate from yadio:", error);
   }
+  return null;
+}
+
+async function fetchDolarApiParallelRate(): Promise<number | null> {
+  try {
+    const response = await fetch(
+      "https://ve.dolarapi.com/v1/dolares/paralelo",
+    );
+    const data = await response.json();
+
+    if (data && data.promedio) {
+      return parseFloat(data.promedio);
+    }
+  } catch (error) {
+    console.error("Fallback dolarapi paralelo failed:", error);
+  }
+  return null;
+}
+
+/**
+ * Obtiene el precio promedio de USDT en VES desde el P2P de Binance
+ * promediando los anuncios de compra y venta.
+ */
+export async function fetchBinanceRate(): Promise<number | null> {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+
+  const body = {
+    asset: "USDT",
+    fiat: "VES",
+    merchantCheck: false,
+    page: 1,
+    rows: 10,
+    publisherType: null,
+    tradeType: "BUY",
+    transAmount: null,
+    payTypes: [],
+    countries: [],
+  };
+
+  const averageSide = async (tradeType: "BUY" | "SELL"): Promise<number | null> => {
+    try {
+      const response = await fetch(
+        "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, tradeType }),
+        },
+      );
+      const data = await response.json();
+
+      if (data && Array.isArray(data.data) && data.data.length > 0) {
+        const prices = data.data
+          .map((adv: { adv?: { price?: string } }) => parseFloat(adv.adv?.price ?? ""))
+          .filter((price: number) => !Number.isNaN(price));
+        return average(prices);
+      }
+    } catch (error) {
+      console.error(`Error fetching Binance P2P ${tradeType}:`, error);
+    }
+    return null;
+  };
+
+  const [buy, sell] = await Promise.all([averageSide("BUY"), averageSide("SELL")]);
+  const sides = [buy, sell].filter((value): value is number => value !== null);
+
+  if (sides.length === 0) return null;
+  return average(sides);
+}
+
+export async function fetchParallelRate(): Promise<number | null> {
+  const [binance, yadio, dolarapi] = await Promise.all([
+    fetchBinanceRate(),
+    fetchYadioRate(),
+    fetchDolarApiParallelRate(),
+  ]);
+
+  const rates = [binance, yadio, dolarapi].filter(
+    (value): value is number => value !== null,
+  );
+
+  return average(rates);
 }
 
 export async function fetchBCVRate(): Promise<number | null> {
   try {
-    // Usar API gratuita de ExchangeRate-API que no tiene problemas de CORS
     const response = await fetch(
-      "https://api.exchangerate-api.com/v4/latest/VES",
+      "https://ve.dolarapi.com/v1/dolares/oficial",
     );
     const data = await response.json();
-
-    // La API devuelve tasas con VES como base, necesitamos USD por VES
-    if (data && data.rates && data.rates.USD) {
-      // Si VES es la base, USD rate nos da cuánto vale 1 VES en USD
-      // Pero necesitamos cuánto vale 1 USD en VES, así que invertimos
-      return 1 / data.rates.USD;
+    if (data && data.promedio) {
+      return parseFloat(data.promedio);
     }
-
-    return null;
+    throw new Error("dolarapi sin tasa oficial");
   } catch (error) {
-    console.error("Error fetching BCV rate from ExchangeRate-API:", error);
-    // Fallback: intentar con otra API
+    console.error("Error fetching BCV rate from dolarapi:", error);
     try {
-      // Usar API de Bluelytics como alternativa (para Argentina pero puede tener datos VES)
-      const response = await fetch("https://api.bluelytics.com.ar/v2/latest");
+      const response = await fetch(
+        "https://api.exchangerate-api.com/v4/latest/VES",
+      );
       const data = await response.json();
-
-      if (data && data.oficial && data.oficial.value_buy) {
-        // Convertir de ARS a aproximado VES (las tasas suelen ser similares)
-        return data.oficial.value_buy * 0.024; // Aproximación
+      if (data && data.rates && data.rates.USD) {
+        return 1 / data.rates.USD;
       }
     } catch (fallbackError) {
-      console.error("Fallback API also failed:", fallbackError);
+      console.error("Fallback ExchangeRate-API also failed:", fallbackError);
     }
-
-    // Último fallback: valor aproximado actualizado (18 abril 2026)
-    return 481.22; // Tasa aproximada actual del BCV
+    return null;
   }
 }
 
 export async function fetchAllRates(): Promise<ExchangeRates> {
-  const [binance, bcv] = await Promise.all([
-    fetchBinanceRate(),
+  const [parallel, bcv] = await Promise.all([
+    fetchParallelRate(),
     fetchBCVRate(),
   ]);
 
   return {
-    binance,
+    parallel,
     bcv,
     lastUpdated: Date.now(),
   };

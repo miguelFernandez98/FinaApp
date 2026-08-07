@@ -1,11 +1,14 @@
-import type { AppState } from "./types";
+import type { PersistedState } from "./types";
+import type { ExchangeRates } from "./utils/exchangeRates";
 
 const STORAGE_KEY = "finanzapp_state";
+const EXCHANGE_RATES_KEY = "finanzapp_exchange_rates";
 
-const DEFAULT_STATE: AppState = {
+const DEFAULT_STATE: PersistedState = {
   transactions: [],
   budgets: {},
   currency: "$",
+  showCalculator: true,
 };
 
 /**
@@ -13,7 +16,7 @@ const DEFAULT_STATE: AppState = {
  * Mantiene compatibilidad con datos existentes cuando faltan campos nuevos.
  * @returns Estado de la aplicación.
  */
-export function loadState(): AppState {
+export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -22,6 +25,7 @@ export function loadState(): AppState {
         transactions: parsed.transactions || [],
         budgets: parsed.budgets || {},
         currency: parsed.currency || "$",
+        showCalculator: parsed.showCalculator ?? true,
       };
     }
   } catch (e) {
@@ -34,7 +38,7 @@ export function loadState(): AppState {
  * Guarda el estado de la aplicación en localStorage.
  * @param state Estado de la aplicación.
  */
-export function saveState(state: AppState): void {
+export function saveState(state: PersistedState): void {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -42,9 +46,34 @@ export function saveState(state: AppState): void {
         transactions: state.transactions,
         budgets: state.budgets,
         currency: state.currency,
+        showCalculator: state.showCalculator,
       }),
     );
   } catch (e) {
     console.warn("Error guardando estado:", e);
+  }
+}
+
+export function saveExchangeRates(rates: ExchangeRates): void {
+  try {
+    localStorage.setItem(EXCHANGE_RATES_KEY, JSON.stringify(rates));
+  } catch (e) {
+    console.warn("Error guardando exchange rates:", e);
+  }
+}
+
+export function loadExchangeRates(): ExchangeRates | null {
+  try {
+    const raw = localStorage.getItem(EXCHANGE_RATES_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      parallel: parsed.parallel ?? parsed.binance ?? null,
+      bcv: parsed.bcv ?? null,
+      lastUpdated: parsed.lastUpdated ?? null,
+    };
+  } catch (e) {
+    console.warn("Error cargando exchange rates:", e);
+    return null;
   }
 }

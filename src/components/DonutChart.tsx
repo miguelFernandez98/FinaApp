@@ -1,14 +1,15 @@
 import { useMemo } from "react";
 import { Doughnut } from "react-chartjs-2";
-import { useApp } from "../context";
-import { getCatById, formatMoney } from "../utils/helpers";
+import { useApp } from "../AppContext";
+import { formatMoney } from "../utils/format";
+import { getCategoryById } from "../utils/transactions";
 import type { Transaction } from "../types";
 
-interface Props {
+interface DonutChartProps {
   transactions: Transaction[];
 }
 
-export default function DonutChart({ transactions }: Props) {
+export default function DonutChart({ transactions }: DonutChartProps) {
   const { currency } = useApp();
 
   const chartData = useMemo(() => {
@@ -21,9 +22,9 @@ export default function DonutChart({ transactions }: Props) {
     });
 
     const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
-    const labels = sorted.map(([id]) => getCatById(id).name);
+    const labels = sorted.map(([id]) => getCategoryById(id).name);
     const data = sorted.map(([, v]) => v);
-    const colors = sorted.map(([id]) => getCatById(id).color);
+    const colors = sorted.map(([id]) => getCategoryById(id).color);
 
     return { labels, data, colors };
   }, [transactions]);

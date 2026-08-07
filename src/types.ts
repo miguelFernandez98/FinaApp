@@ -1,14 +1,21 @@
+export type TransactionType = "expense" | "income" | "debt";
+export type DebtStatus = "pending" | "partial" | "paid";
+
 export interface Transaction {
   id: string;
-  type: "expense" | "income" | "debt";
+  type: TransactionType;
   amount: number;
   category: string;
   description: string;
   date: string;
   createdAt: number;
-  debtStatus?: "pending" | "partial" | "paid";
+  debtStatus?: DebtStatus;
   debtPaidAmount?: number;
   debtDueDate?: string;
+  isRecurring?: boolean;
+  recurrenceDays?: number[];
+  recurringId?: string;
+  recurringBackfill?: boolean;
 }
 
 export interface Category {
@@ -16,13 +23,14 @@ export interface Category {
   name: string;
   icon: string;
   color: string;
-  type: "expense" | "income" | "debt";
+  type: TransactionType;
 }
 
-export interface AppState {
+export interface PersistedState {
   transactions: Transaction[];
   budgets: Record<string, number>;
   currency: string;
+  showCalculator: boolean;
 }
 
 export interface ToastState {
@@ -39,5 +47,5 @@ export interface ConfirmState {
   onConfirm: (() => void) | null;
 }
 
-export type PageId = "home" | "transactions" | "stats" | "profile";
-export type FilterType = "all" | "expense" | "income" | "debt";
+export type PageId = "home" | "transactions" | "stats" | "settings";
+export type FilterType = "all" | "expense" | "income" | "debt" | "future";

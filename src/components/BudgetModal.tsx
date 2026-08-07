@@ -1,24 +1,22 @@
-import { useState, useEffect } from "react";
-import { useApp } from "../context";
+import { useState } from "react";
+import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 
-interface Props {
+interface BudgetModalProps {
   onClose: () => void;
 }
 
-export default function BudgetModal({ onClose }: Props) {
+export default function BudgetModal({ onClose }: BudgetModalProps) {
   const { budgets, setBudgets, showToast } = useApp();
-  const [values, setValues] = useState<Record<string, string>>({});
 
   const expenseCats = CATEGORIES.filter((c) => c.type === "expense");
-
-  useEffect(() => {
+  const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     expenseCats.forEach((c) => {
       initial[c.id] = budgets[c.id] ? String(budgets[c.id]) : "";
     });
-    setValues(initial);
-  }, [budgets]);
+    return initial;
+  });
 
   const handleSave = () => {
     const newBudgets: Record<string, number> = {};

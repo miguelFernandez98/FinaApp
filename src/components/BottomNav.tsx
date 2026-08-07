@@ -1,4 +1,4 @@
-import { useApp } from "../context";
+import { useApp } from "../AppContext";
 import type { PageId } from "../types";
 
 const NAV_ITEMS: { page: PageId; icon: string; label: string }[] = [
@@ -9,7 +9,7 @@ const NAV_ITEMS: { page: PageId; icon: string; label: string }[] = [
     label: "Movimientos",
   },
   { page: "stats", icon: "fa-chart-simple", label: "Estadísticas" },
-  { page: "profile", icon: "fa-gear", label: "Ajustes" },
+  { page: "settings", icon: "fa-gear", label: "Ajustes" },
 ];
 
 export default function BottomNav() {
