@@ -22,6 +22,9 @@ export default function HomePage() {
     currentMonth,
     currentYear,
     currency,
+    navigateTo,
+    setFilter,
+    setCategoryFilter,
   } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,7 +58,15 @@ export default function HomePage() {
   );
   const balance = previousBalance + income - expense - debtAmount;
   const pendingDebts = useMemo(
-    () => getPendingDebtsForMonth(transactions, currentMonth, currentYear),
+    () =>
+      getPendingDebtsForMonth(transactions, currentMonth, currentYear).sort(
+        (a, b) => {
+          const dateDiff =
+            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          return b.createdAt - a.createdAt;
+        },
+      ),
     [transactions, currentMonth, currentYear],
   );
   const pendingDebtsTotal = useMemo(
@@ -71,9 +82,12 @@ export default function HomePage() {
   const recent = useMemo(
     () =>
       [...visibleTransactions]
-        .sort(
-          (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
-        )
+        .sort((a, b) => {
+          const dateDiff =
+            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          return b.createdAt - a.createdAt;
+        })
         .slice(0, 5),
     [visibleTransactions],
   );
@@ -171,7 +185,7 @@ export default function HomePage() {
         <div className="glass-card">
           <div className="card-header">
             <div>
-              <h3 className="card-title">Deudas pendientes</h3>
+              <h3 className="card-title">Deudas total pendiente</h3>
               <span className="card-subtitle">
                 Vence {MONTH_NAMES[currentMonth]} {currentYear}
               </span>
@@ -237,7 +251,16 @@ export default function HomePage() {
       {/* Recientes */}
       <div className="section-header">
         <h3 className="section-title">Recientes</h3>
-        <span className="section-link">Ver todas</span>
+        <span
+          className="section-link"
+          onClick={() => {
+            setFilter("all");
+            setCategoryFilter("all");
+            navigateTo("transactions");
+          }}
+        >
+          Ver todas
+        </span>
       </div>
 
       <div className="glass-card">

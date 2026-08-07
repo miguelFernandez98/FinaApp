@@ -137,6 +137,34 @@ h4 {
   font-weight: 700;
 }
 
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sort-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.sort-btn:active {
+  transform: scale(0.92);
+  background: var(--card-hover);
+}
+
 .avatar-btn {
   width: 40px;
   height: 40px;

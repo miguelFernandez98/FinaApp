@@ -26,6 +26,7 @@ export default function TransactionsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newestFirst, setNewestFirst] = useState(true);
 
   const visibleTransactions = useMemo(() => {
     if (currentTypeFilter === "future") {
@@ -38,10 +39,24 @@ export default function TransactionsPage() {
     );
   }, [transactions, currentMonth, currentYear, currentTypeFilter]);
 
-  const usedCats = useMemo(
-    () => [...new Set(visibleTransactions.map((t) => t.category))],
-    [visibleTransactions],
-  );
+  const usedCats = useMemo(() => {
+    const typeFiltered =
+      currentTypeFilter === "expense" ||
+      currentTypeFilter === "income" ||
+      currentTypeFilter === "debt"
+        ? visibleTransactions.filter((t) => t.type === currentTypeFilter)
+        : visibleTransactions;
+    return [...new Set(typeFiltered.map((t) => t.category))];
+  }, [visibleTransactions, currentTypeFilter]);
+
+  useEffect(() => {
+    if (
+      currentCategoryFilter !== "all" &&
+      !usedCats.includes(currentCategoryFilter)
+    ) {
+      setCategoryFilter("all");
+    }
+  }, [usedCats, currentCategoryFilter, setCategoryFilter]);
 
   const filtered = useMemo(() => {
     let result = visibleTransactions;
@@ -49,10 +64,19 @@ export default function TransactionsPage() {
       result = result.filter((t) => t.type === currentTypeFilter);
     if (currentCategoryFilter !== "all")
       result = result.filter((t) => t.category === currentCategoryFilter);
-    return result.sort(
-      (a, b) => parseISODate(b.date).getTime() - parseISODate(a.date).getTime(),
-    );
-  }, [visibleTransactions, currentTypeFilter, currentCategoryFilter]);
+    return result.sort((a, b) => {
+      const dateDiff =
+        (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) *
+        (newestFirst ? 1 : -1);
+      if (dateDiff !== 0) return dateDiff;
+      return newestFirst ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
+    });
+  }, [
+    visibleTransactions,
+    currentTypeFilter,
+    currentCategoryFilter,
+    newestFirst,
+  ]);
 
   // Agrupar por fecha
   const transactionsByDate = useMemo(() => {
@@ -61,8 +85,10 @@ export default function TransactionsPage() {
       if (!map[t.date]) map[t.date] = [];
       map[t.date].push(t);
     });
-    return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
-  }, [filtered]);
+    return Object.entries(map).sort(([a], [b]) =>
+      newestFirst ? b.localeCompare(a) : a.localeCompare(b),
+    );
+  }, [filtered, newestFirst]);
 
   useEffect(() => {
     const handler = () => {
@@ -85,9 +111,24 @@ export default function TransactionsPage() {
 
   return (
     <div className="page">
-      <h1 className="page-title" style={{ marginBottom: 20 }}>
-        Movimientos
-      </h1>
+      <div className="page-header-row">
+        <h1 className="page-title" style={{ marginBottom: 20 }}>
+          Movimientos
+        </h1>
+        <button
+          className="sort-btn"
+          onClick={() => setNewestFirst((prev) => !prev)}
+          aria-label={
+            newestFirst
+              ? "Ordenar de más antiguo a más nuevo"
+              : "Ordenar de más nuevo a más antiguo"
+          }
+        >
+          <i
+            className={`fa-solid ${newestFirst ? "fa-arrow-down-wide-short" : "fa-arrow-up-short-wide"}`}
+          />
+        </button>
+      </div>
 
       {/* Selector de mes */}
       {currentTypeFilter !== "future" && <MonthSelector />}
