@@ -30,6 +30,7 @@ export interface PersistedState {
   transactions: Transaction[];
   budgets: Record<string, number>;
   currency: string;
+  showCalculator: boolean;
 }
 
 export interface ToastState {

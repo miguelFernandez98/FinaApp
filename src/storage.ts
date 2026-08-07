@@ -8,6 +8,7 @@ const DEFAULT_STATE: PersistedState = {
   transactions: [],
   budgets: {},
   currency: "$",
+  showCalculator: true,
 };
 
 /**
@@ -24,6 +25,7 @@ export function loadState(): PersistedState {
         transactions: parsed.transactions || [],
         budgets: parsed.budgets || {},
         currency: parsed.currency || "$",
+        showCalculator: parsed.showCalculator ?? true,
       };
     }
   } catch (e) {
@@ -44,6 +46,7 @@ export function saveState(state: PersistedState): void {
         transactions: state.transactions,
         budgets: state.budgets,
         currency: state.currency,
+        showCalculator: state.showCalculator,
       }),
     );
   } catch (e) {

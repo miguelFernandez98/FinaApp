@@ -47,6 +47,7 @@ interface AppContextValue extends PersistedState {
   deleteTransaction: (id: string) => void;
   setBudgets: (budgets: Record<string, number>) => void;
   setCurrency: (currency: string) => void;
+  setShowCalculator: (show: boolean) => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
@@ -73,6 +74,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     savedState.budgets,
   );
   const [currency, setCurrencyState] = useState(savedState.currency);
+  const [showCalculator, setShowCalculatorState] = useState(
+    savedState.showCalculator,
+  );
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -100,8 +104,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    saveState({ transactions, budgets, currency });
-  }, [transactions, budgets, currency]);
+    saveState({ transactions, budgets, currency, showCalculator });
+  }, [transactions, budgets, currency, showCalculator]);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -165,6 +169,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const setCurrency = useCallback((c: string) => {
     setCurrencyState(c);
+  }, []);
+
+  const setShowCalculator = useCallback((show: boolean) => {
+    setShowCalculatorState(show);
   }, []);
 
   /**
@@ -265,6 +273,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions(newState.transactions);
     setBudgetsState(newState.budgets);
     setCurrencyState(newState.currency);
+    setShowCalculatorState(newState.showCalculator);
   }, []);
 
   useEffect(() => {
@@ -310,6 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transactions,
       budgets,
       currency,
+      showCalculator,
       currentPage,
       currentMonth,
       currentYear,
@@ -323,6 +333,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteTransaction,
       setBudgets,
       setCurrency,
+      setShowCalculator,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -337,6 +348,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transactions,
       budgets,
       currency,
+      showCalculator,
       currentPage,
       currentMonth,
       currentYear,
@@ -350,6 +362,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteTransaction,
       setBudgets,
       setCurrency,
+      setShowCalculator,
       changeMonth,
       setFilter,
       setCategoryFilter,

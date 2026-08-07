@@ -8,6 +8,8 @@ export default function SettingsPage() {
   const {
     currency,
     setCurrency,
+    showCalculator,
+    setShowCalculator,
     transactions,
     budgets,
     showConfirm,
@@ -22,7 +24,11 @@ export default function SettingsPage() {
   };
 
   const handleExport = () => {
-    const data = JSON.stringify({ transactions, budgets, currency }, null, 2);
+    const data = JSON.stringify(
+      { transactions, budgets, currency, showCalculator },
+      null,
+      2,
+    );
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -49,6 +55,7 @@ export default function SettingsPage() {
                 transactions: data.transactions,
                 budgets: data.budgets || {},
                 currency: data.currency || "$",
+                showCalculator: data.showCalculator ?? true,
               });
               showToast("Datos importados correctamente");
             },
@@ -267,6 +274,7 @@ export default function SettingsPage() {
           transactions: sampleTxns,
           budgets: sampleBudgets,
           currency: "$",
+          showCalculator: true,
         });
         showToast("Datos de ejemplo cargados");
       },
@@ -278,7 +286,7 @@ export default function SettingsPage() {
       "Borrar todo",
       "Se eliminarán todas las transacciones y presupuestos permanentemente.",
       () => {
-        importState({ transactions: [], budgets: {}, currency: "$" });
+        importState({ transactions: [], budgets: {}, currency: "$", showCalculator: true });
         showToast("Datos eliminados", "fa-trash", "var(--danger)");
       },
     );
@@ -332,6 +340,22 @@ export default function SettingsPage() {
           <option value="AR$">AR$ — Peso Argentino</option>
           <option value="R$">R$ — Real Brasileño</option>
         </select>
+      </div>
+
+      {/* Calculadora */}
+      <div className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div className="menu-item" style={{ cursor: "pointer" }}>
+          <i className="fa-solid fa-calculator menu-icon" />
+          <span style={{ flex: 1 }}>Mostrar calculadora de divisas</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={showCalculator}
+              onChange={(e) => setShowCalculator(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
       </div>
 
       {/* Acciones */}

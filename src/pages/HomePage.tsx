@@ -25,6 +25,7 @@ export default function HomePage() {
     navigateTo,
     setFilter,
     setCategoryFilter,
+    showCalculator,
   } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -179,7 +180,7 @@ export default function HomePage() {
       </div>
 
       {/* Calculadora de divisas */}
-      <CurrencyCalculator />
+      {showCalculator && <CurrencyCalculator />}
 
       {pendingDebts.length > 0 && (
         <div className="glass-card">

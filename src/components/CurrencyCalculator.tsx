@@ -78,7 +78,7 @@ export default function CurrencyCalculator() {
             className="input-field"
             value={amount}
             onChange={(e) => {
-              if (e.target.value.length <= 22) setAmount(e.target.value);
+              if (e.target.value.length <= 18) setAmount(e.target.value);
             }}
             placeholder="Ingresa el monto"
           />
