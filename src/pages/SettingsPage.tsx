@@ -3,6 +3,7 @@ import { useApp } from "../AppContext";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import type { Transaction } from "../types";
+import { version } from "../../package.json";
 
 export default function SettingsPage() {
   const {
@@ -317,7 +318,7 @@ export default function SettingsPage() {
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600 }}>FinanzApp</h3>
           <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-            v1.0 — Datos guardados localmente
+            v{version} — Datos guardados localmente
           </p>
         </div>
       </div>
