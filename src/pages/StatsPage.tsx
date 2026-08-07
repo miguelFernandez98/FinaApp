@@ -5,6 +5,7 @@ import { getCategoryById } from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
+import FinanceAdvisor from "../components/FinanceAdvisor";
 
 export default function StatsPage() {
   const {
@@ -15,6 +16,7 @@ export default function StatsPage() {
     budgets,
   } = useApp();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
@@ -76,6 +78,14 @@ export default function StatsPage() {
       <h1 className="page-title" style={{ marginBottom: 20 }}>
         Estadísticas
       </h1>
+
+      <button
+        className="advisor-fab"
+        onClick={() => setAdvisorOpen(true)}
+        title="Asistente financiero"
+      >
+        <i className="fa-solid fa-robot" />
+      </button>
 
       {/* Selector de mes */}
       <MonthSelector />
@@ -237,6 +247,8 @@ export default function StatsPage() {
       {budgetModalOpen && (
         <BudgetModal onClose={() => setBudgetModalOpen(false)} />
       )}
+
+      {advisorOpen && <FinanceAdvisor onClose={() => setAdvisorOpen(false)} />}
     </div>
   );
 }
