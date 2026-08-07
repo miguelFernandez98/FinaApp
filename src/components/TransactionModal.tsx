@@ -64,12 +64,15 @@ export default function TransactionModal({
 
   const filteredCats = CATEGORIES.filter((c) => c.type === transactionType);
 
+  const isEditing = !!editingTransaction;
+
   const handleTypeChange = (next: TransactionType) => {
+    if (isEditing) return;
     setTransactionType(next);
-    if (!editingId) {
-      setSelectedCategoryId(
-        CATEGORIES.filter((c) => c.type === next)[0]?.id || "",
-      );
+    const validForNext = CATEGORIES.filter((c) => c.type === next);
+    const currentStillValid = validForNext.some((c) => c.id === selectedCategoryId);
+    if (!currentStillValid) {
+      setSelectedCategoryId(validForNext[0]?.id || "");
     }
   };
 
@@ -203,22 +206,30 @@ export default function TransactionModal({
           <button
             className={`type-btn ${transactionType === "expense" ? "active-expense" : ""}`}
             onClick={() => handleTypeChange("expense")}
+            disabled={isEditing}
           >
             Gasto
           </button>
           <button
             className={`type-btn ${transactionType === "income" ? "active-income" : ""}`}
             onClick={() => handleTypeChange("income")}
+            disabled={isEditing}
           >
             Ingreso
           </button>
           <button
             className={`type-btn ${transactionType === "debt" ? "active-debt" : ""}`}
             onClick={() => handleTypeChange("debt")}
+            disabled={isEditing}
           >
             Deuda
           </button>
         </div>
+        {isEditing && (
+          <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: -8, marginBottom: 16 }}>
+            El tipo de una transacción no puede cambiarse al editar. Crea una nueva transacción si necesitas otro tipo.
+          </p>
+        )}
 
         {/* Monto */}
         <div style={{ marginBottom: 16 }}>

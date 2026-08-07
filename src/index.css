@@ -791,6 +791,11 @@ h4 {
   color: #f87171;
 }
 
+.type-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .previous-balance-row {
   display: flex;
   align-items: center;
