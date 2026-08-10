@@ -118,7 +118,7 @@ export function getAnswer(
     case "budgets":
       return budgetsAnswer(transactions, month, year, budgets, currency);
     case "improve":
-      return improveAnswer(transactions, month, year, stats, currency, budgets);
+      return improveAnswer(transactions, month, year, stats, budgets);
     default:
       return "";
   }
@@ -274,7 +274,6 @@ function improveAnswer(
   month: number,
   year: number,
   stats: MonthStats,
-  currency: string,
   budgets: Record<string, number>,
 ) {
   const tips: string[] = [];

@@ -8,6 +8,8 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import type {
   Transaction,
   PersistedState,
@@ -28,6 +30,11 @@ import {
 } from "./utils/transactions";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
+import {
+  notifyRateChanges,
+  requestNotificationPermission,
+  scheduleDebtReminders,
+} from "./utils/notifications";
 
 interface AppContextValue extends PersistedState {
   currentPage: PageId;
@@ -59,6 +66,9 @@ interface AppContextValue extends PersistedState {
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+const RATES_REFRESH_INTERVAL = 15 * 60 * 1000;
+const RATES_MIN_FETCH_GAP = 60 * 1000;
 
 /**
  * Proveedor principal de contexto de la aplicación.
@@ -102,10 +112,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     return { parallel: null, bcv: null, lastUpdated: null };
   });
+  const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
+  const lastRatesFetchRef = useRef(0);
+  const loadRatesRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     saveState({ transactions, budgets, currency, showCalculator });
   }, [transactions, budgets, currency, showCalculator]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const init = async () => {
+      const granted = await requestNotificationPermission();
+      if (!granted || cancelled) return;
+      scheduleDebtReminders(transactions);
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [transactions]);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -278,8 +304,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     const loadRates = async () => {
+      if (Date.now() - lastRatesFetchRef.current < RATES_MIN_FETCH_GAP) return;
+      lastRatesFetchRef.current = Date.now();
       console.log("🔄 Refreshing exchange rates...");
       try {
         const rates = await fetchAllRates();
@@ -287,6 +316,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.log("✅ Exchange rates updated:", rates);
         setExchangeRates(rates);
         saveExchangeRates(rates);
+        notifyRateChanges(previousRatesRef.current, rates);
+        previousRatesRef.current = rates;
       } catch (error) {
         if (cancelled) return;
         console.error("❌ Error refreshing exchange rates:", error);
@@ -308,11 +339,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    loadRatesRef.current = loadRates;
     loadRates();
+    interval = setInterval(loadRates, RATES_REFRESH_INTERVAL);
+
     return () => {
       cancelled = true;
+      if (interval) clearInterval(interval);
     };
   }, [showToast]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) loadRatesRef.current();
+    });
+    return () => {
+      listener.then((l) => l.remove());
+    };
+  }, []);
 
   const value = useMemo<AppContextValue>(
     () => ({
