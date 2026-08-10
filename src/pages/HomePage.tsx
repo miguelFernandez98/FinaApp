@@ -14,6 +14,7 @@ import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import MonthSelector from "../components/MonthSelector";
+import AppVersion from "../components/AppVersion";
 
 export default function HomePage() {
   const {
@@ -122,7 +123,9 @@ export default function HomePage() {
       <div className="page-header">
         <div>
           <p className="greeting-text">{getTimeBasedGreeting()}</p>
-          <h1 className="page-title">Mis Finanzas</h1>
+          <h1 className="page-title">
+            Mis Finanzas <AppVersion />
+          </h1>
         </div>
         <div className="avatar-btn" onClick={() => {}}>
           <i

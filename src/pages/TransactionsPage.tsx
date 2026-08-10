@@ -10,6 +10,7 @@ import {
 import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import MonthSelector from "../components/MonthSelector";
+import AppVersion from "../components/AppVersion";
 import type { Transaction, FilterType } from "../types";
 
 export default function TransactionsPage() {
@@ -113,7 +114,7 @@ export default function TransactionsPage() {
     <div className="page">
       <div className="page-header-row">
         <h1 className="page-title" style={{ marginBottom: 20 }}>
-          Movimientos
+          Movimientos <AppVersion />
         </h1>
         <button
           className="sort-btn"

@@ -137,6 +137,19 @@ h4 {
   font-weight: 700;
 }
 
+.app-version {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .page-header-row {
   display: flex;
   align-items: center;
@@ -362,6 +375,14 @@ h4 {
   font-weight: 700;
   letter-spacing: -1px;
   line-height: 1.1;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.balance-amount::-webkit-scrollbar {
+  display: none;
 }
 
 .balance-row {
@@ -539,12 +560,14 @@ h4 {
 .stat-mini {
   text-align: center;
   padding: 12px 8px;
+  min-width: 0;
 }
 
 .stat-value {
   font-family: "Space Grotesk";
   font-size: 20px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .stat-label {
@@ -1071,9 +1094,9 @@ h4 {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  border: none;
-  background: var(--accent);
-  color: #fff;
+  border: 0.5px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
   font-size: 20px;
   display: grid;
   place-items: center;
@@ -1163,8 +1186,8 @@ h4 {
 }
 
 .advisor-msg.user .advisor-bubble {
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-dim);
+  color: var(--accent);
   border-bottom-right-radius: 4px;
 }
 
@@ -1192,8 +1215,8 @@ h4 {
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--fg);
+  background: var(--accent-dim);
+  color: var(--accent);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.15s;

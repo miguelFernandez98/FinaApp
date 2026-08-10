@@ -1,4 +1,7 @@
 import { useRef } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { useApp } from "../AppContext";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
@@ -24,17 +27,44 @@ export default function SettingsPage() {
     showToast("Moneda actualizada");
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = JSON.stringify(
       { transactions, budgets, currency, showCalculator },
       null,
       2,
     );
+    const filename = `finanzapp_backup_${toISODate(new Date())}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data,
+          directory: FilesystemDirectory.Cache,
+        });
+        await Share.share({
+          title: "Exportar datos",
+          text: "Backup de FinanzApp",
+          files: [result.uri],
+          dialogTitle: "Guardar backup",
+        });
+        showToast("Datos exportados");
+      } catch (error) {
+        console.error("Error exporting data on native:", error);
+        showToast(
+          "No se pudo exportar",
+          "fa-exclamation-triangle",
+          "var(--danger)",
+        );
+      }
+      return;
+    }
+
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `finanzapp_backup_${toISODate(new Date())}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Datos exportados");
@@ -318,7 +348,7 @@ export default function SettingsPage() {
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600 }}>FinanzApp</h3>
           <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-            v{version} — Datos guardados localmente
+            v{version}
           </p>
         </div>
       </div>
@@ -413,7 +443,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="footer-note">
-        Los datos se almacenan exclusivamente en tu navegador.
+        Los datos se almacenan exclusivamente en tu dispositivo.
       </p>
     </div>
   );

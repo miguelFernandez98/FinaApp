@@ -6,6 +6,7 @@ import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
 import FinanceAdvisor from "../components/FinanceAdvisor";
+import AppVersion from "../components/AppVersion";
 
 export default function StatsPage() {
   const {
@@ -76,9 +77,10 @@ export default function StatsPage() {
   return (
     <div className="page">
       <h1 className="page-title" style={{ marginBottom: 20 }}>
-        Estadísticas
+        Estadísticas <AppVersion />
       </h1>
 
+      {/* Boton Asitente */}
       <button
         className="advisor-fab"
         onClick={() => setAdvisorOpen(true)}
