@@ -943,10 +943,19 @@ h4 {
   max-width: 380px;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  appearance: none;
+  background-color: var(--bg-secondary);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .toast.show {
   transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+  opacity: 1;
 }
 
 /* ===== CONFIRM ===== */

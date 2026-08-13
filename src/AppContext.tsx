@@ -61,6 +61,7 @@ interface AppContextValue extends PersistedState {
   setCategoryFilter: (filter: string) => void;
   getMonthTransactions: (month: number, year: number) => Transaction[];
   showToast: (message: string, icon?: string, color?: string) => void;
+  closeToast: () => void;
   showConfirm: (
     title: string,
     message: string,
@@ -302,6 +303,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   /**
+   * Oculta el toast manualmente.
+   */
+  const closeToast = useCallback(() => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  /**
    * Muestra un diálogo de confirmación.
    * @param title Título del diálogo.
    * @param message Mensaje de confirmación.
@@ -390,14 +399,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         const cached = loadExchangeRates();
         const merged = {
-          parallel: rates.parallel ?? cached?.parallel ?? null,
-          bcv: rates.bcv ?? cached?.bcv ?? null,
-          eur: rates.eur ?? cached?.eur ?? null,
+          parallel: rates.parallel || cached?.parallel || null,
+          bcv: rates.bcv || cached?.bcv || null,
+          eur: rates.eur || cached?.eur || null,
           lastUpdated: rates.lastUpdated,
           fromCache:
-            (rates.parallel === null && cached?.parallel != null) ||
-            (rates.bcv === null && cached?.bcv != null) ||
-            (rates.eur === null && cached?.eur != null),
+            (rates.parallel == null && cached?.parallel != null) ||
+            (rates.bcv == null && cached?.bcv != null) ||
+            (rates.eur == null && cached?.eur != null),
         };
         console.log("✅ Exchange rates updated:", merged);
         setExchangeRates(merged);
@@ -486,6 +495,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCategoryFilter,
       getMonthTransactions,
       showToast,
+      closeToast,
       showConfirm,
       closeConfirm,
       openTransactionModal,
@@ -521,6 +531,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCategoryFilter,
       getMonthTransactions,
       showToast,
+      closeToast,
       showConfirm,
       closeConfirm,
       openTransactionModal,
