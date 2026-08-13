@@ -114,6 +114,14 @@ export const CATEGORIES: Category[] = [
     type: "debt",
   },
   {
+    id: "debt_paid",
+    name: "Deudas",
+    icon: "fa-hand-holding-dollar",
+    color: "#f43f5e",
+    type: "expense",
+    hidden: true,
+  },
+  {
     id: "other_expense",
     name: "Otro gasto",
     icon: "fa-ellipsis",
