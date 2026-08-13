@@ -71,9 +71,9 @@ export function loadExchangeRates(): ExchangeRates | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
-      parallel: parsed.parallel ?? parsed.binance ?? null,
-      bcv: parsed.bcv ?? null,
-      eur: parsed.eur ?? null,
+      parallel: parsed.parallel || parsed.binance || null,
+      bcv: parsed.bcv || null,
+      eur: parsed.eur || null,
       lastUpdated: parsed.lastUpdated ?? null,
       fromCache: true,
     };
