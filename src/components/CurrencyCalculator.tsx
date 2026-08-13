@@ -3,6 +3,7 @@ import { useApp } from "../AppContext";
 import { formatMoney } from "../utils/format";
 
 type CurrencyType = "VES" | "USD_BCV" | "USD_PARALLEL" | "EUR";
+type BcvDisplay = "USD" | "EUR";
 
 const MAX_AMOUNT = 1e15;
 
@@ -20,6 +21,26 @@ export default function CurrencyCalculator() {
 
   const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
   const [toCurrency, setToCurrency] = useState<CurrencyType>("USD_BCV");
+  const [bcvDisplay, setBcvDisplay] = useState<BcvDisplay>("USD");
+  const [bcvManual, setBcvManual] = useState(false);
+
+  // Alterna automáticamente entre BCV $ y BCV € cada 3.5s (solo si showEUR).
+  // Un toque en el indicador fija la moneda manualmente.
+  useEffect(() => {
+    if (!showEUR || bcvManual) return;
+    const interval = setInterval(() => {
+      setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [showEUR, bcvManual]);
+
+  const effectiveBcvDisplay: BcvDisplay = showEUR ? bcvDisplay : "USD";
+
+  const handleBcvClick = () => {
+    if (!showEUR) return;
+    setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
+    setBcvManual(true);
+  };
 
   useEffect(() => {
     console.log("💱 Current exchange rates:", exchangeRates);
@@ -85,8 +106,11 @@ export default function CurrencyCalculator() {
       })()
     : null;
 
-  const eurAvailable =
-    exchangeRates.eur !== null && exchangeRates.eur !== undefined;
+  const rateDisplay = (rate: number | null | undefined): string => {
+    if (rate) return formatMoney(rate, "Bs.");
+    if (exchangeRates.lastUpdated === null) return "Cargando...";
+    return "N/D";
+  };
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>
@@ -216,34 +240,36 @@ export default function CurrencyCalculator() {
             fontSize: 12,
           }}
         >
-          <div>
-            <div style={{ color: "var(--accent)" }}>BCV:</div>
+          <div
+            onClick={handleBcvClick}
+            style={{
+              cursor: showEUR ? "pointer" : "default",
+              background: "var(--card)",
+              borderRadius: 8,
+              padding: "8px 10px",
+              userSelect: "none",
+            }}
+            title={showEUR ? "Toca para cambiar entre BCV $ y BCV €" : undefined}
+          >
+            <div style={{ color: "var(--accent)" }}>
+              {effectiveBcvDisplay === "EUR" ? "BCV €:" : "BCV $:"}
+            </div>
             <div>
-              {exchangeRates.bcv
-                ? formatMoney(exchangeRates.bcv, "Bs.")
-                : "Cargando..."}
+              {effectiveBcvDisplay === "EUR"
+                ? rateDisplay(exchangeRates.eur)
+                : rateDisplay(exchangeRates.bcv)}
             </div>
           </div>
-          <div>
+          <div
+            style={{
+              background: "var(--card)",
+              borderRadius: 8,
+              padding: "8px 10px",
+            }}
+          >
             <div style={{ color: "#F0B90B" }}>Paralelo:</div>
-            <div>
-              {exchangeRates.parallel
-                ? formatMoney(exchangeRates.parallel, "Bs.")
-                : "Cargando..."}
-            </div>
+            <div>{rateDisplay(exchangeRates.parallel)}</div>
           </div>
-          {showEUR && (
-            <div>
-              <div style={{ color: "#60a5fa" }}>
-                <i className="fa-solid fa-euro-sign" /> EUR:
-              </div>
-              <div>
-                {eurAvailable
-                  ? formatMoney(exchangeRates.eur!, "Bs.")
-                  : "Cargando..."}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
