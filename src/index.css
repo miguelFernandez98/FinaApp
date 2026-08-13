@@ -253,6 +253,10 @@ h4 {
   transition: all 0.25s ease;
   color: var(--fg-muted);
   position: relative;
+  background: none;
+  border: none;
+  font-family: inherit;
+  margin: 0;
 }
 
 .nav-item.active {

@@ -47,7 +47,7 @@ export default function TransactionItem({
   })();
 
   return (
-    <div
+    <article
       className="txn-item"
       onClick={onEdit}
       style={
@@ -99,6 +99,6 @@ export default function TransactionItem({
         {sign}
         {formatMoney(transaction.amount, currency)}
       </div>
-    </div>
+    </article>
   );
 }
