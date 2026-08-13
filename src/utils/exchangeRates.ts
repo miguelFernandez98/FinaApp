@@ -3,7 +3,9 @@ import { Capacitor } from "@capacitor/core";
 export interface ExchangeRates {
   parallel: number | null;
   bcv: number | null;
+  eur: number | null;
   lastUpdated: number | null;
+  fromCache?: boolean;
 }
 
 function average(values: number[]): number {
@@ -135,15 +137,43 @@ export async function fetchBCVRate(): Promise<number | null> {
   }
 }
 
+export async function fetchEURRate(): Promise<number | null> {
+  try {
+    const response = await fetch("https://open.er-api.com/v6/latest/EUR");
+    const data = await response.json();
+    if (data && data.rates && data.rates.VES) {
+      return parseFloat(data.rates.VES);
+    }
+  } catch (error) {
+    console.error("Error fetching EUR/VES from open.er-api:", error);
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.exchangerate-api.com/v4/latest/EUR",
+    );
+    const data = await response.json();
+    if (data && data.rates && data.rates.VES) {
+      return parseFloat(data.rates.VES);
+    }
+  } catch (fallbackError) {
+    console.error("Fallback ExchangeRate-API for EUR also failed:", fallbackError);
+  }
+  return null;
+}
+
 export async function fetchAllRates(): Promise<ExchangeRates> {
-  const [parallel, bcv] = await Promise.all([
+  const [parallel, bcv, eur] = await Promise.all([
     fetchParallelRate(),
     fetchBCVRate(),
+    fetchEURRate(),
   ]);
 
   return {
     parallel,
     bcv,
+    eur,
     lastUpdated: Date.now(),
+    fromCache: false,
   };
 }
