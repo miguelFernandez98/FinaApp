@@ -144,6 +144,8 @@ export function getRecurringOccurrences(
 
 /**
  * Devuelve las transacciones visibles en un mes, expandiendo las recurrentes.
+ * Las deudas pagadas con countAsExpense se transforman en gastos de la
+ * categoría "Deudas" para que cuenten en los resúmenes de gastos.
  * @param transactions Lista completa de transacciones.
  * @param month Mes seleccionado (0-11).
  * @param year Año seleccionado.
@@ -157,6 +159,24 @@ export function getMonthTransactions(
   return transactions.flatMap((t) => {
     if (t.isRecurring && t.type !== "debt") {
       return getRecurringOccurrences(t, month, year);
+    }
+
+    if (t.type === "debt" && t.debtStatus === "paid" && t.countAsExpense) {
+      const paidDate = parseISODate(t.debtPaidDate ?? t.date);
+      if (paidDate.getMonth() !== month || paidDate.getFullYear() !== year) {
+        return [];
+      }
+      return [
+        {
+          ...t,
+          type: "expense" as const,
+          category: "debt_paid",
+          date: toISODate(paidDate),
+          isRecurring: false,
+          recurrenceDays: undefined,
+          recurringBackfill: undefined,
+        },
+      ];
     }
 
     const date = parseISODate(t.date);
@@ -255,6 +275,7 @@ export function getMonthTransactionsWithDebtCarry(
 
   const visibleDebts = transactions.filter((t) => {
     if (t.type !== "debt") return false;
+    if (t.debtStatus === "paid" && t.countAsExpense) return false;
     if (t.isRecurring) {
       return getRecurringOccurrences(t, month, year).length > 0;
     }

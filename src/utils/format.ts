@@ -8,9 +8,11 @@ export function formatMoney(amount: number, currency: string): string {
   const abs = Math.abs(amount);
   return (
     currency +
-    abs.toLocaleString("es", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
+    abs
+      .toLocaleString("es", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+      .replace(/\./g, ".\u200B")
   );
 }

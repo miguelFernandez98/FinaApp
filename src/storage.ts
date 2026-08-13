@@ -9,6 +9,7 @@ const DEFAULT_STATE: PersistedState = {
   budgets: {},
   currency: "$",
   showCalculator: true,
+  showEUR: false,
 };
 
 /**
@@ -26,6 +27,7 @@ export function loadState(): PersistedState {
         budgets: parsed.budgets || {},
         currency: parsed.currency || "$",
         showCalculator: parsed.showCalculator ?? true,
+        showEUR: parsed.showEUR ?? false,
       };
     }
   } catch (e) {
@@ -47,6 +49,7 @@ export function saveState(state: PersistedState): void {
         budgets: state.budgets,
         currency: state.currency,
         showCalculator: state.showCalculator,
+        showEUR: state.showEUR,
       }),
     );
   } catch (e) {
@@ -68,9 +71,11 @@ export function loadExchangeRates(): ExchangeRates | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
-      parallel: parsed.parallel ?? parsed.binance ?? null,
-      bcv: parsed.bcv ?? null,
+      parallel: parsed.parallel || parsed.binance || null,
+      bcv: parsed.bcv || null,
+      eur: parsed.eur || null,
       lastUpdated: parsed.lastUpdated ?? null,
+      fromCache: true,
     };
   } catch (e) {
     console.warn("Error cargando exchange rates:", e);

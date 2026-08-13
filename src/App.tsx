@@ -1,22 +1,49 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppProvider, useApp } from "./AppContext";
 import BottomNav from "./components/BottomNav";
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
+import TransactionModal from "./components/TransactionModal";
 import HomePage from "./pages/HomePage";
 import TransactionsPage from "./pages/TransactionsPage";
 import StatsPage from "./pages/StatsPage";
 import SettingsPage from "./pages/SettingsPage";
+import NotFoundPage from "./pages/NotFoundPage";
 import type { PageId } from "./types";
 
+const VALID_PAGES: PageId[] = ["home", "transactions", "stats", "settings"];
+
+function parseHash(hash: string): PageId | null {
+  const cleaned = hash.replace(/^#\/?/, "").toLowerCase();
+  if (cleaned === "") return "home";
+  return VALID_PAGES.includes(cleaned as PageId) ? (cleaned as PageId) : null;
+}
+
 function AppContent() {
-  const { currentPage } = useApp();
-  const contentRef = useRef<HTMLDivElement>(null);
+  const { currentPage, navigateTo, txnModalOpen } = useApp();
+  const contentRef = useRef<HTMLElement>(null);
+  const [notFound, setNotFound] = useState(false);
+
+  // Sincroniza el hash con la página actual y maneja rutas desconocidas (404)
+  useEffect(() => {
+    const syncFromHash = () => {
+      const page = parseHash(window.location.hash);
+      if (page === null) {
+        setNotFound(true);
+        return;
+      }
+      setNotFound(false);
+      if (page !== currentPage) navigateTo(page);
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, [currentPage, navigateTo]);
 
   // Scroll al tope al cambiar de página
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
+  }, [currentPage, notFound]);
 
   const pages: Record<PageId, JSX.Element> = {
     home: <HomePage />,
@@ -27,11 +54,12 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      <div className="ambient-bg" />
-      <div className="content-area" ref={contentRef}>
-        {pages[currentPage]}
-      </div>
+      <div className="ambient-bg" aria-hidden="true" />
+      <main className="content-area" ref={contentRef}>
+        {notFound ? <NotFoundPage /> : pages[currentPage]}
+      </main>
       <BottomNav />
+      {txnModalOpen && <TransactionModal />}
       <Toast />
       <ConfirmDialog />
     </div>

@@ -1,4 +1,7 @@
 import { useRef } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { useApp } from "../AppContext";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
@@ -11,6 +14,8 @@ export default function SettingsPage() {
     setCurrency,
     showCalculator,
     setShowCalculator,
+    showEUR,
+    setShowEUR,
     transactions,
     budgets,
     showConfirm,
@@ -24,17 +29,44 @@ export default function SettingsPage() {
     showToast("Moneda actualizada");
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = JSON.stringify(
-      { transactions, budgets, currency, showCalculator },
+      { transactions, budgets, currency, showCalculator, showEUR },
       null,
       2,
     );
+    const filename = `finanzapp_backup_${toISODate(new Date())}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data,
+          directory: FilesystemDirectory.Cache,
+        });
+        await Share.share({
+          title: "Exportar datos",
+          text: "Backup de FinanzApp",
+          files: [result.uri],
+          dialogTitle: "Guardar backup",
+        });
+        showToast("Datos exportados");
+      } catch (error) {
+        console.error("Error exporting data on native:", error);
+        showToast(
+          "No se pudo exportar",
+          "fa-exclamation-triangle",
+          "var(--danger)",
+        );
+      }
+      return;
+    }
+
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `finanzapp_backup_${toISODate(new Date())}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Datos exportados");
@@ -57,6 +89,7 @@ export default function SettingsPage() {
                 budgets: data.budgets || {},
                 currency: data.currency || "$",
                 showCalculator: data.showCalculator ?? true,
+                showEUR: data.showEUR ?? false,
               });
               showToast("Datos importados correctamente");
             },
@@ -276,6 +309,7 @@ export default function SettingsPage() {
           budgets: sampleBudgets,
           currency: "$",
           showCalculator: true,
+          showEUR: true,
         });
         showToast("Datos de ejemplo cargados");
       },
@@ -287,7 +321,13 @@ export default function SettingsPage() {
       "Borrar todo",
       "Se eliminarán todas las transacciones y presupuestos permanentemente.",
       () => {
-        importState({ transactions: [], budgets: {}, currency: "$", showCalculator: true });
+        importState({
+          transactions: [],
+          budgets: {},
+          currency: "$",
+          showCalculator: true,
+          showEUR: false,
+        });
         showToast("Datos eliminados", "fa-trash", "var(--danger)");
       },
     );
@@ -295,12 +335,12 @@ export default function SettingsPage() {
 
   return (
     <div className="page">
-      <h1 className="page-title" style={{ marginBottom: 24 }}>
-        Configuración
-      </h1>
+      <header className="page-header">
+        <h1 className="page-title">Configuración</h1>
+      </header>
 
       {/* Info */}
-      <div
+      <section
         className="glass-card"
         style={{
           marginBottom: 16,
@@ -318,13 +358,13 @@ export default function SettingsPage() {
         <div>
           <h3 style={{ fontSize: 16, fontWeight: 600 }}>FinanzApp</h3>
           <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-            v{version} — Datos guardados localmente
+            v{version}
           </p>
         </div>
-      </div>
+      </section>
 
       {/* Moneda */}
-      <div className="glass-card" style={{ marginBottom: 12 }}>
+      <section className="glass-card" style={{ marginBottom: 12 }}>
         <label className="field-label">Moneda</label>
         <select
           className="input-field"
@@ -341,10 +381,10 @@ export default function SettingsPage() {
           <option value="AR$">AR$ — Peso Argentino</option>
           <option value="R$">R$ — Real Brasileño</option>
         </select>
-      </div>
+      </section>
 
       {/* Calculadora */}
-      <div className="glass-card menu-list" style={{ marginBottom: 12 }}>
+      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div className="menu-item" style={{ cursor: "pointer" }}>
           <i className="fa-solid fa-calculator menu-icon" />
           <span style={{ flex: 1 }}>Mostrar calculadora de divisas</span>
@@ -357,10 +397,36 @@ export default function SettingsPage() {
             <span className="slider" />
           </label>
         </div>
-      </div>
+      </section>
+
+      {/* Tasa Euro */}
+      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div className="menu-item" style={{ cursor: "pointer" }}>
+          <i className="fa-solid fa-euro-sign menu-icon" />
+          <span style={{ flex: 1 }}>Mostrar tasa Euro (EUR/VES)</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={showEUR}
+              onChange={(e) => setShowEUR(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <p
+          style={{
+            fontSize: 12,
+            color: "var(--fg-muted)",
+            padding: "0 16px 10px",
+          }}
+        >
+          La tasa se actualiza junto con el dólar. Sin conexión se muestra la
+          última guardada.
+        </p>
+      </section>
 
       {/* Acciones */}
-      <div className="glass-card menu-list" style={{ marginBottom: 12 }}>
+      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div className="menu-item" onClick={handleExport}>
           <i className="fa-solid fa-file-export menu-icon" />
           <span style={{ flex: 1 }}>Exportar datos</span>
@@ -392,10 +458,10 @@ export default function SettingsPage() {
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-      </div>
+      </section>
 
       {/* Danger */}
-      <div className="glass-card menu-list danger-list">
+      <section className="glass-card menu-list danger-list">
         <div className="menu-item" onClick={handleClearAll}>
           <i
             className="fa-solid fa-trash"
@@ -410,11 +476,11 @@ export default function SettingsPage() {
             Borrar todos los datos
           </span>
         </div>
-      </div>
+      </section>
 
-      <p className="footer-note">
-        Los datos se almacenan exclusivamente en tu navegador.
-      </p>
+      <footer className="footer-note">
+        <p>Los datos se almacenan exclusivamente en tu dispositivo.</p>
+      </footer>
     </div>
   );
 }

@@ -3,17 +3,34 @@ import { Capacitor } from "@capacitor/core";
 export interface ExchangeRates {
   parallel: number | null;
   bcv: number | null;
+  eur: number | null;
   lastUpdated: number | null;
+  fromCache?: boolean;
 }
 
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+const FETCH_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchYadioRate(): Promise<number | null> {
   try {
-    const response = await fetch("https://api.yadio.io/exrates/USD");
+    const response = await fetchWithTimeout("https://api.yadio.io/exrates/USD");
     const data = await response.json();
 
     if (data && data.USD && data.USD.VES) {
@@ -27,7 +44,7 @@ async function fetchYadioRate(): Promise<number | null> {
 
 async function fetchDolarApiParallelRate(): Promise<number | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://ve.dolarapi.com/v1/dolares/paralelo",
     );
     const data = await response.json();
@@ -65,7 +82,7 @@ export async function fetchBinanceRate(): Promise<number | null> {
 
   const averageSide = async (tradeType: "BUY" | "SELL"): Promise<number | null> => {
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
         {
           method: "POST",
@@ -110,7 +127,7 @@ export async function fetchParallelRate(): Promise<number | null> {
 
 export async function fetchBCVRate(): Promise<number | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://ve.dolarapi.com/v1/dolares/oficial",
     );
     const data = await response.json();
@@ -121,7 +138,7 @@ export async function fetchBCVRate(): Promise<number | null> {
   } catch (error) {
     console.error("Error fetching BCV rate from dolarapi:", error);
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         "https://api.exchangerate-api.com/v4/latest/VES",
       );
       const data = await response.json();
@@ -135,15 +152,43 @@ export async function fetchBCVRate(): Promise<number | null> {
   }
 }
 
+export async function fetchEURRate(): Promise<number | null> {
+  try {
+    const response = await fetchWithTimeout("https://open.er-api.com/v6/latest/EUR");
+    const data = await response.json();
+    if (data && data.rates && data.rates.VES) {
+      return parseFloat(data.rates.VES);
+    }
+  } catch (error) {
+    console.error("Error fetching EUR/VES from open.er-api:", error);
+  }
+
+  try {
+    const response = await fetchWithTimeout(
+      "https://api.exchangerate-api.com/v4/latest/EUR",
+    );
+    const data = await response.json();
+    if (data && data.rates && data.rates.VES) {
+      return parseFloat(data.rates.VES);
+    }
+  } catch (fallbackError) {
+    console.error("Fallback ExchangeRate-API for EUR also failed:", fallbackError);
+  }
+  return null;
+}
+
 export async function fetchAllRates(): Promise<ExchangeRates> {
-  const [parallel, bcv] = await Promise.all([
+  const [parallel, bcv, eur] = await Promise.all([
     fetchParallelRate(),
     fetchBCVRate(),
+    fetchEURRate(),
   ]);
 
   return {
     parallel,
     bcv,
+    eur,
     lastUpdated: Date.now(),
+    fromCache: false,
   };
 }

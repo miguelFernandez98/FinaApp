@@ -6,6 +6,7 @@ import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
 import FinanceAdvisor from "../components/FinanceAdvisor";
+import AppVersion from "../components/AppVersion";
 
 export default function StatsPage() {
   const {
@@ -75,10 +76,13 @@ export default function StatsPage() {
 
   return (
     <div className="page">
-      <h1 className="page-title" style={{ marginBottom: 20 }}>
-        Estadísticas
-      </h1>
+      <header className="page-header">
+        <h1 className="page-title">
+          Estadísticas <AppVersion />
+        </h1>
+      </header>
 
+      {/* Boton Asitente */}
       <button
         className="advisor-fab"
         onClick={() => setAdvisorOpen(true)}
@@ -91,7 +95,7 @@ export default function StatsPage() {
       <MonthSelector />
 
       {/* Resumen */}
-      <div className="glass-card" style={{ marginBottom: 20 }}>
+      <section className="glass-card" style={{ marginBottom: 20 }}>
         <div className="stats-grid">
           <div className="stat-mini">
             <div className="stat-value" style={{ color: "var(--accent)" }}>
@@ -113,20 +117,20 @@ export default function StatsPage() {
             <div className="stat-label">Gastos</div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Barras */}
-      <div className="glass-card" style={{ marginBottom: 20 }}>
+      <section className="glass-card" style={{ marginBottom: 20 }}>
         <h3 className="card-title" style={{ marginBottom: 12 }}>
           Tendencia mensual
         </h3>
         <div style={{ height: 200 }}>
           <BarChart />
         </div>
-      </div>
+      </section>
 
       {/* Presupuestos */}
-      <div className="glass-card" style={{ marginBottom: 20 }}>
+      <section className="glass-card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <h3 className="card-title">Presupuestos</h3>
           <span
@@ -195,10 +199,10 @@ export default function StatsPage() {
             </div>
           ))
         )}
-      </div>
+      </section>
 
       {/* Top categorías */}
-      <div className="glass-card">
+      <section className="glass-card">
         <h3 className="card-title" style={{ marginBottom: 16 }}>
           Top gastos del mes
         </h3>
@@ -242,7 +246,7 @@ export default function StatsPage() {
             </div>
           ))
         )}
-      </div>
+      </section>
 
       {budgetModalOpen && (
         <BudgetModal onClose={() => setBudgetModalOpen(false)} />

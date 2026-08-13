@@ -24,8 +24,14 @@ export default function ConfirmDialog() {
           {confirm.message}
         </p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn-cancel" onClick={closeConfirm}>
-            Cancelar
+          <button
+            className="btn-cancel"
+            onClick={() => {
+              if (confirm.onCancel) confirm.onCancel();
+              closeConfirm();
+            }}
+          >
+            {confirm.cancelLabel ?? "Cancelar"}
           </button>
           <button
             className="btn-danger"
@@ -34,7 +40,7 @@ export default function ConfirmDialog() {
               closeConfirm();
             }}
           >
-            Confirmar
+            {confirm.confirmLabel ?? "Confirmar"}
           </button>
         </div>
       </div>

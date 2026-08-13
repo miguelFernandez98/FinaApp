@@ -13,40 +13,47 @@ const NAV_ITEMS: { page: PageId; icon: string; label: string }[] = [
 ];
 
 export default function BottomNav() {
-  const { currentPage, navigateTo } = useApp();
+  const { currentPage, navigateTo, openTransactionModal } = useApp();
 
   return (
-    <nav className="bottom-nav">
-      {NAV_ITEMS.slice(0, 2).map((item) => (
-        <div
-          key={item.page}
-          className={`nav-item ${currentPage === item.page ? "active" : ""}`}
-          onClick={() => navigateTo(item.page)}
-        >
-          <i className={`fa-solid ${item.icon}`} />
-          <span>{item.label}</span>
-        </div>
-      ))}
-
-      <button
-        className="nav-add-btn"
-        onClick={() => navigateTo("home")}
-        aria-label="Agregar transacción"
-        id="global-add-btn"
+    <footer className="bottom-nav">
+      <nav
+        style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-around" }}
+        aria-label="Navegación principal"
       >
-        <i className="fa-solid fa-plus" />
-      </button>
+        {NAV_ITEMS.slice(0, 2).map((item) => (
+          <button
+            key={item.page}
+            className={`nav-item ${currentPage === item.page ? "active" : ""}`}
+            onClick={() => navigateTo(item.page)}
+            aria-current={currentPage === item.page ? "page" : undefined}
+          >
+            <i className={`fa-solid ${item.icon}`} />
+            <span>{item.label}</span>
+          </button>
+        ))}
 
-      {NAV_ITEMS.slice(2).map((item) => (
-        <div
-          key={item.page}
-          className={`nav-item ${currentPage === item.page ? "active" : ""}`}
-          onClick={() => navigateTo(item.page)}
+        <button
+          className="nav-add-btn"
+          onClick={() => openTransactionModal()}
+          aria-label="Agregar transacción"
+          id="global-add-btn"
         >
-          <i className={`fa-solid ${item.icon}`} />
-          <span>{item.label}</span>
-        </div>
-      ))}
-    </nav>
+          <i className="fa-solid fa-plus" />
+        </button>
+
+        {NAV_ITEMS.slice(2).map((item) => (
+          <button
+            key={item.page}
+            className={`nav-item ${currentPage === item.page ? "active" : ""}`}
+            onClick={() => navigateTo(item.page)}
+            aria-current={currentPage === item.page ? "page" : undefined}
+          >
+            <i className={`fa-solid ${item.icon}`} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+    </footer>
   );
 }
