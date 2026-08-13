@@ -22,24 +22,25 @@ export default function CurrencyCalculator() {
   const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
   const [toCurrency, setToCurrency] = useState<CurrencyType>("USD_BCV");
   const [bcvDisplay, setBcvDisplay] = useState<BcvDisplay>("USD");
-  const [bcvManual, setBcvManual] = useState(false);
+  const [bcvManualUntil, setBcvManualUntil] = useState(0);
 
   // Alterna automáticamente entre BCV $ y BCV € cada 3.5s (solo si showEUR).
-  // Un toque en el indicador fija la moneda manualmente.
+  // Tras un toque manual, mantiene la elección unos segundos y luego retoma el ciclo.
   useEffect(() => {
-    if (!showEUR || bcvManual) return;
+    if (!showEUR) return;
     const interval = setInterval(() => {
+      if (Date.now() < bcvManualUntil) return;
       setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
     }, 3500);
     return () => clearInterval(interval);
-  }, [showEUR, bcvManual]);
+  }, [showEUR, bcvManualUntil]);
 
   const effectiveBcvDisplay: BcvDisplay = showEUR ? bcvDisplay : "USD";
 
   const handleBcvClick = () => {
     if (!showEUR) return;
+    setBcvManualUntil(Date.now() + 7000);
     setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
-    setBcvManual(true);
   };
 
   useEffect(() => {

@@ -322,15 +322,22 @@ h4 {
 }
 
 .rate-swap {
-  animation: rate-swap-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: rate-drop 0.8s cubic-bezier(0.34, 1.3, 0.44, 1);
 }
 
-@keyframes rate-swap-in {
-  from {
+@keyframes rate-drop {
+  0% {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(-14px);
   }
-  to {
+  60% {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+  80% {
+    transform: translateY(-1px);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
