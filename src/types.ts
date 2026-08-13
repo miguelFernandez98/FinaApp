@@ -12,6 +12,8 @@ export interface Transaction {
   debtStatus?: DebtStatus;
   debtPaidAmount?: number;
   debtDueDate?: string;
+  debtPaidDate?: string;
+  countAsExpense?: boolean;
   isRecurring?: boolean;
   recurrenceDays?: number[];
   recurringId?: string;
@@ -24,6 +26,7 @@ export interface Category {
   icon: string;
   color: string;
   type: TransactionType;
+  hidden?: boolean;
 }
 
 export interface PersistedState {
@@ -31,6 +34,7 @@ export interface PersistedState {
   budgets: Record<string, number>;
   currency: string;
   showCalculator: boolean;
+  showEUR: boolean;
 }
 
 export interface ToastState {
@@ -45,6 +49,9 @@ export interface ConfirmState {
   title: string;
   message: string;
   onConfirm: (() => void) | null;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onCancel?: (() => void) | null;
 }
 
 export type PageId = "home" | "transactions" | "stats" | "settings";

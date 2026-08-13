@@ -55,13 +55,27 @@ interface AppContextValue extends PersistedState {
   setBudgets: (budgets: Record<string, number>) => void;
   setCurrency: (currency: string) => void;
   setShowCalculator: (show: boolean) => void;
+  setShowEUR: (show: boolean) => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
   getMonthTransactions: (month: number, year: number) => Transaction[];
   showToast: (message: string, icon?: string, color?: string) => void;
-  showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+  showConfirm: (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    options?: {
+      confirmLabel?: string;
+      cancelLabel?: string;
+      onCancel?: () => void;
+    },
+  ) => void;
   closeConfirm: () => void;
+  txnModalOpen: boolean;
+  txnModalEditingId: string | null;
+  openTransactionModal: (editingId?: string | null) => void;
+  closeTransactionModal: () => void;
   importState: (state: PersistedState) => void;
 }
 
@@ -87,6 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [showCalculator, setShowCalculatorState] = useState(
     savedState.showCalculator,
   );
+  const [showEUR, setShowEURState] = useState(savedState.showEUR);
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -105,20 +120,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     message: "",
     onConfirm: null,
   });
+  const [txnModalOpen, setTxnModalOpen] = useState(false);
+  const [txnModalEditingId, setTxnModalEditingId] = useState<string | null>(
+    null,
+  );
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(() => {
     const cached = loadExchangeRates();
-    if (cached && (cached.parallel !== null || cached.bcv !== null)) {
+    if (
+      cached &&
+      (cached.parallel !== null || cached.bcv !== null || cached.eur !== null)
+    ) {
       return cached;
     }
-    return { parallel: null, bcv: null, lastUpdated: null };
+    return { parallel: null, bcv: null, eur: null, lastUpdated: null };
   });
   const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
   const lastRatesFetchRef = useRef(0);
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
-    saveState({ transactions, budgets, currency, showCalculator });
-  }, [transactions, budgets, currency, showCalculator]);
+    saveState({ transactions, budgets, currency, showCalculator, showEUR });
+  }, [transactions, budgets, currency, showCalculator, showEUR]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,6 +223,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowCalculatorState(show);
   }, []);
 
+  const setShowEUR = useCallback((show: boolean) => {
+    setShowEURState(show);
+  }, []);
+
   /**
    * Avanza o retrocede el mes actual.
    * @param delta Incremento de meses (+1 o -1).
@@ -231,6 +257,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const navigateTo = useCallback((page: PageId) => {
     setCurrentPage(page);
+    const target = `#/${page}`;
+    if (window.location.hash !== target) {
+      window.location.hash = target;
+    }
   }, []);
 
   /**
@@ -278,8 +308,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * @param onConfirm Acción a ejecutar si se confirma.
    */
   const showConfirm = useCallback(
-    (title: string, message: string, onConfirm: () => void) => {
-      setConfirm({ visible: true, title, message, onConfirm });
+    (
+      title: string,
+      message: string,
+      onConfirm: () => void,
+      options?: {
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onCancel?: () => void;
+      },
+    ) => {
+      setConfirm({
+        visible: true,
+        title,
+        message,
+        onConfirm,
+        confirmLabel: options?.confirmLabel,
+        cancelLabel: options?.cancelLabel,
+        onCancel: options?.onCancel ?? null,
+      });
     },
     [],
   );
@@ -288,7 +335,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * Cierra el diálogo de confirmación.
    */
   const closeConfirm = useCallback(() => {
-    setConfirm({ visible: false, title: "", message: "", onConfirm: null });
+    setConfirm({
+      visible: false,
+      title: "",
+      message: "",
+      onConfirm: null,
+      onCancel: null,
+    });
+  }, []);
+
+  /**
+   * Abre el modal de transacciones desde cualquier vista.
+   * @param editingId Id de la transacción a editar (null para crear nueva).
+   */
+  const openTransactionModal = useCallback((editingId: string | null = null) => {
+    setTxnModalEditingId(editingId);
+    setTxnModalOpen(true);
+  }, []);
+
+  /**
+   * Cierra el modal de transacciones.
+   */
+  const closeTransactionModal = useCallback(() => {
+    setTxnModalOpen(false);
+    setTxnModalEditingId(null);
   }, []);
 
   /**
@@ -300,29 +370,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBudgetsState(newState.budgets);
     setCurrencyState(newState.currency);
     setShowCalculatorState(newState.showCalculator);
+    setShowEURState(newState.showEUR);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | null = null;
 
-    const loadRates = async () => {
-      if (Date.now() - lastRatesFetchRef.current < RATES_MIN_FETCH_GAP) return;
+    const loadRates = async (force = false) => {
+      if (
+        !force &&
+        Date.now() - lastRatesFetchRef.current < RATES_MIN_FETCH_GAP
+      )
+        return;
       lastRatesFetchRef.current = Date.now();
       console.log("🔄 Refreshing exchange rates...");
       try {
         const rates = await fetchAllRates();
         if (cancelled) return;
-        console.log("✅ Exchange rates updated:", rates);
-        setExchangeRates(rates);
-        saveExchangeRates(rates);
-        notifyRateChanges(previousRatesRef.current, rates);
-        previousRatesRef.current = rates;
+        const cached = loadExchangeRates();
+        const merged = {
+          parallel: rates.parallel ?? cached?.parallel ?? null,
+          bcv: rates.bcv ?? cached?.bcv ?? null,
+          eur: rates.eur ?? cached?.eur ?? null,
+          lastUpdated: rates.lastUpdated,
+          fromCache:
+            (rates.parallel === null && cached?.parallel != null) ||
+            (rates.bcv === null && cached?.bcv != null) ||
+            (rates.eur === null && cached?.eur != null),
+        };
+        console.log("✅ Exchange rates updated:", merged);
+        setExchangeRates(merged);
+        saveExchangeRates(merged);
+        notifyRateChanges(previousRatesRef.current, merged);
+        previousRatesRef.current = merged;
+        if (merged.fromCache) {
+          showToast(
+            "Tasas parcialmente en caché (sin conexión)",
+            "fa-info-circle",
+            "var(--warning)",
+          );
+        }
       } catch (error) {
         if (cancelled) return;
         console.error("❌ Error refreshing exchange rates:", error);
         const cached = loadExchangeRates();
-        if (cached && (cached.parallel !== null || cached.bcv !== null)) {
+        if (
+          cached &&
+          (cached.parallel !== null ||
+            cached.bcv !== null ||
+            cached.eur !== null)
+        ) {
           setExchangeRates(cached);
           showToast(
             "Usando tasas en caché (sin conexión)",
@@ -340,7 +438,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     loadRatesRef.current = loadRates;
-    loadRates();
+    loadRates(true);
     interval = setInterval(loadRates, RATES_REFRESH_INTERVAL);
 
     return () => {
@@ -365,6 +463,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       budgets,
       currency,
       showCalculator,
+      showEUR,
       currentPage,
       currentMonth,
       currentYear,
@@ -372,6 +471,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentCategoryFilter,
       toast,
       confirm,
+      txnModalOpen,
+      txnModalEditingId,
       navigateTo,
       addTransaction,
       updateTransaction,
@@ -379,6 +480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBudgets,
       setCurrency,
       setShowCalculator,
+      setShowEUR,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -386,6 +488,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast,
       showConfirm,
       closeConfirm,
+      openTransactionModal,
+      closeTransactionModal,
       importState,
       exchangeRates,
     }),
@@ -394,6 +498,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       budgets,
       currency,
       showCalculator,
+      showEUR,
       currentPage,
       currentMonth,
       currentYear,
@@ -401,6 +506,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentCategoryFilter,
       toast,
       confirm,
+      txnModalOpen,
+      txnModalEditingId,
       navigateTo,
       addTransaction,
       updateTransaction,
@@ -408,6 +515,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBudgets,
       setCurrency,
       setShowCalculator,
+      setShowEUR,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -415,6 +523,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast,
       showConfirm,
       closeConfirm,
+      openTransactionModal,
+      closeTransactionModal,
       importState,
       exchangeRates,
     ],
