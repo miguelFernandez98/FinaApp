@@ -244,29 +244,27 @@ export default function CurrencyCalculator() {
             onClick={handleBcvClick}
             style={{
               cursor: showEUR ? "pointer" : "default",
-              background: "var(--card)",
-              borderRadius: 8,
-              padding: "8px 10px",
               userSelect: "none",
             }}
             title={showEUR ? "Toca para cambiar entre BCV $ y BCV €" : undefined}
           >
-            <div style={{ color: "var(--accent)" }}>
+            <div
+              key={effectiveBcvDisplay}
+              className="rate-swap"
+              style={{ color: "var(--accent)" }}
+            >
               {effectiveBcvDisplay === "EUR" ? "BCV €:" : "BCV $:"}
             </div>
-            <div>
+            <div
+              key={`${effectiveBcvDisplay}-value`}
+              className="rate-swap"
+            >
               {effectiveBcvDisplay === "EUR"
                 ? rateDisplay(exchangeRates.eur)
                 : rateDisplay(exchangeRates.bcv)}
             </div>
           </div>
-          <div
-            style={{
-              background: "var(--card)",
-              borderRadius: 8,
-              padding: "8px 10px",
-            }}
-          >
+          <div>
             <div style={{ color: "#F0B90B" }}>Paralelo:</div>
             <div>{rateDisplay(exchangeRates.parallel)}</div>
           </div>

@@ -321,6 +321,21 @@ h4 {
   margin-bottom: 20px;
 }
 
+.rate-swap {
+  animation: rate-swap-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes rate-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .card-header {
   display: flex;
   align-items: center;
