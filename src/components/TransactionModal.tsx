@@ -4,15 +4,7 @@ import { CATEGORIES } from "../data/categories";
 import { toISODate } from "../utils/date";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 
-interface TransactionModalProps {
-  editingId: string | null;
-  onClose: () => void;
-}
-
-export default function TransactionModal({
-  editingId,
-  onClose,
-}: TransactionModalProps) {
+export default function TransactionModal() {
   const {
     transactions,
     addTransaction,
@@ -20,6 +12,8 @@ export default function TransactionModal({
     deleteTransaction,
     showToast,
     showConfirm,
+    txnModalEditingId: editingId,
+    closeTransactionModal: onClose,
   } = useApp();
 
   const editingTransaction = editingId
@@ -62,14 +56,18 @@ export default function TransactionModal({
     !!editingTransaction?.recurringBackfill,
   );
 
-  const filteredCats = CATEGORIES.filter((c) => c.type === transactionType);
+  const filteredCats = CATEGORIES.filter(
+    (c) => c.type === transactionType && !c.hidden,
+  );
 
   const isEditing = !!editingTransaction;
 
   const handleTypeChange = (next: TransactionType) => {
     if (isEditing) return;
     setTransactionType(next);
-    const validForNext = CATEGORIES.filter((c) => c.type === next);
+    const validForNext = CATEGORIES.filter(
+      (c) => c.type === next && !c.hidden,
+    );
     const currentStillValid = validForNext.some((c) => c.id === selectedCategoryId);
     if (!currentStillValid) {
       setSelectedCategoryId(validForNext[0]?.id || "");
@@ -140,6 +138,36 @@ export default function TransactionModal({
       return;
     }
 
+    const becomingPaid =
+      transactionType === "debt" && debtStatus === "paid";
+    const wasPaid = editingTransaction?.debtStatus === "paid";
+    const shouldAsk = becomingPaid && !wasPaid;
+
+    if (shouldAsk) {
+      showConfirm(
+        "¿Considerar la deuda como gasto?",
+        "Al marcar esta deuda como pagada puedes considerarla un gasto para tu balance. ¿Deseas hacerlo?",
+        () => performSave(true),
+        {
+          confirmLabel: "Sí, es un gasto",
+          cancelLabel: "No considerarla",
+          onCancel: () => performSave(false),
+        },
+      );
+      return;
+    }
+
+    performSave(editingTransaction?.countAsExpense ?? false);
+  };
+
+  const performSave = (countAsExpense: boolean) => {
+    const numAmount = parseFloat(amount);
+    const paidAmount = parseFloat(debtPaidAmount) || 0;
+    const recurrenceDays = recurrenceDaysInput
+      .split(",")
+      .map((value) => parseInt(value.trim(), 10))
+      .filter((value) => !Number.isNaN(value) && value >= 1 && value <= 31);
+
     const cat = selectedCategoryId || filteredCats[0]?.id || "other_expense";
 
     const data: Omit<Transaction, "id" | "createdAt"> = {
@@ -153,6 +181,13 @@ export default function TransactionModal({
             debtStatus,
             debtPaidAmount: paidAmount || undefined,
             debtDueDate: debtDueDate || undefined,
+            debtPaidDate:
+              debtStatus === "paid"
+                ? (editingTransaction?.debtPaidDate ??
+                  toISODate(new Date()))
+                : undefined,
+            countAsExpense:
+              debtStatus === "paid" ? countAsExpense : undefined,
           }
         : {}),
       ...(transactionType !== "debt" && isRecurring

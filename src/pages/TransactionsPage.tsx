@@ -7,7 +7,6 @@ import {
   getMonthTransactionsWithDebtCarry,
   getFutureTransactions,
 } from "../utils/transactions";
-import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import MonthSelector from "../components/MonthSelector";
 import AppVersion from "../components/AppVersion";
@@ -23,10 +22,9 @@ export default function TransactionsPage() {
     currentCategoryFilter,
     setFilter,
     setCategoryFilter,
+    openTransactionModal,
   } = useApp();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [newestFirst, setNewestFirst] = useState(true);
 
   const visibleTransactions = useMemo(() => {
@@ -91,28 +89,9 @@ export default function TransactionsPage() {
     );
   }, [filtered, newestFirst]);
 
-  useEffect(() => {
-    const handler = () => {
-      setEditingId(null);
-      setModalOpen(true);
-    };
-    const btn = document.getElementById("global-add-btn");
-    if (btn) {
-      btn.addEventListener("click", handler);
-      return () => btn.removeEventListener("click", handler);
-    }
-  }, []);
-
-  useEffect(() => {
-    const btn = document.getElementById("global-add-btn");
-    if (btn) {
-      btn.onclick = null;
-    }
-  }, []);
-
   return (
     <div className="page">
-      <div className="page-header-row">
+      <header className="page-header-row">
         <h1 className="page-title" style={{ marginBottom: 20 }}>
           Movimientos <AppVersion />
         </h1>
@@ -129,7 +108,7 @@ export default function TransactionsPage() {
             className={`fa-solid ${newestFirst ? "fa-arrow-down-wide-short" : "fa-arrow-up-short-wide"}`}
           />
         </button>
-      </div>
+      </header>
 
       {/* Selector de mes */}
       {currentTypeFilter !== "future" && <MonthSelector />}
@@ -221,31 +200,18 @@ export default function TransactionsPage() {
                   {formatMoney(dayTotal, currency)}
                 </span>
               </div>
-              <div className="glass-card" style={{ padding: "4px 14px" }}>
+              <section className="glass-card" style={{ padding: "4px 14px" }}>
                 {items.map((t) => (
                   <TransactionItem
                     key={t.id}
                     transaction={t}
-                    onEdit={() => {
-                      setEditingId(t.recurringId ?? t.id);
-                      setModalOpen(true);
-                    }}
+                    onEdit={() => openTransactionModal(t.recurringId ?? t.id)}
                   />
                 ))}
-              </div>
+              </section>
             </div>
           );
         })
-      )}
-
-      {modalOpen && (
-        <TransactionModal
-          editingId={editingId}
-          onClose={() => {
-            setModalOpen(false);
-            setEditingId(null);
-          }}
-        />
       )}
     </div>
   );

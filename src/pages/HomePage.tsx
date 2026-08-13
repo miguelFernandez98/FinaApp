@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { useApp } from "../AppContext";
 import { MONTH_NAMES, parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -9,7 +9,6 @@ import {
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
 } from "../utils/transactions";
-import TransactionModal from "../components/TransactionModal";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
@@ -27,9 +26,8 @@ export default function HomePage() {
     setFilter,
     setCategoryFilter,
     showCalculator,
+    openTransactionModal,
   } = useApp();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
@@ -94,33 +92,10 @@ export default function HomePage() {
     [visibleTransactions],
   );
 
-  useEffect(() => {
-    const handler = () => {
-      setEditingId(null);
-      setModalOpen(true);
-    };
-    const btn = document.getElementById("global-add-btn");
-    if (btn) {
-      btn.addEventListener("click", handler);
-      return () => btn.removeEventListener("click", handler);
-    }
-  }, []);
-
-  useEffect(() => {
-    const btn = document.getElementById("global-add-btn");
-    if (btn) {
-      const original = btn.onclick;
-      btn.onclick = null;
-      return () => {
-        if (original) btn.onclick = original;
-      };
-    }
-  }, []);
-
   return (
     <div className="page">
       {/* Header */}
-      <div className="page-header">
+      <header className="page-header">
         <div>
           <p className="greeting-text">{getTimeBasedGreeting()}</p>
           <h1 className="page-title">
@@ -133,7 +108,7 @@ export default function HomePage() {
             style={{ fontSize: 14, color: "var(--fg-muted)" }}
           />
         </div>
-      </div>
+      </header>
 
       {/* Selector de mes */}
       <MonthSelector />
@@ -155,7 +130,7 @@ export default function HomePage() {
       )}
 
       {/* Balance hero */}
-      <div className="balance-hero">
+      <section className="balance-hero" aria-label="Resumen del balance">
         <p className="balance-label">Balance total</p>
         <div
           className="balance-amount"
@@ -180,13 +155,13 @@ export default function HomePage() {
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Calculadora de divisas */}
       {showCalculator && <CurrencyCalculator />}
 
       {pendingDebts.length > 0 && (
-        <div className="glass-card">
+        <section className="glass-card" aria-label="Deudas pendientes">
           <div className="card-header">
             <div>
               <h3 className="card-title">Deudas total pendiente</h3>
@@ -236,11 +211,11 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Gráfico */}
-      <div className="glass-card">
+      <section className="glass-card" aria-label="Gastos por categoría">
         <div className="card-header">
           <h3 className="card-title">Gastos por categoría</h3>
           <span className="card-subtitle">
@@ -250,7 +225,7 @@ export default function HomePage() {
         <div className="chart-container">
           <DonutChart transactions={visibleTransactions} />
         </div>
-      </div>
+      </section>
 
       {/* Recientes */}
       <div className="section-header">
@@ -267,7 +242,7 @@ export default function HomePage() {
         </span>
       </div>
 
-      <div className="glass-card">
+      <section className="glass-card" aria-label="Movimientos recientes">
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
@@ -281,24 +256,11 @@ export default function HomePage() {
             <TransactionItem
               key={t.id}
               transaction={t}
-              onEdit={() => {
-                setEditingId(t.recurringId ?? t.id);
-                setModalOpen(true);
-              }}
+              onEdit={() => openTransactionModal(t.recurringId ?? t.id)}
             />
           ))
         )}
-      </div>
-
-      {modalOpen && (
-        <TransactionModal
-          editingId={editingId}
-          onClose={() => {
-            setModalOpen(false);
-            setEditingId(null);
-          }}
-        />
-      )}
+      </section>
     </div>
   );
 }
