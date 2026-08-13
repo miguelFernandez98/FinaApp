@@ -5,3 +5,4 @@ android
 ios
 *.local
 .playwright-mcp/
+AGENTS.md
