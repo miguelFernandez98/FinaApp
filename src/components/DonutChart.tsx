@@ -112,6 +112,7 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
             ))}
           </Pie>
           <Tooltip
+            trigger="click"
             content={<DonutTooltip currency={currency} />}
             wrapperStyle={{
               outline: "none",

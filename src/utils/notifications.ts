@@ -21,6 +21,8 @@ function notificationId(): number {
 }
 
 let lastRateNotifyAt = 0;
+let lastNotifiedRates: { bcv: number | null; parallel: number | null } | null =
+  null;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -60,17 +62,22 @@ export async function notifyRateChanges(
   if (!isNative()) return;
   if (Date.now() - lastRateNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
 
+  const baseline = lastNotifiedRates ?? {
+    bcv: previous?.bcv ?? null,
+    parallel: previous?.parallel ?? null,
+  };
+
   const notifications: { title: string; body: string }[] = [];
 
   if (
     current.bcv !== null &&
-    previous?.bcv !== null &&
-    previous?.bcv !== undefined &&
-    Math.abs(current.bcv - previous.bcv) / previous.bcv >= RATE_CHANGE_THRESHOLD
+    baseline.bcv !== null &&
+    Math.abs(current.bcv - baseline.bcv) / baseline.bcv >=
+      RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.bcv > previous.bcv ? "subió" : "bajó";
+    const dir = current.bcv > baseline.bcv ? "subió" : "bajó";
     const pct = Math.abs(
-      ((current.bcv - previous.bcv) / previous.bcv) * 100,
+      ((current.bcv - baseline.bcv) / baseline.bcv) * 100,
     ).toFixed(2);
     notifications.push({
       title: "Tasa BCV actualizada",
@@ -80,14 +87,13 @@ export async function notifyRateChanges(
 
   if (
     current.parallel !== null &&
-    previous?.parallel !== null &&
-    previous?.parallel !== undefined &&
-    Math.abs(current.parallel - previous.parallel) / previous.parallel >=
+    baseline.parallel !== null &&
+    Math.abs(current.parallel - baseline.parallel) / baseline.parallel >=
       RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.parallel > previous.parallel ? "subió" : "bajó";
+    const dir = current.parallel > baseline.parallel ? "subió" : "bajó";
     const pct = Math.abs(
-      ((current.parallel - previous.parallel) / previous.parallel) * 100,
+      ((current.parallel - baseline.parallel) / baseline.parallel) * 100,
     ).toFixed(2);
     notifications.push({
       title: "Tasa paralela actualizada",
@@ -107,6 +113,10 @@ export async function notifyRateChanges(
       })),
     });
     lastRateNotifyAt = Date.now();
+    lastNotifiedRates = {
+      bcv: current.bcv,
+      parallel: current.parallel,
+    };
   } catch (error) {
     console.error("Error scheduling rate notification:", error);
   }
@@ -118,6 +128,17 @@ interface DebtReminder {
   body: string;
   schedule: { at: Date };
   extra: Record<string, string>;
+}
+
+/**
+ * Garantiza que el horario de una notificación sea en el futuro.
+ * Si el tiempo calculado ya pasó (ej: se abrió la app después de las
+ * 9 AM del día del recordatorio), programa para ~2 segundos para que
+ * se dispare al momento de abrir.
+ */
+function futureScheduleAt(at: Date): Date {
+  if (at.getTime() > Date.now() + 1000) return at;
+  return new Date(Date.now() + 2000);
 }
 
 function formatDebtAmount(amount: number): string {
@@ -171,7 +192,7 @@ export async function scheduleDebtReminders(
         id: notificationId(),
         title: "Deuda por vencer hoy",
         body: `${description} vence hoy (${amountLabel}).`,
-        schedule: { at: new Date(dueTime + 9 * 3600000) },
+        schedule: { at: futureScheduleAt(new Date(dueTime + 9 * 3600000)) },
         extra,
       });
     } else if (daysUntil > 0 && daysUntil <= DEBT_MID_DAYS) {
@@ -181,7 +202,9 @@ export async function scheduleDebtReminders(
         title: "Deuda por vencer pronto",
         body: `${description} vence ${daysText} (${amountLabel}).`,
         schedule: {
-          at: new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
+          at: futureScheduleAt(
+            new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
+          ),
         },
         extra,
       });
@@ -191,7 +214,9 @@ export async function scheduleDebtReminders(
         title: "Deuda por vencer pronto",
         body: `${description} vence en una semana (${amountLabel}).`,
         schedule: {
-          at: new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
+          at: futureScheduleAt(
+            new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
+          ),
         },
         extra,
       });
