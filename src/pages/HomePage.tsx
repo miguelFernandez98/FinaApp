@@ -229,24 +229,26 @@ export default function HomePage() {
         </div>
         <div className="chart-container">
           <DonutChart transactions={visibleTransactions} type={donutType} />
-          <div className="donut-type-toggle">
-            <button
-              className={`donut-type-btn ${
-                donutType === "expense" ? "active-expense" : ""
-              }`}
-              onClick={() => setDonutType("expense")}
-            >
-              Gastos
-            </button>
-            <button
-              className={`donut-type-btn ${
-                donutType === "income" ? "active-income" : ""
-              }`}
-              onClick={() => setDonutType("income")}
-            >
-              Ingresos
-            </button>
-          </div>
+          {(income > 0 || expense > 0) && (
+            <div className="donut-type-toggle">
+              <button
+                className={`donut-type-btn ${
+                  donutType === "expense" ? "active-expense" : ""
+                }`}
+                onClick={() => setDonutType("expense")}
+              >
+                Gastos
+              </button>
+              <button
+                className={`donut-type-btn ${
+                  donutType === "income" ? "active-income" : ""
+                }`}
+                onClick={() => setDonutType("income")}
+              >
+                Ingresos
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -269,9 +271,10 @@ export default function HomePage() {
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
-            <p style={{ fontSize: 13 }}>Aún no hay movimientos</p>
-            <p style={{ fontSize: 12, marginTop: 4 }}>
-              Toca + para agregar uno
+            <div className="empty-state-title">Aún no hay movimientos</div>
+            <p>
+              Registra tu primer ingreso o gasto para ver tu balance
+              reflejado aquí.
             </p>
           </div>
         ) : (

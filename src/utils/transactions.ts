@@ -143,6 +143,17 @@ export function getRecurringOccurrences(
 }
 
 /**
+ * Caché por referencia de transacciones: acelera consultas repetidas del
+ * mismo mes/año sin re-calcular O(n) en cada render.
+ * Se invalida solo cuando cambia la referencia del array (cualquier mutación
+ * de estado genera un array nuevo).
+ */
+const monthResultsCache = new WeakMap<
+  Transaction[],
+  Map<string, Transaction[]>
+>();
+
+/**
  * Devuelve las transacciones visibles en un mes, expandiendo las recurrentes.
  * Las deudas pagadas con countAsExpense se transforman en gastos de la
  * categoría "Deudas" para que cuenten en los resúmenes de gastos.
@@ -152,6 +163,24 @@ export function getRecurringOccurrences(
  * @returns Transacciones del mes.
  */
 export function getMonthTransactions(
+  transactions: Transaction[],
+  month: number,
+  year: number,
+): Transaction[] {
+  let byMonth = monthResultsCache.get(transactions);
+  if (!byMonth) {
+    byMonth = new Map();
+    monthResultsCache.set(transactions, byMonth);
+  }
+  const key = `${year}-${month}`;
+  const cached = byMonth.get(key);
+  if (cached) return cached;
+  const result = computeMonthTransactions(transactions, month, year);
+  byMonth.set(key, result);
+  return result;
+}
+
+function computeMonthTransactions(
   transactions: Transaction[],
   month: number,
   year: number,

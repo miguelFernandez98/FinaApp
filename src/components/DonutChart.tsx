@@ -85,7 +85,7 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
   }
 
   return (
-    <div className="chart-wrap">
+    <div className="chart-wrap donut-chart">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsPieChart>
           <Pie

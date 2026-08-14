@@ -33,6 +33,7 @@ import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
 import {
   notifyRateChanges,
+  notifyBudgetAlerts,
   requestNotificationPermission,
   scheduleDebtReminders,
 } from "./utils/notifications";
@@ -147,9 +148,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
   const lastRatesFetchRef = useRef(0);
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
+  const latestStateRef = useRef<{
+    transactions: Transaction[];
+    budgets: Record<string, number>;
+    currency: string;
+    showCalculator: boolean;
+    showEUR: boolean;
+    showCustomRate: boolean;
+    customRate: number | null;
+  }>({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate });;
 
   useEffect(() => {
-    saveState({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate });
+    const state = {
+      transactions,
+      budgets,
+      currency,
+      showCalculator,
+      showEUR,
+      showCustomRate,
+      customRate,
+    };
+    latestStateRef.current = state;
+    const timer = setTimeout(() => saveState(state), 1000);
+    return () => clearTimeout(timer);
   }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate]);
 
   useEffect(() => {
@@ -158,12 +179,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const granted = await requestNotificationPermission();
       if (!granted || cancelled) return;
       scheduleDebtReminders(transactions);
+      notifyBudgetAlerts(transactions, budgets, currency);
     };
     init();
     return () => {
       cancelled = true;
     };
-  }, [transactions]);
+  }, [transactions, budgets, currency]);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -478,10 +500,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const listener = App.addListener("appStateChange", ({ isActive }) => {
-      if (isActive) loadRatesRef.current();
+      if (isActive) {
+        loadRatesRef.current();
+      } else {
+        saveState(latestStateRef.current);
+      }
     });
     return () => {
       listener.then((l) => l.remove());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
+    const flush = () => saveState(latestStateRef.current);
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
     };
   }, []);
 

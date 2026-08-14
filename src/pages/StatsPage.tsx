@@ -7,6 +7,7 @@ import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
 import FinanceAdvisor from "../components/FinanceAdvisor";
 import AppVersion from "../components/AppVersion";
+import { exportTransactionsToCSV } from "../utils/export";
 
 export default function StatsPage() {
   const {
@@ -18,6 +19,22 @@ export default function StatsPage() {
   } = useApp();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    const ok = await exportTransactionsToCSV(
+      getMonthTransactions(currentMonth, currentYear),
+      currency,
+      currentMonth,
+      currentYear,
+    );
+    setExporting(false);
+    if (!ok) {
+      alert("No se pudo exportar el reporte.");
+    }
+  };
 
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
@@ -76,20 +93,31 @@ export default function StatsPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1 className="page-title">
+      <header className="page-header-row">
+        <h1 className="page-title" style={{ marginBottom: 20 }}>
           Estadísticas <AppVersion />
         </h1>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {/* Boton Asistente */}
+          <button
+            className="sort-btn advisor"
+            onClick={() => setAdvisorOpen(true)}
+            aria-label="Asistente financiero"
+            title="Asistente financiero"
+          >
+            <i className="fa-solid fa-robot" />
+          </button>
+          {/* Boton exportar reporte */}
+          <button
+            className="sort-btn"
+            onClick={handleExport}
+            aria-label="Exportar reporte CSV"
+            title="Exportar reporte CSV"
+          >
+            <i className="fa-solid fa-file-export" />
+          </button>
+        </div>
       </header>
-
-      {/* Boton Asitente */}
-      <button
-        className="advisor-fab"
-        onClick={() => setAdvisorOpen(true)}
-        title="Asistente financiero"
-      >
-        <i className="fa-solid fa-robot" />
-      </button>
 
       {/* Selector de mes */}
       <MonthSelector />
@@ -141,16 +169,14 @@ export default function StatsPage() {
           </span>
         </div>
         {budgetItems.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: 20,
-              color: "var(--fg-muted)",
-            }}
-          >
-            <p style={{ fontSize: 13 }}>Sin presupuestos configurados</p>
-            <p style={{ fontSize: 12, marginTop: 4 }}>
-              Toca "Editar" para definirlos
+          <div className="empty-state" style={{ padding: "24px 16px" }}>
+            <i className="fa-solid fa-bullseye" />
+            <div className="empty-state-title">
+              Sin presupuestos configurados
+            </div>
+            <p>
+              Define un límite de gasto por categoría y te ayudamos a no
+              pasarte.
             </p>
           </div>
         ) : (
@@ -207,16 +233,14 @@ export default function StatsPage() {
           Top gastos del mes
         </h3>
         {topCats.length === 0 ? (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: 13,
-              color: "var(--fg-muted)",
-              padding: 16,
-            }}
-          >
-            Sin gastos este mes
-          </p>
+          <div className="empty-state" style={{ padding: "24px 16px" }}>
+            <i className="fa-solid fa-ranking-star" />
+            <div className="empty-state-title">Sin gastos este mes</div>
+            <p>
+              Cuando registres gastos verás aquí las categorías donde más
+              dinero se fue.
+            </p>
+          </div>
         ) : (
           topCats.map((item, idx) => (
             <div

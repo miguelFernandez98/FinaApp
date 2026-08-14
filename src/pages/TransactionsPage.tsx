@@ -65,10 +65,14 @@ export default function TransactionsPage() {
       result = result.filter((t) => t.type === currentTypeFilter);
     if (currentCategoryFilter !== "all")
       result = result.filter((t) => t.category === currentCategoryFilter);
-    if (searchQuery.trim() !== "")
-      result = result.filter((t) =>
-        t.description.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.description.toLowerCase().includes(q) ||
+          getCategoryById(t.category).name.toLowerCase().includes(q),
       );
+    }
     return result.sort((a, b) => {
       const dateDiff =
         (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) *
@@ -110,7 +114,7 @@ export default function TransactionsPage() {
               setSearchOpen((prev) => !prev);
             }}
             aria-label={
-              searchOpen ? "Cerrar búsqueda" : "Buscar por descripción"
+              searchOpen ? "Cerrar búsqueda" : "Buscar por descripción o categoría"
             }
           >
             <i className="fa-solid fa-magnifying-glass" />
@@ -137,7 +141,7 @@ export default function TransactionsPage() {
           <input
             autoFocus
             className="search-input"
-            placeholder="Buscar por descripción..."
+            placeholder="Buscar por descripción o categoría..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -201,6 +205,25 @@ export default function TransactionsPage() {
         })}
       </div>
 
+      {/* Limpiar filtros */}
+      {(currentTypeFilter !== "all" ||
+        currentCategoryFilter !== "all" ||
+        searchQuery.trim() !== "") && (
+        <div style={{ marginBottom: 20 }}>
+          <button
+            className="clear-filters-btn"
+            onClick={() => {
+              setFilter("all");
+              setCategoryFilter("all");
+              setSearchQuery("");
+            }}
+          >
+            <i className="fa-solid fa-xmark" />
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
       {/* Lista agrupada */}
       {transactionsByDate.length === 0 ? (
         <div className="empty-state">
@@ -211,13 +234,33 @@ export default function TransactionsPage() {
                 : "fa-solid fa-filter"
             }
           />
-          <p style={{ fontSize: 13 }}>
+          <div className="empty-state-title">
             {currentTypeFilter === "future"
               ? "No hay movimientos futuros"
-              : searchQuery.trim() !== ""
-                ? "Sin resultados para esta búsqueda"
-                : "Sin resultados para este filtro"}
-          </p>
+              : searchQuery.trim() !== "" ||
+                  currentCategoryFilter !== "all" ||
+                  currentTypeFilter !== "all"
+                ? "Sin resultados para este filtro"
+                : "Aún no hay movimientos este mes"}
+          </div>
+          {currentTypeFilter === "future" ? (
+            <p>
+              Las transacciones con fecha posterior al mes actual aparecerán
+              aquí.
+            </p>
+          ) : searchQuery.trim() !== "" ||
+            currentCategoryFilter !== "all" ||
+            currentTypeFilter !== "all" ? (
+            <p>
+              Prueba con otro término o limpia los filtros para ver más
+              resultados.
+            </p>
+          ) : (
+            <p>
+              Registra tu primer ingreso, gasto o deuda para comenzar a
+              llevar el control.
+            </p>
+          )}
         </div>
       ) : (
         transactionsByDate.map(([date, items]) => {

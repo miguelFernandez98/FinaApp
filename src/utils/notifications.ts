@@ -2,11 +2,14 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import type { Transaction } from "../types";
 import type { ExchangeRates } from "./exchangeRates";
+import { getCategoryById } from "./transactions";
+import { formatMoney } from "./format";
 
 const RATE_CHANGE_THRESHOLD = 0.01;
 const RATE_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 const DEBT_WARNING_DAYS = 7;
 const DEBT_MID_DAYS = 3;
+const BUDGET_APPROACH_THRESHOLD = 0.8;
 
 /**
  * Genera un ID de notificación dentro del rango de int de Java
@@ -23,6 +26,8 @@ function notificationId(): number {
 let lastRateNotifyAt = 0;
 let lastNotifiedRates: { bcv: number | null; parallel: number | null } | null =
   null;
+
+let budgetNotifyAt = 0;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -239,5 +244,73 @@ export async function scheduleDebtReminders(
     await LocalNotifications.schedule({ notifications: reminders });
   } catch (error) {
     console.error("Error scheduling debt reminders:", error);
+  }
+}
+
+/**
+ * Notifica cuando un gasto supera (o se acerca al 80% de) un presupuesto
+ * configurado para el mes actual. Limita a una notificación por ventana
+ * de 30 minutos para no saturar.
+ * @param transactions Todas las transacciones.
+ * @param budgets Presupuestos por categoría.
+ * @param currency Símbolo de moneda.
+ */
+export async function notifyBudgetAlerts(
+  transactions: Transaction[],
+  budgets: Record<string, number>,
+  currency: string,
+): Promise<void> {
+  if (!isNative()) return;
+  if (Date.now() - budgetNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const spentByCat: Record<string, number> = {};
+  transactions.forEach((t) => {
+    if (t.type !== "expense" || !t.description) return;
+    const [, ty, tm] = t.date.split("-").map(Number);
+    if (ty === year && tm === month + 1) {
+      spentByCat[t.category] = (spentByCat[t.category] || 0) + t.amount;
+    }
+  });
+
+  const notifications: { title: string; body: string }[] = [];
+
+  Object.entries(budgets).forEach(([categoryId, budget]) => {
+    if (budget <= 0) return;
+    const spent = spentByCat[categoryId] || 0;
+    const cat = getCategoryById(categoryId);
+    const pct = spent / budget;
+
+    if (spent > budget) {
+      const over = spent - budget;
+      notifications.push({
+        title: "Presupuesto superado",
+        body: `${cat.name}: gastaste ${formatMoney(over, currency)} más de tu presupuesto de ${formatMoney(budget, currency)}.`,
+      });
+    } else if (pct >= BUDGET_APPROACH_THRESHOLD) {
+      notifications.push({
+        title: "Presupuesto casi al límite",
+        body: `${cat.name}: llevas ${formatMoney(spent, currency)} de ${formatMoney(budget, currency)} (${Math.round(pct * 100)}%).`,
+      });
+    }
+  });
+
+  if (notifications.length === 0) return;
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: notifications.map((n) => ({
+        id: notificationId(),
+        title: n.title,
+        body: n.body,
+        schedule: { at: new Date(Date.now() + 1000) },
+      })),
+    });
+    budgetNotifyAt = Date.now();
+  } catch (error) {
+    console.error("Error scheduling budget notification:", error);
   }
 }

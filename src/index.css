@@ -184,6 +184,12 @@ h4 {
   background: var(--accent-dim);
 }
 
+.sort-btn.advisor {
+  border: 0.5px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -637,9 +643,12 @@ h4 {
 
 .chart-wrap {
   position: relative;
-  height: 232px;
+  height: 200px;
   width: 100%;
-  transform: translateX(-46px);
+}
+
+.chart-wrap.donut-chart {
+  transform: translateX(-12px);
 }
 
 .chart-tooltip {
@@ -820,6 +829,25 @@ h4 {
   background: var(--accent-dim);
   border-color: rgba(200, 245, 66, 0.3);
   color: var(--accent);
+}
+
+.clear-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: "DM Sans";
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-filters-btn:active {
+  opacity: 0.7;
 }
 
 /* ===== DATE HEADER ===== */
@@ -1428,14 +1456,29 @@ h4 {
 /* ===== EMPTY STATE ===== */
 .empty-state {
   text-align: center;
-  padding: 48px 24px;
+  padding: 40px 24px;
   color: var(--fg-muted);
 }
 
 .empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.3;
+  font-size: 44px;
+  margin-bottom: 12px;
+  opacity: 0.35;
+}
+
+.empty-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+
+.empty-state p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 260px;
+  opacity: 0.85;
 }
 
 /* ===== SWITCH TOGGLE ===== */
@@ -1491,24 +1534,6 @@ h4 {
 }
 
 /* ===== ASISTENTE FINANCIERO ===== */
-.advisor-fab {
-  position: fixed;
-  right: 20px;
-  bottom: 96px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 0.5px solid var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
-  font-size: 20px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  z-index: 50;
-}
-
 .advisor-sheet {
   display: flex;
   flex-direction: column;
