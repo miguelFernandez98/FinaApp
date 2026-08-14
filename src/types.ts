@@ -35,6 +35,8 @@ export interface PersistedState {
   currency: string;
   showCalculator: boolean;
   showEUR: boolean;
+  showCustomRate: boolean;
+  customRate: number | null;
 }
 
 export interface ToastState {

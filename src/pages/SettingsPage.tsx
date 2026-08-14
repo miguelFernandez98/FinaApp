@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -9,6 +9,16 @@ import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
 
+const MAX_AMOUNT = 1e15;
+
+function sanitizeAmount(raw: string): string {
+  const cleaned = raw.replace(/[^\d.,-]/g, "").replace(/,/g, ".");
+  const value = parseFloat(cleaned);
+  if (Number.isNaN(value)) return "";
+  if (!Number.isFinite(value) || Math.abs(value) > MAX_AMOUNT) return "";
+  return cleaned;
+}
+
 export default function SettingsPage() {
   const {
     currency,
@@ -17,6 +27,10 @@ export default function SettingsPage() {
     setShowCalculator,
     showEUR,
     setShowEUR,
+    showCustomRate,
+    setShowCustomRate,
+    customRate,
+    setCustomRate,
     transactions,
     budgets,
     showConfirm,
@@ -24,15 +38,47 @@ export default function SettingsPage() {
     importState,
   } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [customDraft, setCustomDraft] = useState(
+    customRate !== null ? String(customRate) : "",
+  );
+  const [ratesOpen, setRatesOpen] = useState(false);
 
   const handleCurrencyChange = (value: string) => {
     setCurrency(value);
     showToast("Moneda actualizada");
   };
 
+  const handleSaveCustomRate = () => {
+    const parsed = parseFloat(customDraft);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      showToast(
+        "Ingresa una tasa válida",
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
+    setCustomRate(parsed);
+    showToast("Tasa personalizada guardada");
+  };
+
+  const handleClearCustomRate = () => {
+    setCustomRate(null);
+    setCustomDraft("");
+    showToast("Tasa personalizada eliminada");
+  };
+
   const handleExport = async () => {
     const data = JSON.stringify(
-      { transactions, budgets, currency, showCalculator, showEUR },
+      {
+        transactions,
+        budgets,
+        currency,
+        showCalculator,
+        showEUR,
+        showCustomRate,
+        customRate,
+      },
       null,
       2,
     );
@@ -91,6 +137,11 @@ export default function SettingsPage() {
                 currency: data.currency || "$",
                 showCalculator: data.showCalculator ?? true,
                 showEUR: data.showEUR ?? false,
+                showCustomRate: data.showCustomRate ?? false,
+                customRate:
+                  typeof data.customRate === "number" && data.customRate > 0
+                    ? data.customRate
+                    : null,
               });
               showToast("Datos importados correctamente");
             },
@@ -311,6 +362,8 @@ export default function SettingsPage() {
           currency: "$",
           showCalculator: true,
           showEUR: true,
+          showCustomRate: false,
+          customRate: null,
         });
         showToast("Datos de ejemplo cargados");
       },
@@ -328,6 +381,8 @@ export default function SettingsPage() {
           currency: "$",
           showCalculator: true,
           showEUR: false,
+          showCustomRate: false,
+          customRate: null,
         });
         showToast("Datos eliminados", "fa-trash", "var(--danger)");
       },
@@ -373,12 +428,6 @@ export default function SettingsPage() {
           options={[
             { value: "$", label: "$ USD — Dólar" },
             { value: "€", label: "€ EUR — Euro" },
-            { value: "£", label: "£ GBP — Libra" },
-            { value: "MX$", label: "MX$ — Peso Mexicano" },
-            { value: "COL$", label: "COL$ — Peso Colombiano" },
-            { value: "S/", label: "S/ — Sol Peruano" },
-            { value: "AR$", label: "AR$ — Peso Argentino" },
-            { value: "R$", label: "R$ — Real Brasileño" },
           ]}
         />
       </section>
@@ -399,30 +448,97 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Tasa Euro */}
+      {/* Configuración de tasas */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
-        <div className="menu-item" style={{ cursor: "pointer" }}>
-          <i className="fa-solid fa-euro-sign menu-icon" />
-          <span style={{ flex: 1 }}>Mostrar tasa Euro (EUR/VES)</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={showEUR}
-              onChange={(e) => setShowEUR(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--fg-muted)",
-            padding: "0 16px 10px",
-          }}
+        <div
+          className="menu-item"
+          style={{ cursor: "pointer" }}
+          onClick={() => setRatesOpen((prev) => !prev)}
         >
-          La tasa se actualiza junto con el dólar. Sin conexión se muestra la
-          última guardada.
-        </p>
+          <i className="fa-solid fa-coins menu-icon" />
+          <span style={{ flex: 1 }}>Configuración de tasas</span>
+          <i
+            className={`fa-solid fa-chevron-down ${ratesOpen ? "rotate-180" : ""}`}
+            style={{ fontSize: 12, color: "var(--fg-muted)", transition: "transform 0.25s" }}
+          />
+        </div>
+
+        {ratesOpen && (
+          <div style={{ paddingBottom: 8 }}>
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-euro-sign menu-icon" />
+              <span style={{ flex: 1 }}>Mostrar tasa Euro (EUR/VES)</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showEUR}
+                  onChange={(e) => setShowEUR(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <p className="settingsTextDescription">
+              La tasa se actualiza junto con el dólar. Sin conexión se muestra
+              la última guardada.
+            </p>
+
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-sliders menu-icon" />
+              <span style={{ flex: 1 }}>Mostrar tasa personalizada</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showCustomRate}
+                  onChange={(e) => setShowCustomRate(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            {showCustomRate && (
+              <div className="custom-rate-input-container">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="input-field custom-rate-input"
+                  value={customDraft}
+                  onChange={(e) => {
+                    const sanitized = sanitizeAmount(e.target.value);
+                    if (sanitized === "" && e.target.value !== "") return;
+                    setCustomDraft(sanitized);
+                  }}
+                  placeholder={
+                    customRate !== null ? String(customRate) : "Ej: 3800"
+                  }
+                  aria-label="Tasa personalizada en bolívares"
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={handleSaveCustomRate}
+                  title="Guardar"
+                  aria-label="Guardar tasa personalizada"
+                >
+                  <i className="fa-solid fa-check" />
+                </button>
+                {customRate !== null && (
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-danger"
+                    onClick={handleClearCustomRate}
+                    title="Eliminar"
+                    aria-label="Eliminar tasa personalizada"
+                  >
+                    <i className="fa-solid fa-trash" />
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="settingsTextDescription">
+              Puede cargar una tasa personalizada según lo requiera, la misma no
+              se actualiza automáticamente.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Acciones */}

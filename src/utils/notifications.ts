@@ -4,7 +4,23 @@ import type { Transaction } from "../types";
 import type { ExchangeRates } from "./exchangeRates";
 
 const RATE_CHANGE_THRESHOLD = 0.01;
+const RATE_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 const DEBT_WARNING_DAYS = 7;
+const DEBT_MID_DAYS = 3;
+
+/**
+ * Genera un ID de notificación dentro del rango de int de Java
+ * (Integer.MAX_VALUE ≈ 2.147e9). El plugin rechaza IDs mayores.
+ * Usa un contador secuencial con reinicio para evitar desbordes.
+ */
+let notificationIdCounter = 1;
+function notificationId(): number {
+  const id = notificationIdCounter;
+  notificationIdCounter = notificationIdCounter >= 2000000000 ? 1 : notificationIdCounter + 1;
+  return id;
+}
+
+let lastRateNotifyAt = 0;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -33,6 +49,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 /**
  * Notifica si una tasa cambió más del umbral respecto a la anterior.
+ * Limita a una notificación por ventana de 30 minutos para no saturar.
  * @param previous Tasas previas (puede ser null la primera vez).
  * @param current Tasas recién obtenidas.
  */
@@ -41,6 +58,7 @@ export async function notifyRateChanges(
   current: ExchangeRates,
 ): Promise<void> {
   if (!isNative()) return;
+  if (Date.now() - lastRateNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
 
   const notifications: { title: string; body: string }[] = [];
 
@@ -82,12 +100,13 @@ export async function notifyRateChanges(
   try {
     await LocalNotifications.schedule({
       notifications: notifications.map((n) => ({
-        id: Date.now() + Math.floor(Math.random() * 10000),
+        id: notificationId(),
         title: n.title,
         body: n.body,
         schedule: { at: new Date(Date.now() + 1000) },
       })),
     });
+    lastRateNotifyAt = Date.now();
   } catch (error) {
     console.error("Error scheduling rate notification:", error);
   }
@@ -98,12 +117,23 @@ interface DebtReminder {
   title: string;
   body: string;
   schedule: { at: Date };
+  extra: Record<string, string>;
+}
+
+function formatDebtAmount(amount: number): string {
+  return `Bs. ${amount.toLocaleString("es", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 /**
- * Programa recordatorios para las deudas pendientes o parciales:
+ * Programa recordatorios para las deudas pendientes o parciales con fecha límite:
  * - 7 días antes del vencimiento (aviso de aproximación).
+ * - 3 días antes del vencimiento.
  * - El mismo día del vencimiento.
+ * Cada notificación incluye el id de la deuda en `extra` para que al tocarla
+ * la app abra esa deuda directamente.
  * Cancela notificaciones previas de deudas para evitar duplicados.
  * @param transactions Todas las transacciones.
  */
@@ -132,44 +162,55 @@ export async function scheduleDebtReminders(
 
     if (daysUntil < 0) return;
 
-    const amountLabel = `Bs. ${debt.amount.toLocaleString("es", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    const amountLabel = formatDebtAmount(debt.amount);
     const description = debt.description;
+    const extra = { debtId: debt.id };
 
     if (daysUntil === 0) {
       reminders.push({
-        id: Date.now() + reminders.length + 1,
+        id: notificationId(),
         title: "Deuda por vencer hoy",
         body: `${description} vence hoy (${amountLabel}).`,
         schedule: { at: new Date(dueTime + 9 * 3600000) },
+        extra,
       });
-    } else if (daysUntil > 0 && daysUntil <= DEBT_WARNING_DAYS) {
-      const daysText =
-        daysUntil === 1
-          ? "mañana"
-          : daysUntil === DEBT_WARNING_DAYS
-            ? "en una semana"
-            : `en ${daysUntil} días`;
+    } else if (daysUntil > 0 && daysUntil <= DEBT_MID_DAYS) {
+      const daysText = daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
       reminders.push({
-        id: Date.now() + reminders.length + 1,
+        id: notificationId(),
         title: "Deuda por vencer pronto",
         body: `${description} vence ${daysText} (${amountLabel}).`,
         schedule: {
           at: new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
         },
+        extra,
+      });
+    } else if (daysUntil <= DEBT_WARNING_DAYS) {
+      reminders.push({
+        id: notificationId(),
+        title: "Deuda por vencer pronto",
+        body: `${description} vence en una semana (${amountLabel}).`,
+        schedule: {
+          at: new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
+        },
+        extra,
       });
     }
   });
-
-  if (reminders.length === 0) return;
 
   try {
     const pending = await LocalNotifications.getPending();
     await LocalNotifications.cancel({
       notifications: pending.notifications,
     });
+  } catch (error) {
+    console.error("Error canceling pending notifications:", error);
+    return;
+  }
+
+  if (reminders.length === 0) return;
+
+  try {
     await LocalNotifications.schedule({ notifications: reminders });
   } catch (error) {
     console.error("Error scheduling debt reminders:", error);

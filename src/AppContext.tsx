@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import type {
   Transaction,
   PersistedState,
@@ -56,6 +57,8 @@ interface AppContextValue extends PersistedState {
   setCurrency: (currency: string) => void;
   setShowCalculator: (show: boolean) => void;
   setShowEUR: (show: boolean) => void;
+  setShowCustomRate: (show: boolean) => void;
+  setCustomRate: (rate: number | null) => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
@@ -82,7 +85,7 @@ interface AppContextValue extends PersistedState {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const RATES_REFRESH_INTERVAL = 15 * 60 * 1000;
+const RATES_REFRESH_INTERVAL = 3 * 60 * 1000;
 const RATES_MIN_FETCH_GAP = 60 * 1000;
 
 /**
@@ -103,6 +106,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     savedState.showCalculator,
   );
   const [showEUR, setShowEURState] = useState(savedState.showEUR);
+  const [showCustomRate, setShowCustomRateState] = useState(
+    savedState.showCustomRate,
+  );
+  const [customRate, setCustomRateState] = useState<number | null>(
+    savedState.customRate,
+  );
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -140,8 +149,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
-    saveState({ transactions, budgets, currency, showCalculator, showEUR });
-  }, [transactions, budgets, currency, showCalculator, showEUR]);
+    saveState({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate });
+  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +235,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setShowEUR = useCallback((show: boolean) => {
     setShowEURState(show);
+  }, []);
+
+  const setShowCustomRate = useCallback((show: boolean) => {
+    setShowCustomRateState(show);
+  }, []);
+
+  const setCustomRate = useCallback((rate: number | null) => {
+    setCustomRateState(rate);
   }, []);
 
   /**
@@ -380,6 +397,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newState.currency);
     setShowCalculatorState(newState.showCalculator);
     setShowEURState(newState.showEUR);
+    setShowCustomRateState(newState.showCustomRate ?? false);
+    setCustomRateState(newState.customRate ?? null);
   }, []);
 
   useEffect(() => {
@@ -466,6 +485,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      (notification) => {
+        const debtId = notification.notification.extra?.debtId as
+          | string
+          | undefined;
+        if (!debtId) return;
+        navigateTo("home");
+        openTransactionModal(debtId);
+      },
+    );
+    return () => {
+      listener.then((l) => l.remove());
+    };
+  }, [navigateTo, openTransactionModal]);
+
   const value = useMemo<AppContextValue>(
     () => ({
       transactions,
@@ -473,6 +510,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currency,
       showCalculator,
       showEUR,
+      showCustomRate,
+      customRate,
       currentPage,
       currentMonth,
       currentYear,
@@ -490,6 +529,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       setShowCalculator,
       setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -509,6 +550,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currency,
       showCalculator,
       showEUR,
+      showCustomRate,
+      customRate,
       currentPage,
       currentMonth,
       currentYear,
@@ -526,6 +569,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       setShowCalculator,
       setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
       changeMonth,
       setFilter,
       setCategoryFilter,
