@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../AppContext";
 import { MONTH_NAMES, parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -16,6 +16,7 @@ import MonthSelector from "../components/MonthSelector";
 import AppVersion from "../components/AppVersion";
 
 export default function HomePage() {
+  const [donutType, setDonutType] = useState<"expense" | "income">("expense");
   const {
     transactions,
     getMonthTransactions,
@@ -215,15 +216,37 @@ export default function HomePage() {
       )}
 
       {/* Gráfico */}
-      <section className="glass-card" aria-label="Gastos por categoría">
+      <section className="glass-card" aria-label="Distribución por categoría">
         <div className="card-header">
-          <h3 className="card-title">Gastos por categoría</h3>
+          <h3 className="card-title">
+            {donutType === "expense"
+              ? "Gastos por categoría"
+              : "Ingresos por categoría"}
+          </h3>
           <span className="card-subtitle">
             {MONTH_NAMES[currentMonth]} {currentYear}
           </span>
         </div>
         <div className="chart-container">
-          <DonutChart transactions={visibleTransactions} />
+          <DonutChart transactions={visibleTransactions} type={donutType} />
+          <div className="donut-type-toggle">
+            <button
+              className={`donut-type-btn ${
+                donutType === "expense" ? "active-expense" : ""
+              }`}
+              onClick={() => setDonutType("expense")}
+            >
+              Gastos
+            </button>
+            <button
+              className={`donut-type-btn ${
+                donutType === "income" ? "active-income" : ""
+              }`}
+              onClick={() => setDonutType("income")}
+            >
+              Ingresos
+            </button>
+          </div>
         </div>
       </section>
 
