@@ -26,6 +26,8 @@ export default function TransactionsPage() {
   } = useApp();
 
   const [newestFirst, setNewestFirst] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const visibleTransactions = useMemo(() => {
     if (currentTypeFilter === "future") {
@@ -63,6 +65,10 @@ export default function TransactionsPage() {
       result = result.filter((t) => t.type === currentTypeFilter);
     if (currentCategoryFilter !== "all")
       result = result.filter((t) => t.category === currentCategoryFilter);
+    if (searchQuery.trim() !== "")
+      result = result.filter((t) =>
+        t.description.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+      );
     return result.sort((a, b) => {
       const dateDiff =
         (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) *
@@ -75,6 +81,7 @@ export default function TransactionsPage() {
     currentTypeFilter,
     currentCategoryFilter,
     newestFirst,
+    searchQuery,
   ]);
 
   // Agrupar por fecha
@@ -95,20 +102,56 @@ export default function TransactionsPage() {
         <h1 className="page-title" style={{ marginBottom: 20 }}>
           Movimientos <AppVersion />
         </h1>
-        <button
-          className="sort-btn"
-          onClick={() => setNewestFirst((prev) => !prev)}
-          aria-label={
-            newestFirst
-              ? "Ordenar de más antiguo a más nuevo"
-              : "Ordenar de más nuevo a más antiguo"
-          }
-        >
-          <i
-            className={`fa-solid ${newestFirst ? "fa-arrow-down-wide-short" : "fa-arrow-up-short-wide"}`}
-          />
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className={`sort-btn ${searchOpen ? "active" : ""}`}
+            onClick={() => {
+              if (searchOpen) setSearchQuery("");
+              setSearchOpen((prev) => !prev);
+            }}
+            aria-label={
+              searchOpen ? "Cerrar búsqueda" : "Buscar por descripción"
+            }
+          >
+            <i className="fa-solid fa-magnifying-glass" />
+          </button>
+          <button
+            className="sort-btn"
+            onClick={() => setNewestFirst((prev) => !prev)}
+            aria-label={
+              newestFirst
+                ? "Ordenar de más antiguo a más nuevo"
+                : "Ordenar de más nuevo a más antiguo"
+            }
+          >
+            <i
+              className={`fa-solid ${newestFirst ? "fa-arrow-down-wide-short" : "fa-arrow-up-short-wide"}`}
+            />
+          </button>
+        </div>
       </header>
+
+      {searchOpen && (
+        <div className="search-bar" style={{ marginBottom: 12 }}>
+          <i className="fa-solid fa-magnifying-glass" />
+          <input
+            autoFocus
+            className="search-input"
+            placeholder="Buscar por descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery !== "" && (
+            <button
+              className="search-clear"
+              onClick={() => setSearchQuery("")}
+              aria-label="Limpiar búsqueda"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Selector de mes */}
       {currentTypeFilter !== "future" && <MonthSelector />}
@@ -137,7 +180,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filtros de categoría */}
-      <div className="filters-scroll" style={{ marginBottom: 20 }}>
+      <div className="cats-scroll" style={{ marginBottom: 20 }}>
         <button
           className={`filter-chip ${currentCategoryFilter === "all" ? "active" : ""}`}
           onClick={() => setCategoryFilter("all")}
@@ -171,7 +214,9 @@ export default function TransactionsPage() {
           <p style={{ fontSize: 13 }}>
             {currentTypeFilter === "future"
               ? "No hay movimientos futuros"
-              : "Sin resultados para este filtro"}
+              : searchQuery.trim() !== ""
+                ? "Sin resultados para esta búsqueda"
+                : "Sin resultados para este filtro"}
           </p>
         </div>
       ) : (
