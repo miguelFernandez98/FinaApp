@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useApp } from "../AppContext";
 import { formatMoney } from "../utils/format";
+import CustomSelect from "./CustomSelect";
 
 type CurrencyType = "VES" | "USD_BCV" | "USD_PARALLEL" | "EUR";
 type BcvDisplay = "USD" | "EUR";
@@ -47,16 +48,16 @@ export default function CurrencyCalculator() {
     console.log("💱 Current exchange rates:", exchangeRates);
   }, [exchangeRates]);
 
-  const handleFromChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newFrom = e.target.value as CurrencyType;
+  const handleFromChange = (value: string) => {
+    const newFrom = value as CurrencyType;
     if (newFrom === toCurrency) {
       setToCurrency(fromCurrency);
     }
     setFromCurrency(newFrom);
   };
 
-  const handleToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTo = e.target.value as CurrencyType;
+  const handleToChange = (value: string) => {
+    const newTo = value as CurrencyType;
     if (newTo === fromCurrency) {
       setFromCurrency(toCurrency);
     }
@@ -165,7 +166,11 @@ export default function CurrencyCalculator() {
             inputMode="decimal"
             className="input-field"
             value={amount}
-            onChange={(e) => setAmount(sanitizeAmount(e.target.value))}
+            onChange={(e) => {
+              const sanitized = sanitizeAmount(e.target.value);
+              if (sanitized === "" && e.target.value !== "") return;
+              setAmount(sanitized);
+            }}
             placeholder="Ingresa el monto"
             aria-label="Monto a convertir"
           />
@@ -176,34 +181,34 @@ export default function CurrencyCalculator() {
             <label className="field-label" htmlFor="from-currency">
               De
             </label>
-            <select
+            <CustomSelect
               id="from-currency"
-              className="input-field"
               value={fromCurrency}
               onChange={handleFromChange}
-            >
-              <option value="VES">Bolívares (VES)</option>
-              <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_PARALLEL">Dólar Paralelo</option>
-              {showEUR && <option value="EUR">Euro (EUR)</option>}
-            </select>
+              options={[
+                { value: "VES", label: "Bolívares (VES)" },
+                { value: "USD_BCV", label: "Dólar BCV" },
+                { value: "USD_PARALLEL", label: "Dólar Paralelo" },
+                ...(showEUR ? [{ value: "EUR", label: "Euro (EUR)" }] : []),
+              ]}
+            />
           </div>
 
           <div style={{ flex: 1 }}>
             <label className="field-label" htmlFor="to-currency">
               A
             </label>
-            <select
+            <CustomSelect
               id="to-currency"
-              className="input-field"
               value={toCurrency}
               onChange={handleToChange}
-            >
-              <option value="VES">Bolívares (VES)</option>
-              <option value="USD_BCV">Dólar BCV</option>
-              <option value="USD_PARALLEL">Dólar Paralelo</option>
-              {showEUR && <option value="EUR">Euro (EUR)</option>}
-            </select>
+              options={[
+                { value: "VES", label: "Bolívares (VES)" },
+                { value: "USD_BCV", label: "Dólar BCV" },
+                { value: "USD_PARALLEL", label: "Dólar Paralelo" },
+                ...(showEUR ? [{ value: "EUR", label: "Euro (EUR)" }] : []),
+              ]}
+            />
           </div>
         </div>
 
