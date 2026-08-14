@@ -178,6 +178,53 @@ h4 {
   background: var(--card-hover);
 }
 
+.sort-btn.active {
+  border-color: rgba(200, 245, 66, 0.4);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 14px;
+  color: var(--fg-muted);
+  animation: dropdownIn 0.18s ease;
+}
+
+.search-bar:focus-within {
+  border-color: rgba(200, 245, 66, 0.4);
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg);
+  font-family: "DM Sans";
+  font-size: 14px;
+  padding: 13px 0;
+}
+
+.search-input::placeholder {
+  color: var(--fg-muted);
+}
+
+.search-clear {
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px;
+  flex-shrink: 0;
+}
+
 .avatar-btn {
   width: 40px;
   height: 40px;
@@ -536,12 +583,163 @@ h4 {
   justify-content: center;
 }
 
+.chart-wrap {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+.chart-tooltip {
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font-family: "DM Sans";
+  font-size: 12px;
+}
+
+.chart-tooltip-title {
+  font-family: "Space Grotesk";
+  font-weight: 600;
+  font-size: 12px;
+  color: #f0f0f5;
+  margin-bottom: 6px;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f0f0f5;
+  line-height: 1.6;
+}
+
+.chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.chart-tooltip strong {
+  margin-left: auto;
+}
+
+/* Total en el centro del donut */
+.chart-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 2;
+  text-align: center;
+}
+
+.chart-center-value {
+  font-family: "Space Grotesk";
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--fg);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-center-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Toggle Gastos/Ingresos del donut (esquina inferior izquierda) */
+.donut-type-toggle {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  z-index: 3;
+}
+
+.donut-type-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: "DM Sans";
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.donut-type-btn.active-expense {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.donut-type-btn.active-income {
+  background: var(--success-dim);
+  color: var(--success);
+}
+
+/* Recharts: el wrapper del tooltip nunca pinta fondo blanco */
+.recharts-tooltip-wrapper {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  z-index: 10 !important;
+}
+
+/* Recharts: sin outline de foco al hacer click/tab en la gráfica */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-surface *,
+.recharts-sector,
+.recharts-rectangle,
+.recharts-pie,
+.recharts-layer,
+.recharts-cartesian-axis {
+  outline: none !important;
+}
+
 /* ===== FILTERS ===== */
 .filters-scroll {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.cats-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cats-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .filter-chip {
@@ -578,15 +776,16 @@ h4 {
 
 /* ===== STATS ===== */
 .stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
 .stat-mini {
+  flex: 1 1 auto;
+  min-width: max-content;
   text-align: center;
   padding: 12px 8px;
-  min-width: 0;
 }
 
 .stat-value {
@@ -594,6 +793,7 @@ h4 {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .stat-label {
@@ -724,6 +924,103 @@ h4 {
   color: var(--fg-muted);
   display: block;
   margin-bottom: 6px;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--fg);
+  font-family: "DM Sans";
+  font-size: 15px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.custom-select-trigger:focus-visible {
+  border-color: rgba(200, 245, 66, 0.4);
+}
+
+.custom-select-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.custom-select-chevron {
+  font-size: 12px;
+  color: var(--fg-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.custom-select-chevron.open {
+  transform: rotate(180deg);
+}
+
+.custom-select-menu {
+  z-index: 200;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px;
+  list-style: none;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  max-height: 260px;
+  overflow-y: auto;
+  animation: dropdownIn 0.18s ease;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-select-option {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-family: "DM Sans";
+  font-size: 14px;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-select-option:hover {
+  background: var(--card-hover);
+}
+
+.custom-select-option.selected {
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .input-field {
