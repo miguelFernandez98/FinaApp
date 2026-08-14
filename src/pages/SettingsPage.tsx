@@ -7,6 +7,7 @@ import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
+import CustomSelect from "../components/CustomSelect";
 
 export default function SettingsPage() {
   const {
@@ -24,8 +25,8 @@ export default function SettingsPage() {
   } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCurrency(e.target.value);
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
     showToast("Moneda actualizada");
   };
 
@@ -366,21 +367,20 @@ export default function SettingsPage() {
       {/* Moneda */}
       <section className="glass-card" style={{ marginBottom: 12 }}>
         <label className="field-label">Moneda</label>
-        <select
-          className="input-field"
+        <CustomSelect
           value={currency}
           onChange={handleCurrencyChange}
-          style={{ cursor: "pointer" }}
-        >
-          <option value="$">$ USD — Dólar</option>
-          <option value="€">€ EUR — Euro</option>
-          <option value="£">£ GBP — Libra</option>
-          <option value="MX$">MX$ — Peso Mexicano</option>
-          <option value="COL$">COL$ — Peso Colombiano</option>
-          <option value="S/">S/ — Sol Peruano</option>
-          <option value="AR$">AR$ — Peso Argentino</option>
-          <option value="R$">R$ — Real Brasileño</option>
-        </select>
+          options={[
+            { value: "$", label: "$ USD — Dólar" },
+            { value: "€", label: "€ EUR — Euro" },
+            { value: "£", label: "£ GBP — Libra" },
+            { value: "MX$", label: "MX$ — Peso Mexicano" },
+            { value: "COL$", label: "COL$ — Peso Colombiano" },
+            { value: "S/", label: "S/ — Sol Peruano" },
+            { value: "AR$", label: "AR$ — Peso Argentino" },
+            { value: "R$", label: "R$ — Real Brasileño" },
+          ]}
+        />
       </section>
 
       {/* Calculadora */}

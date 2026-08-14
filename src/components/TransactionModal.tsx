@@ -3,6 +3,7 @@ import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { toISODate } from "../utils/date";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
+import CustomSelect from "./CustomSelect";
 
 export default function TransactionModal() {
   const {
@@ -365,15 +366,15 @@ export default function TransactionModal() {
         {transactionType === "debt" && (
           <div style={{ marginBottom: 16 }}>
             <label className="field-label">Estado de la deuda</label>
-            <select
-              className="input-field"
+            <CustomSelect
               value={debtStatus}
-              onChange={(e) => setDebtStatus(e.target.value as DebtStatus)}
-            >
-              <option value="pending">Pendiente</option>
-              <option value="partial">Parcialmente pagada</option>
-              <option value="paid">Pagada</option>
-            </select>
+              onChange={(value) => setDebtStatus(value as DebtStatus)}
+              options={[
+                { value: "pending", label: "Pendiente" },
+                { value: "partial", label: "Parcialmente pagada" },
+                { value: "paid", label: "Pagada" },
+              ]}
+            />
           </div>
         )}
 
