@@ -1,16 +1,22 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { getLanguage, t } from "../i18n";
+import { getLanguage, monthName, t } from "../i18n";
 import type { Transaction } from "../types";
 import type { ExchangeRates } from "./exchangeRates";
-import { getCategoryById } from "./transactions";
+import { getCategoryById, getMonthTransactions } from "./transactions";
 import { formatMoney } from "./format";
+import { daysInMonth } from "./date";
 
 const RATE_CHANGE_THRESHOLD = 0.01;
 const RATE_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 const DEBT_WARNING_DAYS = 7;
 const DEBT_MID_DAYS = 3;
 const BUDGET_APPROACH_THRESHOLD = 0.8;
+const BACKUP_REMINDER_ID = 9001;
+const MONTHLY_SUMMARY_ID = 9002;
+const BACKUP_REMINDER_DAYS = 30;
+const BACKUP_REMINDER_HOUR = 10;
+const MONTHLY_SUMMARY_HOUR = 20;
 
 /**
  * Genera un ID de notificación dentro del rango de int de Java
@@ -341,5 +347,105 @@ export async function notifyBudgetAlerts(
     budgetNotifyAt = Date.now();
   } catch (error) {
     console.error("Error scheduling budget notification:", error);
+  }
+}
+
+/**
+ * Programa el recordatorio mensual de respaldo: se dispara 30 días
+ * después de la última exportación (o 30 días desde hoy si nunca se
+ * exportó). Si ya hay uno pendiente, no lo duplica.
+ * @param lastExportAt Timestamp de la última exportación (null si nunca).
+ */
+export async function scheduleBackupReminder(
+  lastExportAt: number | null,
+): Promise<void> {
+  if (!isNative()) return;
+
+  try {
+    const pending = await LocalNotifications.getPending();
+    if (pending.notifications.some((n) => n.id === BACKUP_REMINDER_ID)) {
+      return;
+    }
+  } catch (error) {
+    console.error("Error checking pending backup reminder:", error);
+  }
+
+  const base = lastExportAt ?? Date.now();
+  const next = new Date(base + BACKUP_REMINDER_DAYS * 86400000);
+  next.setHours(BACKUP_REMINDER_HOUR, 0, 0, 0);
+  const daysSinceExport =
+    Math.floor((Date.now() - base) / 86400000) + BACKUP_REMINDER_DAYS;
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: BACKUP_REMINDER_ID,
+          title: t("notif.backup"),
+          body: t("notif.backup_body", { days: daysSinceExport }),
+          schedule: { at: futureScheduleAt(next) },
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error scheduling backup reminder:", error);
+  }
+}
+
+/**
+ * Programa el resumen mensual al cierre del mes (último día, 20:00).
+ * Calcula el contenido con los movimientos actuales del mes. Si ya hay
+ * uno pendiente no lo duplica (se refresca al reabrir la app).
+ * @param transactions Todas las transacciones.
+ * @param currency Símbolo de moneda.
+ */
+export async function scheduleMonthlySummary(
+  transactions: Transaction[],
+  currency: string,
+): Promise<void> {
+  if (!isNative()) return;
+
+  try {
+    const pending = await LocalNotifications.getPending();
+    if (pending.notifications.some((n) => n.id === MONTHLY_SUMMARY_ID)) {
+      return;
+    }
+  } catch (error) {
+    console.error("Error checking pending monthly summary:", error);
+  }
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const monthTransactions = getMonthTransactions(transactions, month, year);
+  const income = monthTransactions
+    .filter((tx) => tx.type === "income")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const expense = monthTransactions
+    .filter((tx) => tx.type === "expense")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const balance = income - expense;
+
+  const at = new Date(year, month, daysInMonth(year, month), MONTHLY_SUMMARY_HOUR, 0, 0);
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: MONTHLY_SUMMARY_ID,
+          title: t("notif.summary"),
+          body: t("notif.summary_body", {
+            month: monthName(month),
+            income: formatMoney(income, currency),
+            expense: formatMoney(expense, currency),
+            balance: `${balance < 0 ? "-" : ""}${formatMoney(Math.abs(balance), currency)}`,
+          }),
+          schedule: { at: futureScheduleAt(at) },
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error scheduling monthly summary:", error);
   }
 }
