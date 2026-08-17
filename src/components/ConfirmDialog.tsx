@@ -1,7 +1,9 @@
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 
 export default function ConfirmDialog() {
   const { confirm, closeConfirm } = useApp();
+  useI18n();
 
   if (!confirm.visible) return null;
 
@@ -31,7 +33,7 @@ export default function ConfirmDialog() {
               closeConfirm();
             }}
           >
-            {confirm.cancelLabel ?? "Cancelar"}
+            {confirm.cancelLabel ?? t("confirm.cancel")}
           </button>
           <button
             className="btn-danger"
@@ -40,7 +42,7 @@ export default function ConfirmDialog() {
               closeConfirm();
             }}
           >
-            {confirm.confirmLabel ?? "Confirmar"}
+            {confirm.confirmLabel ?? t("confirm.ok")}
           </button>
         </div>
       </div>

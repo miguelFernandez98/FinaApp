@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { getLanguage, t } from "../i18n";
 import type { Transaction } from "../types";
 import type { ExchangeRates } from "./exchangeRates";
 import { getCategoryById } from "./transactions";
@@ -80,13 +81,13 @@ export async function notifyRateChanges(
     Math.abs(current.bcv - baseline.bcv) / baseline.bcv >=
       RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.bcv > baseline.bcv ? "subió" : "bajó";
+    const dir = current.bcv > baseline.bcv ? t("notif.up") : t("notif.down");
     const pct = Math.abs(
       ((current.bcv - baseline.bcv) / baseline.bcv) * 100,
     ).toFixed(2);
     notifications.push({
-      title: "Tasa BCV actualizada",
-      body: `El dólar oficial ${dir} a Bs. ${current.bcv.toFixed(2)} (${pct}%).`,
+      title: t("notif.bcv_title"),
+      body: t("notif.bcv_body", { dir, rate: current.bcv.toFixed(2), pct }),
     });
   }
 
@@ -96,13 +97,18 @@ export async function notifyRateChanges(
     Math.abs(current.parallel - baseline.parallel) / baseline.parallel >=
       RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.parallel > baseline.parallel ? "subió" : "bajó";
+    const dir =
+      current.parallel > baseline.parallel ? t("notif.up") : t("notif.down");
     const pct = Math.abs(
       ((current.parallel - baseline.parallel) / baseline.parallel) * 100,
     ).toFixed(2);
     notifications.push({
-      title: "Tasa paralela actualizada",
-      body: `El dólar paralelo ${dir} a Bs. ${current.parallel.toFixed(2)} (${pct}%).`,
+      title: t("notif.parallel_title"),
+      body: t("notif.parallel_body", {
+        dir,
+        rate: current.parallel.toFixed(2),
+        pct,
+      }),
     });
   }
 
@@ -147,7 +153,8 @@ function futureScheduleAt(at: Date): Date {
 }
 
 function formatDebtAmount(amount: number): string {
-  return `Bs. ${amount.toLocaleString("es", {
+  const locale = getLanguage() === "en" ? "en" : "es";
+  return `Bs. ${amount.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -195,17 +202,27 @@ export async function scheduleDebtReminders(
     if (daysUntil === 0) {
       reminders.push({
         id: notificationId(),
-        title: "Deuda por vencer hoy",
-        body: `${description} vence hoy (${amountLabel}).`,
+        title: t("notif.debt_today"),
+        body: t("notif.debt_today_body", {
+          description,
+          amount: amountLabel,
+        }),
         schedule: { at: futureScheduleAt(new Date(dueTime + 9 * 3600000)) },
         extra,
       });
     } else if (daysUntil > 0 && daysUntil <= DEBT_MID_DAYS) {
-      const daysText = daysUntil === 1 ? "mañana" : `en ${daysUntil} días`;
+      const daysText =
+        daysUntil === 1
+          ? t("notif.tomorrow")
+          : t("notif.in_days", { count: daysUntil });
       reminders.push({
         id: notificationId(),
-        title: "Deuda por vencer pronto",
-        body: `${description} vence ${daysText} (${amountLabel}).`,
+        title: t("notif.debt_soon"),
+        body: t("notif.debt_days_body", {
+          description,
+          days: daysText,
+          amount: amountLabel,
+        }),
         schedule: {
           at: futureScheduleAt(
             new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
@@ -216,8 +233,11 @@ export async function scheduleDebtReminders(
     } else if (daysUntil <= DEBT_WARNING_DAYS) {
       reminders.push({
         id: notificationId(),
-        title: "Deuda por vencer pronto",
-        body: `${description} vence en una semana (${amountLabel}).`,
+        title: t("notif.debt_soon"),
+        body: t("notif.week_body", {
+          description,
+          amount: amountLabel,
+        }),
         schedule: {
           at: futureScheduleAt(
             new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
@@ -287,13 +307,22 @@ export async function notifyBudgetAlerts(
     if (spent > budget) {
       const over = spent - budget;
       notifications.push({
-        title: "Presupuesto superado",
-        body: `${cat.name}: gastaste ${formatMoney(over, currency)} más de tu presupuesto de ${formatMoney(budget, currency)}.`,
+        title: t("notif.budget_over"),
+        body: t("notif.budget_over_body", {
+          category: cat.name,
+          over: formatMoney(over, currency),
+          budget: formatMoney(budget, currency),
+        }),
       });
     } else if (pct >= BUDGET_APPROACH_THRESHOLD) {
       notifications.push({
-        title: "Presupuesto casi al límite",
-        body: `${cat.name}: llevas ${formatMoney(spent, currency)} de ${formatMoney(budget, currency)} (${Math.round(pct * 100)}%).`,
+        title: t("notif.budget_near"),
+        body: t("notif.budget_near_body", {
+          category: cat.name,
+          spent: formatMoney(spent, currency),
+          budget: formatMoney(budget, currency),
+          pct: Math.round(pct * 100),
+        }),
       });
     }
   });

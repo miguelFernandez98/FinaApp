@@ -7,6 +7,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
 import type { Transaction } from "../types";
@@ -50,6 +51,7 @@ function DonutTooltip({
 
 export default function DonutChart({ transactions, type }: DonutChartProps) {
   const { currency } = useApp();
+  const { language } = useI18n();
   const [hovered, setHovered] = useState<number | null>(null);
 
   const { chartData, total } = useMemo(() => {
@@ -69,7 +71,8 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
     }));
     const sum = data.reduce((acc, d) => acc + d.value, 0);
     return { chartData: data, total: sum };
-  }, [transactions, type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, type, language]);
 
   if (!chartData.length) {
     return (
@@ -77,8 +80,8 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
         <i className="fa-solid fa-chart-pie" />
         <p style={{ fontSize: 13 }}>
           {type === "expense"
-            ? "Sin gastos este mes"
-            : "Sin ingresos este mes"}
+            ? t("donut.empty_expense")
+            : t("donut.empty_income")}
         </p>
       </div>
     );
@@ -126,7 +129,7 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
       <div className="chart-center">
         <span className="chart-center-value">{formatMoney(total, currency)}</span>
         <span className="chart-center-label">
-          {type === "expense" ? "Gastos" : "Ingresos"}
+          {type === "expense" ? t("donut.expense") : t("donut.income")}
         </span>
       </div>
     </div>

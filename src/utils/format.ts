@@ -1,3 +1,5 @@
+import { getLanguage } from "../i18n";
+
 /**
  * Formatea un monto numérico con la moneda actual.
  * @param amount Monto a formatear.
@@ -6,10 +8,11 @@
  */
 export function formatMoney(amount: number, currency: string): string {
   const abs = Math.abs(amount);
+  const locale = getLanguage() === "en" ? "en" : "es";
   return (
     currency +
     abs
-      .toLocaleString("es", {
+      .toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })

@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { useApp } from "../AppContext";
-import { MONTH_NAMES } from "../utils/date";
+import { monthName, t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getMonthTransactions } from "../utils/transactions";
 
@@ -20,7 +20,7 @@ function BarTooltip({
   currency,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; dataKey: string; color: string }>;
+  payload?: Array<{ value: number; dataKey: string; color: string; name?: string }>;
   label?: string;
   currency: string;
 }) {
@@ -34,7 +34,7 @@ function BarTooltip({
             className="chart-tooltip-dot"
             style={{ background: entry.color }}
           />
-          <span>{entry.dataKey}</span>
+          <span>{entry.name ?? entry.dataKey}</span>
           <strong>{formatMoney(entry.value, currency)}</strong>
         </div>
       ))}
@@ -44,9 +44,18 @@ function BarTooltip({
 
 export default function BarChart() {
   const { currentMonth, currentYear, transactions, currency } = useApp();
+  const { language } = useI18n();
 
   const chartData = useMemo(() => {
-    const rows: Array<{ name: string; Ingresos: number; Gastos: number }> = [];
+    const incomeKey = t("bar.income");
+    const expenseKey = t("bar.expense");
+    const rows: Array<{
+      name: string;
+      income: number;
+      expense: number;
+      incomeKey: string;
+      expenseKey: string;
+    }> = [];
 
     for (let i = 5; i >= 0; i--) {
       let m = currentMonth - i;
@@ -58,18 +67,21 @@ export default function BarChart() {
       const monthTxns = getMonthTransactions(transactions, m, y);
 
       rows.push({
-        name: MONTH_NAMES[m].substring(0, 3),
-        Ingresos: monthTxns
+        name: monthName(m).substring(0, 3),
+        income: monthTxns
           .filter((t) => t.type === "income")
           .reduce((s, t) => s + t.amount, 0),
-        Gastos: monthTxns
+        expense: monthTxns
           .filter((t) => t.type === "expense")
           .reduce((s, t) => s + t.amount, 0),
+        incomeKey,
+        expenseKey,
       });
     }
 
     return rows;
-  }, [currentMonth, currentYear, transactions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth, currentYear, transactions, language]);
 
   return (
     <div className="chart-wrap">
@@ -110,13 +122,15 @@ export default function BarChart() {
             }}
           />
           <Bar
-            dataKey="Ingresos"
+            dataKey="income"
+            name={t("bar.income")}
             fill="rgba(74, 222, 128, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}
           />
           <Bar
-            dataKey="Gastos"
+            dataKey="expense"
+            name={t("bar.expense")}
             fill="rgba(255, 92, 92, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}

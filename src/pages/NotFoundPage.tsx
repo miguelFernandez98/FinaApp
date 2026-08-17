@@ -1,14 +1,16 @@
 import { useApp } from "../AppContext";
 import AppVersion from "../components/AppVersion";
+import { t, useI18n } from "../i18n";
 
 export default function NotFoundPage() {
   const { navigateTo } = useApp();
+  useI18n();
 
   return (
     <section className="page notfound-page" aria-labelledby="notfound-title">
       <header className="page-header">
         <h1 id="notfound-title" className="page-title">
-          Página no encontrada <AppVersion />
+          {t("nav.notfound")} <AppVersion />
         </h1>
       </header>
 
@@ -34,11 +36,10 @@ export default function NotFoundPage() {
             marginBottom: 24,
           }}
         >
-          La ruta que buscas no existe o fue movida. Vuelve al inicio para
-          seguir administrando tus finanzas.
+          {t("nav.notfound.body")}
         </p>
         <button className="btn-primary" onClick={() => navigateTo("home")}>
-          <i className="fa-solid fa-house" /> Ir al inicio
+          <i className="fa-solid fa-house" /> {t("nav.home_go")}
         </button>
       </div>
     </section>

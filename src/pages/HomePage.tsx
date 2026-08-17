@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../AppContext";
-import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { monthName, t, useI18n } from "../i18n";
+import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
   getCategoryById,
@@ -17,6 +18,7 @@ import AppVersion from "../components/AppVersion";
 
 export default function HomePage() {
   const [donutType, setDonutType] = useState<"expense" | "income">("expense");
+  useI18n();
   const {
     transactions,
     getMonthTransactions,
@@ -100,7 +102,7 @@ export default function HomePage() {
         <div>
           <p className="greeting-text">{getTimeBasedGreeting()}</p>
           <h1 className="page-title">
-            Mis Finanzas <AppVersion />
+            {t("home.title")} <AppVersion />
           </h1>
         </div>
         <div className="avatar-btn" onClick={() => {}}>
@@ -117,7 +119,8 @@ export default function HomePage() {
       {previousBalance !== 0 && (
         <div className="previous-balance-row">
           <div>
-            <i className="fa-solid fa-arrow-up-right-dots" /> Saldo anterior
+            <i className="fa-solid fa-arrow-up-right-dots" />{" "}
+            {t("home.previous_balance")}
           </div>
           <div
             style={{
@@ -131,8 +134,11 @@ export default function HomePage() {
       )}
 
       {/* Balance hero */}
-      <section className="balance-hero" aria-label="Resumen del balance">
-        <p className="balance-label">Balance total</p>
+      <section
+        className="balance-hero"
+        aria-label={t("home.aria.balance")}
+      >
+        <p className="balance-label">{t("home.balance")}</p>
         <div
           className="balance-amount"
           style={{ color: balance >= 0 ? "var(--accent)" : "var(--danger)" }}
@@ -143,14 +149,14 @@ export default function HomePage() {
         <div className="balance-row">
           <div className="balance-detail">
             <span className="balance-dot income" />
-            <span className="balance-text">Ingresos</span>
+            <span className="balance-text">{t("home.income")}</span>
             <span className="balance-value income">
               {formatMoney(income, currency)}
             </span>
           </div>
           <div className="balance-detail">
             <span className="balance-dot expense" />
-            <span className="balance-text">Gastos</span>
+            <span className="balance-text">{t("home.expense")}</span>
             <span className="balance-value expense">
               {formatMoney(expense, currency)}
             </span>
@@ -162,12 +168,18 @@ export default function HomePage() {
       {showCalculator && <CurrencyCalculator />}
 
       {pendingDebts.length > 0 && (
-        <section className="glass-card" aria-label="Deudas pendientes">
+        <section
+          className="glass-card"
+          aria-label={t("home.aria.debts")}
+        >
           <div className="card-header">
             <div>
-              <h3 className="card-title">Deudas total pendiente</h3>
+              <h3 className="card-title">{t("home.debt_pending_total")}</h3>
               <span className="card-subtitle">
-                Vence {MONTH_NAMES[currentMonth]} {currentYear}
+                {t("home.debt_due", {
+                  month: monthName(currentMonth),
+                  year: currentYear,
+                })}
               </span>
             </div>
             <div
@@ -197,8 +209,10 @@ export default function HomePage() {
                   </div>
                   <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
                     {debt.debtDueDate
-                      ? `Límite: ${debt.debtDueDate}`
-                      : "Sin fecha límite"}
+                      ? `${t("home.debt_limit", {
+                          date: debt.debtDueDate,
+                        })}`
+                      : t("home.no_due_date")}
                   </div>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700 }}>
@@ -216,15 +230,18 @@ export default function HomePage() {
       )}
 
       {/* Gráfico */}
-      <section className="glass-card" aria-label="Distribución por categoría">
+      <section
+        className="glass-card"
+        aria-label={t("home.aria.chart")}
+      >
         <div className="card-header">
           <h3 className="card-title">
             {donutType === "expense"
-              ? "Gastos por categoría"
-              : "Ingresos por categoría"}
+              ? t("home.chart_expense")
+              : t("home.chart_income")}
           </h3>
           <span className="card-subtitle">
-            {MONTH_NAMES[currentMonth]} {currentYear}
+            {monthName(currentMonth)} {currentYear}
           </span>
         </div>
         <div className="chart-container">
@@ -237,7 +254,7 @@ export default function HomePage() {
                 }`}
                 onClick={() => setDonutType("expense")}
               >
-                Gastos
+                {t("donut.expense")}
               </button>
               <button
                 className={`donut-type-btn ${
@@ -245,7 +262,7 @@ export default function HomePage() {
                 }`}
                 onClick={() => setDonutType("income")}
               >
-                Ingresos
+                {t("donut.income")}
               </button>
             </div>
           )}
@@ -254,7 +271,7 @@ export default function HomePage() {
 
       {/* Recientes */}
       <div className="section-header">
-        <h3 className="section-title">Recientes</h3>
+        <h3 className="section-title">{t("home.recent")}</h3>
         <span
           className="section-link"
           onClick={() => {
@@ -263,19 +280,16 @@ export default function HomePage() {
             navigateTo("transactions");
           }}
         >
-          Ver todas
+          {t("home.see_all")}
         </span>
       </div>
 
-      <section className="glass-card" aria-label="Movimientos recientes">
+      <section className="glass-card" aria-label={t("home.aria.recent")}>
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
-            <div className="empty-state-title">Aún no hay movimientos</div>
-            <p>
-              Registra tu primer ingreso o gasto para ver tu balance
-              reflejado aquí.
-            </p>
+            <div className="empty-state-title">{t("home.recent_empty")}</div>
+            <p>{t("home.recent_empty.body")}</p>
           </div>
         ) : (
           recent.map((t) => (

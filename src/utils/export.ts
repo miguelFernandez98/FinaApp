@@ -1,9 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { monthName, t } from "../i18n";
 import type { Transaction } from "../types";
 import { getCategoryById } from "./transactions";
-import { MONTH_NAMES } from "./date";
 
 function csvEscape(value: string): string {
   if (/[",\n]/.test(value)) {
@@ -13,9 +13,9 @@ function csvEscape(value: string): string {
 }
 
 function typeLabel(type: Transaction["type"]): string {
-  if (type === "expense") return "Gasto";
-  if (type === "income") return "Ingreso";
-  return "Deuda";
+  if (type === "expense") return t("export.type_expense");
+  if (type === "income") return t("export.type_income");
+  return t("export.type_debt");
 }
 
 /**
@@ -29,30 +29,30 @@ export function buildTransactionsCSV(
   currency: string,
 ): string {
   const header = [
-    "Fecha",
-    "Tipo",
-    "Categoría",
-    "Descripción",
-    "Monto",
-    "Estado de deuda",
+    t("export.header_date"),
+    t("export.header_type"),
+    t("export.header_category"),
+    t("export.header_description"),
+    t("export.header_amount"),
+    t("export.header_debt_status"),
   ];
-  const rows = transactions.map((t) => {
-    const cat = getCategoryById(t.category);
+  const rows = transactions.map((trx) => {
+    const cat = getCategoryById(trx.category);
     return [
-      t.date,
-      typeLabel(t.type),
+      trx.date,
+      typeLabel(trx.type),
       cat.name,
-      t.description,
-      `${currency} ${t.amount.toLocaleString("es", {
+      trx.description,
+      `${currency} ${trx.amount.toLocaleString("es", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
-      t.type === "debt"
-        ? t.debtStatus === "paid"
-          ? "Pagada"
-          : t.debtStatus === "partial"
-            ? "Parcialmente pagada"
-            : "Pendiente"
+      trx.type === "debt"
+        ? trx.debtStatus === "paid"
+          ? t("export.status_paid")
+          : trx.debtStatus === "partial"
+            ? t("export.status_partial")
+            : t("export.status_pending")
         : "",
     ]
       .map(csvEscape)
@@ -62,8 +62,8 @@ export function buildTransactionsCSV(
 }
 
 export function csvFilename(month: number, year: number): string {
-  const monthName = MONTH_NAMES[month].toLowerCase();
-  return `finanzas-${monthName}-${year}.csv`;
+  const name = monthName(month).toLowerCase();
+  return `${t("export.filename", { month: name, year })}.csv`;
 }
 
 /**
@@ -104,9 +104,9 @@ export async function exportTransactionsToCSV(
     });
     await Share.share({
       title: filename,
-      text: "Exportación de finanzas",
+      text: t("export.share_text"),
       url: result.uri,
-      dialogTitle: "Compartir o guardar el reporte",
+      dialogTitle: t("export.share_dialog"),
     });
     return true;
   } catch (error) {

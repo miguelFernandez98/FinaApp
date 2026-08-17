@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import CustomSelect from "./CustomSelect";
 
@@ -24,6 +25,7 @@ export default function CurrencyCalculator() {
     customRate,
     setCustomRate,
   } = useApp();
+  const { language } = useI18n();
   const [amount, setAmount] = useState("");
 
   const [fromCurrency, setFromCurrency] = useState<CurrencyType>("VES");
@@ -112,17 +114,22 @@ export default function CurrencyCalculator() {
   };
 
   const currencyOptions = useMemo(() => {
-    const opts: Array<{ value: string; label: string }> = [
-      { value: "VES", label: "Bolívares (VES)" },
-      { value: "USD_BCV", label: "Dólar BCV" },
-      { value: "USD_PARALLEL", label: "Dólar Paralelo" },
-      ...(showEUR ? [{ value: "EUR", label: "Euro (EUR)" }] : []),
+    const opts: Array<{ value: string; label: string }> = [      { value: "VES", label: t("calc.option_ves") },
+      { value: "USD_BCV", label: t("calc.option_usd_bcv") },
+      { value: "USD_PARALLEL", label: t("calc.option_usd_parallel") },
+      ...(showEUR ? [{ value: "EUR", label: t("calc.option_eur") }] : []),
     ];
     if (showCustomRate) {
-      opts.push({ value: "CUSTOM", label: "Tasa personalizada" });
+      opts.push({ value: "CUSTOM", label: t("calc.option_custom") });
     }
     return opts;
-  }, [showEUR, showCustomRate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEUR, showCustomRate, language]);
+
+  const handleSwap = () => {
+    setFromCurrency(effectiveTo);
+    setToCurrency(effectiveFrom);
+  };
 
   const saveCustomRate = () => {
     const parsed = parseFloat(customDraft);
@@ -190,23 +197,24 @@ export default function CurrencyCalculator() {
   const lastUpdatedParts = exchangeRates.lastUpdated
     ? (() => {
         const d = new Date(exchangeRates.lastUpdated);
+        const locale = language === "en" ? "en" : "es-VE";
         return {
-          date: d.toLocaleDateString("es-VE", { dateStyle: "medium" }),
-          time: d.toLocaleTimeString("es-VE", { timeStyle: "short" }),
+          date: d.toLocaleDateString(locale, { dateStyle: "medium" }),
+          time: d.toLocaleTimeString(locale, { timeStyle: "short" }),
         };
       })()
     : null;
 
   const rateDisplay = (rate: number | null | undefined): string => {
     if (rate) return formatMoney(rate, "Bs.");
-    if (exchangeRates.lastUpdated === null) return "Cargando...";
-    return "N/D";
+    if (exchangeRates.lastUpdated === null) return t("calc.loading_short");
+    return t("calc.nd");
   };
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>
       <div className="card-header">
-        <h3 className="card-title">Calculadora de Divisas</h3>
+        <h3 className="card-title">{t("calc.title")}</h3>
         {exchangeRates.fromCache ? (
           <span
             style={{
@@ -216,9 +224,9 @@ export default function CurrencyCalculator() {
               textAlign: "right",
               display: "block",
             }}
-            title="Las tasas provienen de la última sincronización guardada"
+            title={t("calc.cache")}
           >
-            <i className="fa-solid fa-cloud-arrow-down" /> Caché
+            <i className="fa-solid fa-cloud-arrow-down" /> {t("calc.cache")}
             {lastUpdatedParts && (
               <>
                 <br />
@@ -233,12 +241,12 @@ export default function CurrencyCalculator() {
           >
             {lastUpdatedParts ? (
               <>
-                Actualizado
+                {t("calc.updated")}
                 <br />
                 {lastUpdatedParts.date} · {lastUpdatedParts.time}
               </>
             ) : (
-              "Cargando tasas..."
+              t("calc.loading")
             )}
           </span>
         )}
@@ -247,7 +255,7 @@ export default function CurrencyCalculator() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <label className="field-label" htmlFor="currency-amount">
-            Monto
+            {t("calc.amount")}
           </label>
           <input
             id="currency-amount"
@@ -260,15 +268,15 @@ export default function CurrencyCalculator() {
               if (sanitized === "" && e.target.value !== "") return;
               setAmount(sanitized);
             }}
-            placeholder="Ingresa el monto"
-            aria-label="Monto a convertir"
+            placeholder={t("calc.amount_placeholder")}
+            aria-label={t("calc.amount_aria")}
           />
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <label className="field-label" htmlFor="from-currency">
-              De
+              {t("calc.from")}
             </label>
             <CustomSelect
               id="from-currency"
@@ -278,9 +286,19 @@ export default function CurrencyCalculator() {
             />
           </div>
 
+          <button
+            type="button"
+            className="swap-btn"
+            onClick={handleSwap}
+            aria-label={t("calc.swap_aria")}
+            title={t("calc.swap")}
+          >
+            <i className="fa-solid fa-arrow-right-arrow-left" />
+          </button>
+
           <div style={{ flex: 1, minWidth: 0 }}>
             <label className="field-label" htmlFor="to-currency">
-              A
+              {t("calc.to")}
             </label>
             <CustomSelect
               id="to-currency"
@@ -307,7 +325,7 @@ export default function CurrencyCalculator() {
                 marginBottom: 4,
               }}
             >
-              Resultado:
+              {t("calc.result")}
             </div>
             <div
               style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)", overflow: "scroll" }}
@@ -331,14 +349,16 @@ export default function CurrencyCalculator() {
               cursor: showEUR ? "pointer" : "default",
               userSelect: "none",
             }}
-            title={showEUR ? "Toca para cambiar entre BCV $ y BCV €" : undefined}
+            title={showEUR ? t("calc.bcv_tap_title") : undefined}
           >
             <div
               key={effectiveBcvDisplay}
               className="rate-swap"
               style={{ color: "var(--accent)" }}
             >
-              {effectiveBcvDisplay === "EUR" ? "BCV €:" : "BCV $:"}
+              {effectiveBcvDisplay === "EUR"
+                ? t("calc.bcv_eur")
+                : t("calc.bcv_usd")}
             </div>
             <div
               key={`${effectiveBcvDisplay}-value`}
@@ -358,7 +378,7 @@ export default function CurrencyCalculator() {
             }}
             title={
               showCustomRate && customRate !== null
-                ? "Toca para cambiar entre Paralelo y Tasa personalizada"
+                ? t("calc.parallel_tap_title")
                 : undefined
             }
           >
@@ -368,8 +388,8 @@ export default function CurrencyCalculator() {
               style={{ color: "#F0B90B" }}
             >
               {parallelShowCustom && customRate !== null
-                ? "Personalizada:"
-                : "Paralelo:"}
+                ? t("calc.custom")
+                : t("calc.parallel")}
             </div>
             <div
               key={
@@ -399,10 +419,10 @@ export default function CurrencyCalculator() {
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Tasa personalizada"
+            aria-label={t("calc.custom_rate")}
           >
             <div className="modal-handle" />
-            <h3 className="custom-rate-modal-title">Tasa personalizada (Bs.)</h3>
+            <h3 className="custom-rate-modal-title">{t("calc.custom_rate")}</h3>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
                 id="custom-rate-input"
@@ -415,15 +435,15 @@ export default function CurrencyCalculator() {
                   if (sanitized === "" && e.target.value !== "") return;
                   setCustomDraft(sanitized);
                 }}
-                placeholder="Ej: 3800"
-                aria-label="Tasa personalizada en bolívares"
+                placeholder={t("calc.custom_placeholder")}
+                aria-label={t("calc.custom_aria")}
               />
               <button
                 type="button"
                 className="icon-btn"
                 onClick={saveCustomRate}
-                title="Guardar"
-                aria-label="Guardar tasa personalizada"
+                title={t("calc.custom_save")}
+                aria-label={t("calc.custom_save_aria")}
               >
                 <i className="fa-solid fa-check" />
               </button>
@@ -432,8 +452,8 @@ export default function CurrencyCalculator() {
                   type="button"
                   className="icon-btn icon-btn-danger"
                   onClick={clearCustomRate}
-                  title="Eliminar"
-                  aria-label="Eliminar tasa personalizada"
+                  title={t("calc.custom_delete")}
+                  aria-label={t("calc.custom_delete_aria")}
                 >
                   <i className="fa-solid fa-trash" />
                 </button>
@@ -445,7 +465,7 @@ export default function CurrencyCalculator() {
               style={{ width: "auto", margin: "12px auto 0", display: "block" }}
               onClick={cancelCustomRate}
             >
-              Cancelar
+              {t("calc.custom_cancel")}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
 import BarChart from "../components/BarChart";
@@ -17,6 +18,7 @@ export default function StatsPage() {
     currency,
     budgets,
   } = useApp();
+  useI18n();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -32,7 +34,7 @@ export default function StatsPage() {
     );
     setExporting(false);
     if (!ok) {
-      alert("No se pudo exportar el reporte.");
+      alert(t("stats.export_error"));
     }
   };
 
@@ -95,15 +97,15 @@ export default function StatsPage() {
     <div className="page">
       <header className="page-header-row">
         <h1 className="page-title" style={{ marginBottom: 20 }}>
-          Estadísticas <AppVersion />
+          {t("stats.title")} <AppVersion />
         </h1>
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {/* Boton Asistente */}
           <button
             className="sort-btn advisor"
             onClick={() => setAdvisorOpen(true)}
-            aria-label="Asistente financiero"
-            title="Asistente financiero"
+            aria-label={t("stats.advisor")}
+            title={t("stats.advisor")}
           >
             <i className="fa-solid fa-robot" />
           </button>
@@ -111,8 +113,8 @@ export default function StatsPage() {
           <button
             className="sort-btn"
             onClick={handleExport}
-            aria-label="Exportar reporte CSV"
-            title="Exportar reporte CSV"
+            aria-label={t("stats.export")}
+            title={t("stats.export")}
           >
             <i className="fa-solid fa-file-export" />
           </button>
@@ -130,19 +132,19 @@ export default function StatsPage() {
               {balance < 0 ? "-" : ""}
               {formatMoney(balance, currency)}
             </div>
-            <div className="stat-label">Balance</div>
+            <div className="stat-label">{t("stats.balance")}</div>
           </div>
           <div className="stat-mini">
             <div className="stat-value" style={{ color: "var(--success)" }}>
               {formatMoney(income, currency)}
             </div>
-            <div className="stat-label">Ingresos</div>
+            <div className="stat-label">{t("stats.income")}</div>
           </div>
           <div className="stat-mini">
             <div className="stat-value" style={{ color: "var(--danger)" }}>
               {formatMoney(expense, currency)}
             </div>
-            <div className="stat-label">Gastos</div>
+            <div className="stat-label">{t("stats.expense")}</div>
           </div>
         </div>
       </section>
@@ -150,7 +152,7 @@ export default function StatsPage() {
       {/* Barras */}
       <section className="glass-card" style={{ marginBottom: 20 }}>
         <h3 className="card-title" style={{ marginBottom: 12 }}>
-          Tendencia mensual
+          {t("stats.trend")}
         </h3>
         <div style={{ height: 200 }}>
           <BarChart />
@@ -160,24 +162,21 @@ export default function StatsPage() {
       {/* Presupuestos */}
       <section className="glass-card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <h3 className="card-title">Presupuestos</h3>
+          <h3 className="card-title">{t("stats.budgets")}</h3>
           <span
             className="section-link"
             onClick={() => setBudgetModalOpen(true)}
           >
-            Editar
+            {t("stats.edit")}
           </span>
         </div>
         {budgetItems.length === 0 ? (
           <div className="empty-state" style={{ padding: "24px 16px" }}>
             <i className="fa-solid fa-bullseye" />
             <div className="empty-state-title">
-              Sin presupuestos configurados
+              {t("stats.budgets_empty")}
             </div>
-            <p>
-              Define un límite de gasto por categoría y te ayudamos a no
-              pasarte.
-            </p>
+            <p>{t("stats.budgets_empty.body")}</p>
           </div>
         ) : (
           budgetItems.map((item) => (
@@ -219,7 +218,9 @@ export default function StatsPage() {
                 <p
                   style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}
                 >
-                  Excedido por {formatMoney(item.spent - item.budget, currency)}
+                  {t("stats.over", {
+                    amount: formatMoney(item.spent - item.budget, currency),
+                  })}
                 </p>
               )}
             </div>
@@ -230,16 +231,13 @@ export default function StatsPage() {
       {/* Top categorías */}
       <section className="glass-card">
         <h3 className="card-title" style={{ marginBottom: 16 }}>
-          Top gastos del mes
+          {t("stats.top_cats")}
         </h3>
         {topCats.length === 0 ? (
           <div className="empty-state" style={{ padding: "24px 16px" }}>
             <i className="fa-solid fa-ranking-star" />
-            <div className="empty-state-title">Sin gastos este mes</div>
-            <p>
-              Cuando registres gastos verás aquí las categorías donde más
-              dinero se fue.
-            </p>
+            <div className="empty-state-title">{t("stats.top_cats_empty")}</div>
+            <p>{t("stats.top_cats_empty.body")}</p>
           </div>
         ) : (
           topCats.map((item, idx) => (
@@ -261,7 +259,7 @@ export default function StatsPage() {
                   {getCategoryById(item.id).name}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-                  {item.pct}% del total
+                  {t("stats.pct_of_total", { pct: item.pct })}
                 </div>
               </div>
               <div className="top-cat-amount">

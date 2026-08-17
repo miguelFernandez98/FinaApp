@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
+import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
@@ -16,6 +17,7 @@ export default function TransactionModal() {
     txnModalEditingId: editingId,
     closeTransactionModal: onClose,
   } = useApp();
+  const { language } = useI18n();
 
   const editingTransaction = editingId
     ? (transactions.find(
@@ -80,10 +82,10 @@ export default function TransactionModal() {
     if (!amount || isNaN(numAmount) || numAmount === 0) return;
     try {
       await navigator.clipboard.writeText(numAmount.toString());
-      showToast("Monto copiado");
+      showToast(t("modal.amount_copied"));
     } catch {
       showToast(
-        "No se pudo copiar el monto",
+        t("modal.amount_copy_error"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -94,7 +96,7 @@ export default function TransactionModal() {
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) {
       showToast(
-        "Ingresa un monto válido",
+        t("modal.amount_invalid"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -102,7 +104,7 @@ export default function TransactionModal() {
     }
     if (!date) {
       showToast(
-        "Selecciona una fecha",
+        t("modal.date_required"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -112,7 +114,7 @@ export default function TransactionModal() {
     const paidAmount = parseFloat(debtPaidAmount) || 0;
     if (transactionType === "debt" && debtStatus === "partial" && paidAmount <= 0) {
       showToast(
-        "Ingresa el monto pagado parcial",
+        t("modal.paid_amount_required"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -124,7 +126,7 @@ export default function TransactionModal() {
       .filter((value) => !Number.isNaN(value) && value >= 1 && value <= 31);
     if (isRecurring && recurrenceDays.length === 0) {
       showToast(
-        "Define al menos un día de recurrencia",
+        t("modal.recurrence_days_required"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -132,7 +134,7 @@ export default function TransactionModal() {
     }
     if (transactionType === "debt" && paidAmount > numAmount) {
       showToast(
-        "El monto pagado no puede ser mayor al total",
+        t("modal.paid_amount_exceeds"),
         "fa-circle-exclamation",
         "var(--danger)",
       );
@@ -146,12 +148,12 @@ export default function TransactionModal() {
 
     if (shouldAsk) {
       showConfirm(
-        "¿Considerar la deuda como gasto?",
-        "Al marcar esta deuda como pagada puedes considerarla un gasto para tu balance. ¿Deseas hacerlo?",
+        t("modal.debt_count_as_expense"),
+        t("modal.debt_count_as_expense.body"),
         () => performSave(true),
         {
-          confirmLabel: "Sí, es un gasto",
-          cancelLabel: "No considerarla",
+          confirmLabel: t("modal.debt_yes_expense"),
+          cancelLabel: t("modal.debt_no_expense"),
           onCancel: () => performSave(false),
         },
       );
@@ -206,20 +208,20 @@ export default function TransactionModal() {
 
     if (editingId) {
       updateTransaction(editingId, data);
-      showToast("Transacción actualizada");
+      showToast(t("modal.updated"));
     } else {
       addTransaction(data);
-      showToast("Transacción guardada");
+      showToast(t("modal.saved"));
     }
     onClose();
   };
 
   const handleDelete = () => {
     if (!editingId) return;
-    showConfirm("Eliminar", "Esta acción no se puede deshacer.", () => {
+    showConfirm(t("modal.delete_confirm"), t("modal.delete_confirm.body"), () => {
       deleteTransaction(editingId);
       onClose();
-      showToast("Transacción eliminada", "fa-trash", "var(--danger)");
+      showToast(t("modal.deleted"), "fa-trash", "var(--danger)");
     });
   };
 
@@ -234,7 +236,7 @@ export default function TransactionModal() {
         <div className="modal-handle" />
 
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
-          {editingId ? "Editar transacción" : "Nueva transacción"}
+          {editingId ? t("modal.edit") : t("modal.new")}
         </h2>
 
         {/* Tipo */}
@@ -244,37 +246,37 @@ export default function TransactionModal() {
             onClick={() => handleTypeChange("expense")}
             disabled={isEditing}
           >
-            Gasto
+            {t("modal.expense")}
           </button>
           <button
             className={`type-btn ${transactionType === "income" ? "active-income" : ""}`}
             onClick={() => handleTypeChange("income")}
             disabled={isEditing}
           >
-            Ingreso
+            {t("modal.income")}
           </button>
           <button
             className={`type-btn ${transactionType === "debt" ? "active-debt" : ""}`}
             onClick={() => handleTypeChange("debt")}
             disabled={isEditing}
           >
-            Deuda
+            {t("modal.debt")}
           </button>
         </div>
         {isEditing && (
           <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: -8, marginBottom: 16 }}>
-            El tipo de una transacción no puede cambiarse al editar. Crea una nueva transacción si necesitas otro tipo.
+            {t("modal.type_locked")}
           </p>
         )}
 
         {/* Monto */}
         <div style={{ marginBottom: 16 }}>
-          <label className="field-label">Monto</label>
+          <label className="field-label">{t("modal.amount")}</label>
           <div style={{ position: "relative" }}>
             <input
               type="number"
               className="input-field input-amount"
-              placeholder="0.00"
+              placeholder={t("modal.amount_placeholder")}
               step="0.01"
               min="0"
               inputMode="decimal"
@@ -310,7 +312,7 @@ export default function TransactionModal() {
 
         {transactionType !== "debt" && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Registro constante</label>
+            <label className="field-label">{t("modal.recurring")}</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <label className="switch">
                 <input
@@ -321,29 +323,29 @@ export default function TransactionModal() {
                 <span className="slider" />
               </label>
               <span style={{ fontSize: 14, color: "var(--fg-muted)" }}>
-                Aplicar cada mes en día fijo
+                {t("modal.recurring_hint")}
               </span>
             </div>
           </div>
         )}
         {transactionType !== "debt" && isRecurring && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Días de recurrencia</label>
+            <label className="field-label">{t("modal.recurring_days")}</label>
             <input
               type="text"
               className="input-field"
-              placeholder="Ej: 15, 30"
+              placeholder={t("modal.recurring_days_placeholder")}
               value={recurrenceDaysInput}
               onChange={(e) => setRecurrenceDaysInput(e.target.value)}
             />
             <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 6 }}>
-              Ingresa uno o varios días del mes.
+              {t("modal.recurring_days_hint")}
             </p>
           </div>
         )}
         {transactionType !== "debt" && isRecurring && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Registro retroactivo</label>
+            <label className="field-label">{t("modal.backfill")}</label>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <label className="switch">
                 <input
@@ -354,25 +356,24 @@ export default function TransactionModal() {
                 <span className="slider" />
               </label>
               <span style={{ fontSize: 14, color: "var(--fg-muted)" }}>
-                Aplicar también en meses anteriores
+                {t("modal.backfill_hint")}
               </span>
             </div>
             <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 6 }}>
-              Si está desactivado, el registro solo se aplica desde el mes
-              actual, sin alterar meses anteriores.
+              {t("modal.backfill_body")}
             </p>
           </div>
         )}
         {transactionType === "debt" && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Estado de la deuda</label>
+            <label className="field-label">{t("modal.debt_status")}</label>
             <CustomSelect
               value={debtStatus}
               onChange={(value) => setDebtStatus(value as DebtStatus)}
               options={[
-                { value: "pending", label: "Pendiente" },
-                { value: "partial", label: "Parcialmente pagada" },
-                { value: "paid", label: "Pagada" },
+                { value: "pending", label: t("modal.status_pending") },
+                { value: "partial", label: t("modal.status_partial") },
+                { value: "paid", label: t("modal.status_paid") },
               ]}
             />
           </div>
@@ -380,7 +381,7 @@ export default function TransactionModal() {
 
         {transactionType === "debt" && debtStatus === "partial" && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Monto pagado</label>
+            <label className="field-label">{t("modal.debt_paid_amount")}</label>
             <input
               type="number"
               className="input-field"
@@ -396,7 +397,7 @@ export default function TransactionModal() {
 
         {transactionType === "debt" && (
           <div style={{ marginBottom: 16 }}>
-            <label className="field-label">Fecha límite (opcional)</label>
+            <label className="field-label">{t("modal.debt_due_date")}</label>
             <input
               type="date"
               className="input-field"
@@ -409,7 +410,7 @@ export default function TransactionModal() {
 
         {/* Categoría */}
         <div style={{ marginBottom: 16 }}>
-          <label className="field-label">Categoría</label>
+          <label className="field-label">{t("modal.category")}</label>
           <div className="cat-grid">
             {filteredCats.map((cat) => (
               <div
@@ -421,7 +422,7 @@ export default function TransactionModal() {
                   className={`fa-solid ${cat.icon}`}
                   style={{ color: cat.color }}
                 />
-                <span>{cat.name}</span>
+                <span>{categoryName(cat.id, language)}</span>
               </div>
             ))}
           </div>
@@ -429,11 +430,11 @@ export default function TransactionModal() {
 
         {/* Descripción */}
         <div style={{ marginBottom: 16 }}>
-          <label className="field-label">Descripción</label>
+          <label className="field-label">{t("modal.description")}</label>
           <input
             type="text"
             className="input-field"
-            placeholder="Ej: Almuerzo en oficina"
+            placeholder={t("modal.description_placeholder")}
             maxLength={60}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -442,7 +443,7 @@ export default function TransactionModal() {
 
         {/* Fecha */}
         <div style={{ marginBottom: 24 }}>
-          <label className="field-label">Fecha</label>
+          <label className="field-label">{t("modal.date")}</label>
           <input
             type="date"
             className="input-field"
@@ -453,17 +454,17 @@ export default function TransactionModal() {
         </div>
 
         <button className="btn-primary" onClick={handleSave}>
-          {editingId ? "Actualizar transacción" : "Guardar transacción"}
+          {editingId ? t("modal.update") : t("modal.save")}
         </button>
 
         {editingId && (
           <button className="btn-delete-outline" onClick={handleDelete}>
-            Eliminar transacción
+            {t("modal.delete")}
           </button>
         )}
 
         <button className="btn-ghost" onClick={onClose}>
-          Cancelar
+          {t("modal.cancel")}
         </button>
       </div>
     </div>

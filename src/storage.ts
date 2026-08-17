@@ -12,6 +12,7 @@ const DEFAULT_STATE: PersistedState = {
   showEUR: false,
   showCustomRate: false,
   customRate: null,
+  language: "es",
 };
 
 /**
@@ -35,6 +36,7 @@ export function loadState(): PersistedState {
           typeof parsed.customRate === "number" && parsed.customRate > 0
             ? parsed.customRate
             : null,
+        language: parsed.language === "en" ? "en" : "es",
       };
     }
   } catch (e) {
@@ -59,6 +61,7 @@ export function saveState(state: PersistedState): void {
         showEUR: state.showEUR,
         showCustomRate: state.showCustomRate,
         customRate: state.customRate,
+        language: state.language,
       }),
     );
   } catch (e) {

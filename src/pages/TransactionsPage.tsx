@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
@@ -24,6 +25,7 @@ export default function TransactionsPage() {
     setCategoryFilter,
     openTransactionModal,
   } = useApp();
+  const { language } = useI18n();
 
   const [newestFirst, setNewestFirst] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -104,7 +106,7 @@ export default function TransactionsPage() {
     <div className="page">
       <header className="page-header-row">
         <h1 className="page-title" style={{ marginBottom: 20 }}>
-          Movimientos <AppVersion />
+          {t("tx.title")} <AppVersion />
         </h1>
         <div style={{ display: "flex", gap: 8 }}>
           <button
@@ -114,7 +116,7 @@ export default function TransactionsPage() {
               setSearchOpen((prev) => !prev);
             }}
             aria-label={
-              searchOpen ? "Cerrar búsqueda" : "Buscar por descripción o categoría"
+              searchOpen ? t("tx.search_close") : t("tx.search")
             }
           >
             <i className="fa-solid fa-magnifying-glass" />
@@ -124,8 +126,8 @@ export default function TransactionsPage() {
             onClick={() => setNewestFirst((prev) => !prev)}
             aria-label={
               newestFirst
-                ? "Ordenar de más antiguo a más nuevo"
-                : "Ordenar de más nuevo a más antiguo"
+                ? t("tx.sort_oldest_first")
+                : t("tx.sort_newest_first")
             }
           >
             <i
@@ -141,7 +143,7 @@ export default function TransactionsPage() {
           <input
             autoFocus
             className="search-input"
-            placeholder="Buscar por descripción o categoría..."
+            placeholder={t("tx.search_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -149,7 +151,7 @@ export default function TransactionsPage() {
             <button
               className="search-clear"
               onClick={() => setSearchQuery("")}
-              aria-label="Limpiar búsqueda"
+              aria-label={t("tx.clear_search")}
             >
               <i className="fa-solid fa-xmark" />
             </button>
@@ -170,14 +172,14 @@ export default function TransactionsPage() {
               onClick={() => setFilter(f)}
             >
               {f === "all"
-                ? "Todos"
+                ? t("tx.all")
                 : f === "expense"
-                  ? "Gastos"
+                  ? t("tx.expense")
                   : f === "income"
-                    ? "Ingresos"
+                    ? t("tx.income")
                     : f === "debt"
-                      ? "Deudas"
-                      : "Futuros"}
+                      ? t("tx.debt")
+                      : t("tx.future")}
             </button>
           ),
         )}
@@ -189,7 +191,7 @@ export default function TransactionsPage() {
           className={`filter-chip ${currentCategoryFilter === "all" ? "active" : ""}`}
           onClick={() => setCategoryFilter("all")}
         >
-          Todas
+          {t("tx.all_cats")}
         </button>
         {usedCats.map((id) => {
           const cat = getCategoryById(id);
@@ -219,7 +221,7 @@ export default function TransactionsPage() {
             }}
           >
             <i className="fa-solid fa-xmark" />
-            Limpiar filtros
+            {t("tx.clear_filters")}
           </button>
         </div>
       )}
@@ -236,30 +238,21 @@ export default function TransactionsPage() {
           />
           <div className="empty-state-title">
             {currentTypeFilter === "future"
-              ? "No hay movimientos futuros"
+              ? t("tx.future_empty")
               : searchQuery.trim() !== "" ||
                   currentCategoryFilter !== "all" ||
                   currentTypeFilter !== "all"
-                ? "Sin resultados para este filtro"
-                : "Aún no hay movimientos este mes"}
+                ? t("tx.filter_empty")
+                : t("tx.month_empty")}
           </div>
           {currentTypeFilter === "future" ? (
-            <p>
-              Las transacciones con fecha posterior al mes actual aparecerán
-              aquí.
-            </p>
+            <p>{t("tx.future_empty.body")}</p>
           ) : searchQuery.trim() !== "" ||
             currentCategoryFilter !== "all" ||
             currentTypeFilter !== "all" ? (
-            <p>
-              Prueba con otro término o limpia los filtros para ver más
-              resultados.
-            </p>
+            <p>{t("tx.filter_empty.body")}</p>
           ) : (
-            <p>
-              Registra tu primer ingreso, gasto o deuda para comenzar a
-              llevar el control.
-            </p>
+            <p>{t("tx.month_empty.body")}</p>
           )}
         </div>
       ) : (
@@ -269,7 +262,8 @@ export default function TransactionsPage() {
             0,
           );
           const d = parseISODate(date);
-          const dateLabel = d.toLocaleDateString("es", {
+          const locale = language === "en" ? "en" : "es";
+          const dateLabel = d.toLocaleDateString(locale, {
             weekday: "short",
             day: "numeric",
             month: "short",

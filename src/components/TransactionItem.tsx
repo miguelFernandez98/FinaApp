@@ -1,4 +1,5 @@
 import { useApp } from "../AppContext";
+import { getLanguage, t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
@@ -14,6 +15,7 @@ export default function TransactionItem({
   onEdit,
 }: TransactionItemProps) {
   const { currency } = useApp();
+  useI18n();
   const category = getCategoryById(transaction.category);
   const isDebt = transaction.type === "debt";
   const isPaidDebt = isDebt && transaction.debtStatus === "paid";
@@ -24,7 +26,8 @@ export default function TransactionItem({
     transaction.type === "income"
       ? "var(--success-dim)"
       : `${category.color}18`;
-  const dateStr = parseISODate(transaction.date).toLocaleDateString("es", {
+  const locale = getLanguage() === "en" ? "en" : "es";
+  const dateStr = parseISODate(transaction.date).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });
@@ -32,18 +35,18 @@ export default function TransactionItem({
   const isRecurringTxn = transaction.isRecurring || !!transaction.recurringId;
   const badgeText = (() => {
     if (transaction.type !== "debt") {
-      return isRecurringTxn ? "Constante" : "";
+      return isRecurringTxn ? t("item.recurring") : "";
     }
     if (!transaction.debtStatus) return "";
-    if (transaction.debtStatus === "pending") return "Pendiente";
+    if (transaction.debtStatus === "pending") return t("item.pending");
     if (transaction.debtStatus === "partial") {
       const paid = transaction.debtPaidAmount ?? 0;
-      return `Parcial: ${formatMoney(paid, currency)} de ${formatMoney(
-        transaction.amount,
-        currency,
-      )}`;
+      return t("item.partial", {
+        paid: formatMoney(paid, currency),
+        total: formatMoney(transaction.amount, currency),
+      });
     }
-    return "Pagada";
+    return t("item.paid");
   })();
 
   return (

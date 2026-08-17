@@ -1,4 +1,5 @@
 import { CATEGORIES } from "../data/categories";
+import { categoryName, t } from "../i18n";
 import type { Transaction } from "../types";
 import { daysInMonth, parseISODate, toISODate } from "./date";
 
@@ -16,9 +17,9 @@ export function generateId(): string {
  * @returns La categoría encontrada o la última por defecto.
  */
 export function getCategoryById(id: string) {
-  return (
-    CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1]
-  );
+  const cat =
+    CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+  return { ...cat, name: categoryName(cat.id) };
 }
 
 /**
@@ -27,9 +28,9 @@ export function getCategoryById(id: string) {
  */
 export function getTimeBasedGreeting(): string {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return "Buenos días";
-  if (h >= 12 && h < 18) return "Buenas tardes";
-  return "Buenas noches";
+  if (h >= 5 && h < 12) return t("greeting.morning");
+  if (h >= 12 && h < 18) return t("greeting.afternoon");
+  return t("greeting.evening");
 }
 
 /**

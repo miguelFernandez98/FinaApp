@@ -31,6 +31,7 @@ import {
 } from "./utils/transactions";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
+import { setLanguage as setI18nLanguage, t } from "./i18n";
 import {
   notifyRateChanges,
   notifyBudgetAlerts,
@@ -60,6 +61,7 @@ interface AppContextValue extends PersistedState {
   setShowEUR: (show: boolean) => void;
   setShowCustomRate: (show: boolean) => void;
   setCustomRate: (rate: number | null) => void;
+  setLanguage: (language: "es" | "en") => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
@@ -113,6 +115,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [customRate, setCustomRateState] = useState<number | null>(
     savedState.customRate,
   );
+  const [language, setLanguageState] = useState<"es" | "en">(
+    savedState.language,
+  );
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -156,7 +161,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showEUR: boolean;
     showCustomRate: boolean;
     customRate: number | null;
-  }>({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate });;
+    language: "es" | "en";
+  }>({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language });
+
+  useEffect(() => {
+    setI18nLanguage(language);
+  }, [language]);
 
   useEffect(() => {
     const state = {
@@ -167,11 +177,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
+      language,
     };
     latestStateRef.current = state;
     const timer = setTimeout(() => saveState(state), 1000);
     return () => clearTimeout(timer);
-  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate]);
+  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,6 +276,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCustomRate = useCallback((rate: number | null) => {
     setCustomRateState(rate);
+  }, []);
+
+  const setLanguage = useCallback((lang: "es" | "en") => {
+    setLanguageState(lang);
   }, []);
 
   /**
@@ -421,6 +436,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowEURState(newState.showEUR);
     setShowCustomRateState(newState.showCustomRate ?? false);
     setCustomRateState(newState.customRate ?? null);
+    setLanguageState(newState.language === "en" ? "en" : "es");
   }, []);
 
   useEffect(() => {
@@ -456,7 +472,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         previousRatesRef.current = merged;
         if (merged.fromCache) {
           showToast(
-            "Tasas parcialmente en caché (sin conexión)",
+            t("toast.rates_cache"),
             "fa-info-circle",
             "var(--warning)",
           );
@@ -473,13 +489,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ) {
           setExchangeRates(cached);
           showToast(
-            "Usando tasas en caché (sin conexión)",
+            t("toast.rates_cached_using"),
             "fa-info-circle",
             "var(--warning)",
           );
         } else {
           showToast(
-            "No se pudieron cargar tasas (sin conexión ni caché)",
+            t("toast.rates_error"),
             "fa-exclamation-triangle",
             "var(--danger)",
           );
@@ -549,6 +565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
+      language,
       currentPage,
       currentMonth,
       currentYear,
@@ -568,6 +585,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowEUR,
       setShowCustomRate,
       setCustomRate,
+      setLanguage,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -608,6 +626,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowEUR,
       setShowCustomRate,
       setCustomRate,
+      setLanguage,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -620,6 +639,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeTransactionModal,
       importState,
       exchangeRates,
+      language,
     ],
   );
 
