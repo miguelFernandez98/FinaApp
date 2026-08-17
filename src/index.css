@@ -296,6 +296,7 @@ h4 {
 }
 
 .nav-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1727,6 +1728,42 @@ h4 {
   .app-container {
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
+  }
+}
+
+@media (min-width: 700px) {
+  .app-container {
+    max-width: 900px;
+  }
+
+  .page {
+    padding: 24px;
+  }
+
+  .home-grid,
+  .stats-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 16px;
+  }
+
+  .home-grid > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .modal-sheet {
+    max-width: 560px;
+  }
+
+  .cat-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .filters-scroll,
+  .cats-scroll {
+    max-width: 100%;
   }
 }
 

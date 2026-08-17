@@ -9,6 +9,7 @@ import { daysInMonth, toISODate } from "../utils/date";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
+import fLogo from "../assets/f-logo.svg";
 
 const MAX_AMOUNT = 1e15;
 
@@ -414,9 +415,11 @@ export default function SettingsPage() {
         }}
       >
         <div className="profile-icon">
-          <i
-            className="fa-solid fa-wallet"
-            style={{ fontSize: 22, color: "var(--accent)" }}
+          <img
+            src={fLogo}
+            alt=""
+            style={{ width: 36, height: 36, display: "block" }}
+            draggable={false}
           />
         </div>
         <div>

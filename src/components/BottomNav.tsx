@@ -20,7 +20,7 @@ export default function BottomNav() {
   return (
     <footer className="bottom-nav">
       <nav
-        style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-around" }}
+        style={{ display: "flex", width: "100%", alignItems: "center" }}
         aria-label={t("nav.main")}
       >
         {NAV_ITEMS.slice(0, 2).map((item) => (

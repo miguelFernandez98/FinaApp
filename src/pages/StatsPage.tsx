@@ -149,84 +149,86 @@ export default function StatsPage() {
         </div>
       </section>
 
-      {/* Barras */}
-      <section className="glass-card" style={{ marginBottom: 20 }}>
-        <h3 className="card-title" style={{ marginBottom: 12 }}>
-          {t("stats.trend")}
-        </h3>
-        <div style={{ height: 200 }}>
-          <BarChart />
-        </div>
-      </section>
-
-      {/* Presupuestos */}
-      <section className="glass-card" style={{ marginBottom: 20 }}>
-        <div className="card-header">
-          <h3 className="card-title">{t("stats.budgets")}</h3>
-          <span
-            className="section-link"
-            onClick={() => setBudgetModalOpen(true)}
-          >
-            {t("stats.edit")}
-          </span>
-        </div>
-        {budgetItems.length === 0 ? (
-          <div className="empty-state" style={{ padding: "24px 16px" }}>
-            <i className="fa-solid fa-bullseye" />
-            <div className="empty-state-title">
-              {t("stats.budgets_empty")}
-            </div>
-            <p>{t("stats.budgets_empty.body")}</p>
+      <div className="stats-main">
+        {/* Barras */}
+        <section className="glass-card">
+          <h3 className="card-title" style={{ marginBottom: 12 }}>
+            {t("stats.trend")}
+          </h3>
+          <div style={{ height: 200 }}>
+            <BarChart />
           </div>
-        ) : (
-          budgetItems.map((item) => (
-            <div key={item.id} style={{ marginBottom: 14 }}>
-              <div className="budget-header">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <i
-                    className={`fa-solid ${item.cat.icon}`}
-                    style={{ fontSize: 12, color: item.cat.color }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>
-                    {item.cat.name}
+        </section>
+
+        {/* Presupuestos */}
+        <section className="glass-card">
+          <div className="card-header">
+            <h3 className="card-title">{t("stats.budgets")}</h3>
+            <span
+              className="section-link"
+              onClick={() => setBudgetModalOpen(true)}
+            >
+              {t("stats.edit")}
+            </span>
+          </div>
+          {budgetItems.length === 0 ? (
+            <div className="empty-state" style={{ padding: "24px 16px" }}>
+              <i className="fa-solid fa-bullseye" />
+              <div className="empty-state-title">
+                {t("stats.budgets_empty")}
+              </div>
+              <p>{t("stats.budgets_empty.body")}</p>
+            </div>
+          ) : (
+            budgetItems.map((item) => (
+              <div key={item.id} style={{ marginBottom: 14 }}>
+                <div className="budget-header">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <i
+                      className={`fa-solid ${item.cat.icon}`}
+                      style={{ fontSize: 12, color: item.cat.color }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>
+                      {item.cat.name}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: item.over ? "var(--danger)" : "var(--fg-muted)",
+                    }}
+                  >
+                    {formatMoney(item.spent, currency)} /{" "}
+                    {formatMoney(item.budget, currency)}
                   </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: item.over ? "var(--danger)" : "var(--fg-muted)",
-                  }}
-                >
-                  {formatMoney(item.spent, currency)} /{" "}
-                  {formatMoney(item.budget, currency)}
-                </span>
+                <div className="budget-bar-track">
+                  <div
+                    className="budget-bar-fill"
+                    style={{
+                      width: `${item.pct}%`,
+                      background: item.over
+                        ? "var(--danger)"
+                        : item.pct > 75
+                          ? "#fbbf24"
+                          : item.cat.color,
+                    }}
+                  />
+                </div>
+                {item.over && (
+                  <p
+                    style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}
+                  >
+                    {t("stats.over", {
+                      amount: formatMoney(item.spent - item.budget, currency),
+                    })}
+                  </p>
+                )}
               </div>
-              <div className="budget-bar-track">
-                <div
-                  className="budget-bar-fill"
-                  style={{
-                    width: `${item.pct}%`,
-                    background: item.over
-                      ? "var(--danger)"
-                      : item.pct > 75
-                        ? "#fbbf24"
-                        : item.cat.color,
-                  }}
-                />
-              </div>
-              {item.over && (
-                <p
-                  style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}
-                >
-                  {t("stats.over", {
-                    amount: formatMoney(item.spent - item.budget, currency),
-                  })}
-                </p>
-              )}
-            </div>
-          ))
-        )}
-      </section>
+            ))
+          )}
+        </section>
+      </div>
 
       {/* Top categorías */}
       <section className="glass-card">
