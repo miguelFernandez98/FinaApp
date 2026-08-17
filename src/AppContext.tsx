@@ -18,6 +18,7 @@ import type {
   ConfirmState,
   PageId,
   FilterType,
+  SavingsGoal,
 } from "./types";
 import {
   loadState,
@@ -37,6 +38,8 @@ import {
   notifyBudgetAlerts,
   requestNotificationPermission,
   scheduleDebtReminders,
+  scheduleBackupReminder,
+  scheduleMonthlySummary,
 } from "./utils/notifications";
 
 interface AppContextValue extends PersistedState {
@@ -62,6 +65,18 @@ interface AppContextValue extends PersistedState {
   setShowCustomRate: (show: boolean) => void;
   setCustomRate: (rate: number | null) => void;
   setLanguage: (language: "es" | "en") => void;
+  pinHash: string | null;
+  useBiometrics: boolean;
+  goals: SavingsGoal[];
+  lastExportAt: number | null;
+  hasSeenTutorial: boolean;
+  locked: boolean;
+  setPinHash: (hash: string | null) => void;
+  setUseBiometrics: (use: boolean) => void;
+  setGoals: (goals: SavingsGoal[]) => void;
+  setLastExportAt: (at: number | null) => void;
+  setHasSeenTutorial: (seen: boolean) => void;
+  unlock: () => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
@@ -118,6 +133,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<"es" | "en">(
     savedState.language,
   );
+  const [pinHash, setPinHashState] = useState<string | null>(
+    savedState.pinHash,
+  );
+  const [useBiometrics, setUseBiometricsState] = useState(
+    savedState.useBiometrics,
+  );
+  const [goals, setGoalsState] = useState<SavingsGoal[]>(savedState.goals);
+  const [lastExportAt, setLastExportAtState] = useState<number | null>(
+    savedState.lastExportAt,
+  );
+  const [hasSeenTutorial, setHasSeenTutorialState] = useState(
+    savedState.hasSeenTutorial,
+  );
+  const [locked, setLocked] = useState(savedState.pinHash !== null);
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -162,7 +191,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showCustomRate: boolean;
     customRate: number | null;
     language: "es" | "en";
-  }>({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language });
+    pinHash: string | null;
+    useBiometrics: boolean;
+    goals: SavingsGoal[];
+    lastExportAt: number | null;
+    hasSeenTutorial: boolean;
+  }>({
+    transactions,
+    budgets,
+    currency,
+    showCalculator,
+    showEUR,
+    showCustomRate,
+    customRate,
+    language,
+    pinHash,
+    useBiometrics,
+    goals,
+    lastExportAt,
+    hasSeenTutorial,
+  });
 
   useEffect(() => {
     setI18nLanguage(language);
@@ -178,25 +226,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showCustomRate,
       customRate,
       language,
+      pinHash,
+      useBiometrics,
+      goals,
+      lastExportAt,
+      hasSeenTutorial,
     };
     latestStateRef.current = state;
     const timer = setTimeout(() => saveState(state), 1000);
     return () => clearTimeout(timer);
-  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language]);
+  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language, pinHash, useBiometrics, goals, lastExportAt, hasSeenTutorial]);
 
   useEffect(() => {
     let cancelled = false;
     const init = async () => {
       const granted = await requestNotificationPermission();
       if (!granted || cancelled) return;
-      scheduleDebtReminders(transactions);
-      notifyBudgetAlerts(transactions, budgets, currency);
+      await scheduleDebtReminders(transactions);
+      await notifyBudgetAlerts(transactions, budgets, currency);
+      await scheduleBackupReminder(lastExportAt);
+      await scheduleMonthlySummary(transactions, currency);
     };
     init();
     return () => {
       cancelled = true;
     };
-  }, [transactions, budgets, currency]);
+  }, [transactions, budgets, currency, lastExportAt]);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -280,6 +335,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = useCallback((lang: "es" | "en") => {
     setLanguageState(lang);
+  }, []);
+
+  const setPinHash = useCallback((hash: string | null) => {
+    setPinHashState(hash);
+  }, []);
+
+  const setUseBiometrics = useCallback((use: boolean) => {
+    setUseBiometricsState(use);
+  }, []);
+
+  const setGoals = useCallback((g: SavingsGoal[]) => {
+    setGoalsState(g);
+  }, []);
+
+  const setLastExportAt = useCallback((at: number | null) => {
+    setLastExportAtState(at);
+  }, []);
+
+  const setHasSeenTutorial = useCallback((seen: boolean) => {
+    setHasSeenTutorialState(seen);
+  }, []);
+
+  const unlock = useCallback(() => {
+    setLocked(false);
   }, []);
 
   /**
@@ -437,6 +516,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowCustomRateState(newState.showCustomRate ?? false);
     setCustomRateState(newState.customRate ?? null);
     setLanguageState(newState.language === "en" ? "en" : "es");
+    setPinHashState(newState.pinHash ?? null);
+    setUseBiometricsState(newState.useBiometrics ?? false);
+    setGoalsState(Array.isArray(newState.goals) ? newState.goals : []);
+    setLastExportAtState(
+      typeof newState.lastExportAt === "number" ? newState.lastExportAt : null,
+    );
+    setHasSeenTutorialState(newState.hasSeenTutorial ?? false);
   }, []);
 
   useEffect(() => {
@@ -520,6 +606,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loadRatesRef.current();
       } else {
         saveState(latestStateRef.current);
+        setLocked(latestStateRef.current.pinHash !== null);
       }
     });
     return () => {
@@ -566,6 +653,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showCustomRate,
       customRate,
       language,
+      pinHash,
+      useBiometrics,
+      goals,
+      lastExportAt,
+      hasSeenTutorial,
+      locked,
       currentPage,
       currentMonth,
       currentYear,
@@ -586,6 +679,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowCustomRate,
       setCustomRate,
       setLanguage,
+      setPinHash,
+      setUseBiometrics,
+      setGoals,
+      setLastExportAt,
+      setHasSeenTutorial,
+      unlock,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -627,6 +726,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowCustomRate,
       setCustomRate,
       setLanguage,
+      setPinHash,
+      setUseBiometrics,
+      setGoals,
+      setLastExportAt,
+      setHasSeenTutorial,
+      unlock,
+      locked,
+      pinHash,
+      useBiometrics,
+      goals,
+      lastExportAt,
+      hasSeenTutorial,
       changeMonth,
       setFilter,
       setCategoryFilter,

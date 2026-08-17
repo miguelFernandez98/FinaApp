@@ -15,10 +15,12 @@ import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import MonthSelector from "../components/MonthSelector";
 import AppVersion from "../components/AppVersion";
+import GoalsModal from "../components/GoalsModal";
 import fLogo from "../assets/f-logo.svg";
 
 export default function HomePage() {
   const [donutType, setDonutType] = useState<"expense" | "income">("expense");
+  const [goalsOpen, setGoalsOpen] = useState(false);
   useI18n();
   const {
     transactions,
@@ -31,6 +33,7 @@ export default function HomePage() {
     setCategoryFilter,
     showCalculator,
     openTransactionModal,
+    goals,
   } = useApp();
 
   const visibleTransactions = useMemo(
@@ -99,7 +102,7 @@ export default function HomePage() {
   return (
     <div className="page">
       {/* Header */}
-      <header className="page-header">
+      <header className="page-header" id="home-header">
         <div>
           <p className="greeting-text">{getTimeBasedGreeting()}</p>
           <h1 className="page-title">
@@ -274,6 +277,63 @@ export default function HomePage() {
         </section>
       </div>
 
+      {/* Metas de ahorro */}
+      <section
+        id="goals-section"
+        className="glass-card"
+        aria-label={t("home.goals")}
+      >
+        <div className="card-header">
+          <h3 className="card-title">{t("home.goals")}</h3>
+          <span className="section-link" onClick={() => setGoalsOpen(true)}>
+            {t("home.goals_manage")}
+          </span>
+        </div>
+        {goals.length === 0 ? (
+          <div className="empty-state" style={{ padding: "20px 16px" }}>
+            <i className="fa-solid fa-piggy-bank" />
+            <div className="empty-state-title">{t("home.goals_empty")}</div>
+            <p>{t("home.goals_empty.body")}</p>
+          </div>
+        ) : (
+          goals.slice(0, 3).map((goal) => {
+            const pct =
+              goal.target > 0
+                ? Math.min((goal.saved / goal.target) * 100, 100)
+                : 0;
+const done = goal.saved >= goal.target && goal.target > 0;
+            return (
+              <div key={goal.id} style={{ marginBottom: 14 }}>
+                <div className="budget-header">
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>
+                    {goal.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: done ? "var(--success)" : "var(--fg-muted)",
+                    }}
+                  >
+                    {done && <i className="fa-solid fa-circle-check" />}{" "}
+                    {formatMoney(goal.saved, currency)} /{" "}
+                    {formatMoney(goal.target, currency)}
+                  </span>
+                </div>
+                <div className="budget-bar-track">
+                  <div
+                    className="budget-bar-fill"
+                    style={{
+                      width: `${pct}%`,
+                      background: done ? "var(--success)" : "var(--accent)",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
+
       {/* Recientes */}
       <div className="section-header">
         <h3 className="section-title">{t("home.recent")}</h3>
@@ -306,6 +366,8 @@ export default function HomePage() {
           ))
         )}
       </section>
+
+      {goalsOpen && <GoalsModal onClose={() => setGoalsOpen(false)} />}
     </div>
   );
 }

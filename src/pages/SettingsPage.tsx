@@ -2,13 +2,16 @@ import { useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { useApp } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
+import { startTutorial } from "../utils/tutorial";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
+import PinModal from "../components/PinModal";
 import fLogo from "../assets/f-logo.svg";
 
 const MAX_AMOUNT = 1e15;
@@ -40,6 +43,17 @@ export default function SettingsPage() {
     showConfirm,
     showToast,
     importState,
+    pinHash,
+    setPinHash,
+    useBiometrics,
+    setUseBiometrics,
+    goals,
+    lastExportAt,
+    setLastExportAt,
+    hasSeenTutorial,
+    navigateTo,
+    openTransactionModal,
+    closeTransactionModal,
   } = useApp();
   useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -47,6 +61,8 @@ export default function SettingsPage() {
     customRate !== null ? String(customRate) : "",
   );
   const [ratesOpen, setRatesOpen] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
 
   const handleCurrencyChange = (value: string) => {
     setCurrency(value);
@@ -84,6 +100,11 @@ export default function SettingsPage() {
         showCustomRate,
         customRate,
         language,
+        pinHash,
+        useBiometrics,
+        goals,
+        lastExportAt,
+        hasSeenTutorial,
       },
       null,
       2,
@@ -103,6 +124,7 @@ export default function SettingsPage() {
           files: [result.uri],
           dialogTitle: t("settings.share_save"),
         });
+        setLastExportAt(Date.now());
         showToast(t("settings.exported"));
       } catch (error) {
         console.error("Error exporting data on native:", error);
@@ -122,6 +144,7 @@ export default function SettingsPage() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    setLastExportAt(Date.now());
     showToast(t("settings.exported"));
   };
 
@@ -149,6 +172,17 @@ export default function SettingsPage() {
                     ? data.customRate
                     : null,
                 language: data.language === "en" ? "en" : "es",
+                pinHash:
+                  typeof data.pinHash === "string" && data.pinHash
+                    ? data.pinHash
+                    : null,
+                useBiometrics: data.useBiometrics ?? false,
+                goals: Array.isArray(data.goals) ? data.goals : [],
+                lastExportAt:
+                  typeof data.lastExportAt === "number"
+                    ? data.lastExportAt
+                    : null,
+                hasSeenTutorial: data.hasSeenTutorial ?? false,
               });
               showToast(t("settings.imported"));
             },
@@ -372,6 +406,11 @@ export default function SettingsPage() {
           showCustomRate: false,
           customRate: null,
           language,
+          pinHash: null,
+          useBiometrics: false,
+          goals: [],
+          lastExportAt: null,
+          hasSeenTutorial: false,
         });
         showToast(t("settings.sample_loaded"));
       },
@@ -392,10 +431,69 @@ export default function SettingsPage() {
           showCustomRate: false,
           customRate: null,
           language,
+          pinHash: null,
+          useBiometrics: false,
+          goals: [],
+          lastExportAt: null,
+          hasSeenTutorial: false,
         });
         showToast(t("settings.data_cleared"), "fa-trash", "var(--danger)");
       },
     );
+  };
+
+  const handlePinToggle = (checked: boolean) => {
+    if (checked) {
+      setPinModalOpen(true);
+    } else {
+      showConfirm(
+        t("settings.pin_lock"),
+        t("settings.pin_confirm.body"),
+        () => {
+          setPinHash(null);
+          setUseBiometrics(false);
+          showToast(t("lock.disabled"), "fa-lock-open");
+        },
+        {
+          confirmLabel: t("confirm.ok"),
+          cancelLabel: t("confirm.cancel"),
+        },
+      );
+    }
+  };
+
+  const handleBiometricToggle = async (checked: boolean) => {
+    if (bioBusy) return;
+    if (!Capacitor.isNativePlatform()) {
+      showToast(
+        t("settings.biometric_unsupported"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
+    setBioBusy(true);
+    try {
+      const result = await NativeBiometric.isAvailable({ useFallback: false });
+      if (!result.isAvailable) {
+        showToast(
+          t("settings.biometric_unsupported"),
+          "fa-circle-exclamation",
+          "var(--danger)",
+        );
+        return;
+      }
+      setUseBiometrics(checked);
+    } catch (error) {
+      console.error("Biometric availability check failed:", error);
+      showToast(
+        t("settings.biometric_unsupported"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+    } finally {
+      setBioBusy(false);
+    }
   };
 
   return (
@@ -433,7 +531,11 @@ export default function SettingsPage() {
       </section>
 
       {/* Idioma */}
-      <section className="glass-card" style={{ marginBottom: 12 }}>
+      <section
+        id="settings-language"
+        className="glass-card"
+        style={{ marginBottom: 12 }}
+      >
         <label className="field-label">{t("settings.language")}</label>
         <CustomSelect
           value={language}
@@ -475,7 +577,11 @@ export default function SettingsPage() {
       </section>
 
       {/* Configuración de tasas */}
-      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
+      <section
+        className="glass-card menu-list"
+        id="settings-rates"
+        style={{ marginBottom: 12 }}
+      >
         <div
           className="menu-item"
           style={{ cursor: "pointer" }}
@@ -567,8 +673,70 @@ export default function SettingsPage() {
         )}
       </section>
 
-      {/* Acciones */}
+      {/* Seguridad */}
+      <section
+        className="glass-card menu-list"
+        id="settings-security"
+        style={{ marginBottom: 12 }}
+      >
+        <div className="menu-item" style={{ cursor: "pointer" }}>
+          <i className="fa-solid fa-lock menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.pin_lock")}</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={pinHash !== null}
+              onChange={(e) => handlePinToggle(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <p className="settingsTextDescription">{t("settings.pin_hint")}</p>
+
+        <div
+          className="menu-item"
+          style={{ cursor: "pointer", opacity: pinHash ? 1 : 0.4 }}
+        >
+          <i className="fa-solid fa-fingerprint menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.biometric")}</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={useBiometrics}
+              disabled={pinHash === null}
+              onChange={(e) => handleBiometricToggle(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <p className="settingsTextDescription">{t("settings.biometric_hint")}</p>
+      </section>
+
+      {/* Ayuda */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div
+          className="menu-item"
+          onClick={() =>
+            startTutorial(navigateTo, openTransactionModal, closeTransactionModal)
+          }
+          aria-label={t("settings.tutorial")}
+        >
+          <i className="fa-solid fa-circle-question menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.tutorial")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+          />
+        </div>
+        <p className="settingsTextDescription">{t("settings.tutorial_hint")}</p>
+      </section>
+
+      {/* Acciones */}
+      <section
+        className="glass-card menu-list"
+        id="settings-actions"
+        style={{ marginBottom: 12 }}
+      >
         <div className="menu-item" onClick={handleExport}>
           <i className="fa-solid fa-file-export menu-icon" />
           <span style={{ flex: 1 }}>{t("settings.export")}</span>
@@ -623,6 +791,8 @@ export default function SettingsPage() {
       <footer className="footer-note">
         <p>{t("settings.storage_note")}</p>
       </footer>
+
+      {pinModalOpen && <PinModal onClose={() => setPinModalOpen(false)} />}
     </div>
   );
 }
