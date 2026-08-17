@@ -1,4 +1,5 @@
 import { CATEGORIES } from "../data/categories";
+import { categoryName, t } from "../i18n";
 import type { Transaction } from "../types";
 import { daysInMonth, parseISODate, toISODate } from "./date";
 
@@ -16,9 +17,9 @@ export function generateId(): string {
  * @returns La categoría encontrada o la última por defecto.
  */
 export function getCategoryById(id: string) {
-  return (
-    CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1]
-  );
+  const cat =
+    CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+  return { ...cat, name: categoryName(cat.id) };
 }
 
 /**
@@ -27,9 +28,9 @@ export function getCategoryById(id: string) {
  */
 export function getTimeBasedGreeting(): string {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return "Buenos días";
-  if (h >= 12 && h < 18) return "Buenas tardes";
-  return "Buenas noches";
+  if (h >= 5 && h < 12) return t("greeting.morning");
+  if (h >= 12 && h < 18) return t("greeting.afternoon");
+  return t("greeting.evening");
 }
 
 /**
@@ -143,6 +144,17 @@ export function getRecurringOccurrences(
 }
 
 /**
+ * Caché por referencia de transacciones: acelera consultas repetidas del
+ * mismo mes/año sin re-calcular O(n) en cada render.
+ * Se invalida solo cuando cambia la referencia del array (cualquier mutación
+ * de estado genera un array nuevo).
+ */
+const monthResultsCache = new WeakMap<
+  Transaction[],
+  Map<string, Transaction[]>
+>();
+
+/**
  * Devuelve las transacciones visibles en un mes, expandiendo las recurrentes.
  * Las deudas pagadas con countAsExpense se transforman en gastos de la
  * categoría "Deudas" para que cuenten en los resúmenes de gastos.
@@ -152,6 +164,24 @@ export function getRecurringOccurrences(
  * @returns Transacciones del mes.
  */
 export function getMonthTransactions(
+  transactions: Transaction[],
+  month: number,
+  year: number,
+): Transaction[] {
+  let byMonth = monthResultsCache.get(transactions);
+  if (!byMonth) {
+    byMonth = new Map();
+    monthResultsCache.set(transactions, byMonth);
+  }
+  const key = `${year}-${month}`;
+  const cached = byMonth.get(key);
+  if (cached) return cached;
+  const result = computeMonthTransactions(transactions, month, year);
+  byMonth.set(key, result);
+  return result;
+}
+
+function computeMonthTransactions(
   transactions: Transaction[],
   month: number,
   year: number,

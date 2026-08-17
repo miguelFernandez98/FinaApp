@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../AppContext";
-import { MONTH_NAMES, parseISODate } from "../utils/date";
+import { monthName, t, useI18n } from "../i18n";
+import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
   getCategoryById,
@@ -14,8 +15,11 @@ import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import MonthSelector from "../components/MonthSelector";
 import AppVersion from "../components/AppVersion";
+import fLogo from "../assets/f-logo.svg";
 
 export default function HomePage() {
+  const [donutType, setDonutType] = useState<"expense" | "income">("expense");
+  useI18n();
   const {
     transactions,
     getMonthTransactions,
@@ -99,13 +103,15 @@ export default function HomePage() {
         <div>
           <p className="greeting-text">{getTimeBasedGreeting()}</p>
           <h1 className="page-title">
-            Mis Finanzas <AppVersion />
+            {t("home.title")} <AppVersion />
           </h1>
         </div>
         <div className="avatar-btn" onClick={() => {}}>
-          <i
-            className="fa-solid fa-user"
-            style={{ fontSize: 14, color: "var(--fg-muted)" }}
+          <img
+            src={fLogo}
+            alt=""
+            style={{ width: 26, height: 26, display: "block" }}
+            draggable={false}
           />
         </div>
       </header>
@@ -116,7 +122,8 @@ export default function HomePage() {
       {previousBalance !== 0 && (
         <div className="previous-balance-row">
           <div>
-            <i className="fa-solid fa-arrow-up-right-dots" /> Saldo anterior
+            <i className="fa-solid fa-arrow-up-right-dots" />{" "}
+            {t("home.previous_balance")}
           </div>
           <div
             style={{
@@ -130,8 +137,11 @@ export default function HomePage() {
       )}
 
       {/* Balance hero */}
-      <section className="balance-hero" aria-label="Resumen del balance">
-        <p className="balance-label">Balance total</p>
+      <section
+        className="balance-hero"
+        aria-label={t("home.aria.balance")}
+      >
+        <p className="balance-label">{t("home.balance")}</p>
         <div
           className="balance-amount"
           style={{ color: balance >= 0 ? "var(--accent)" : "var(--danger)" }}
@@ -142,14 +152,14 @@ export default function HomePage() {
         <div className="balance-row">
           <div className="balance-detail">
             <span className="balance-dot income" />
-            <span className="balance-text">Ingresos</span>
+            <span className="balance-text">{t("home.income")}</span>
             <span className="balance-value income">
               {formatMoney(income, currency)}
             </span>
           </div>
           <div className="balance-detail">
             <span className="balance-dot expense" />
-            <span className="balance-text">Gastos</span>
+            <span className="balance-text">{t("home.expense")}</span>
             <span className="balance-value expense">
               {formatMoney(expense, currency)}
             </span>
@@ -160,76 +170,113 @@ export default function HomePage() {
       {/* Calculadora de divisas */}
       {showCalculator && <CurrencyCalculator />}
 
-      {pendingDebts.length > 0 && (
-        <section className="glass-card" aria-label="Deudas pendientes">
-          <div className="card-header">
-            <div>
-              <h3 className="card-title">Deudas total pendiente</h3>
-              <span className="card-subtitle">
-                Vence {MONTH_NAMES[currentMonth]} {currentYear}
-              </span>
-            </div>
-            <div
-              style={{
-                color: "var(--danger)",
-                fontWeight: 700,
-                textAlign: "right",
-              }}
-            >
-              {formatMoney(pendingDebtsTotal, currency)}
-            </div>
-          </div>
-          <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
-            {pendingDebts.slice(0, 3).map((debt) => (
+      <div className="home-grid">
+        {pendingDebts.length > 0 && (
+          <section
+            className="glass-card"
+            aria-label={t("home.aria.debts")}
+          >
+            <div className="card-header">
+              <div>
+                <h3 className="card-title">{t("home.debt_pending_total")}</h3>
+                <span className="card-subtitle">
+                  {t("home.debt_due", {
+                    month: monthName(currentMonth),
+                    year: currentYear,
+                  })}
+                </span>
+              </div>
               <div
-                key={debt.id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
+                  color: "var(--danger)",
+                  fontWeight: 700,
+                  textAlign: "right",
                 }}
               >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    {getCategoryById(debt.category).name}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
-                    {debt.debtDueDate
-                      ? `Límite: ${debt.debtDueDate}`
-                      : "Sin fecha límite"}
-                  </div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>
-                  {formatMoney(
-                    debt.debtPaidAmount
-                      ? debt.amount - debt.debtPaidAmount
-                      : debt.amount,
-                    currency,
-                  )}
-                </div>
+                {formatMoney(pendingDebtsTotal, currency)}
               </div>
-            ))}
+            </div>
+            <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
+              {pendingDebts.slice(0, 3).map((debt) => (
+                <div
+                  key={debt.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>
+                      {getCategoryById(debt.category).name}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+                      {debt.debtDueDate
+                        ? `${t("home.debt_limit", {
+                            date: debt.debtDueDate,
+                          })}`
+                        : t("home.no_due_date")}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>
+                    {formatMoney(
+                      debt.debtPaidAmount
+                        ? debt.amount - debt.debtPaidAmount
+                        : debt.amount,
+                      currency,
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Gráfico */}
+        <section
+          className="glass-card"
+          aria-label={t("home.aria.chart")}
+        >
+          <div className="card-header">
+            <h3 className="card-title">
+              {donutType === "expense"
+                ? t("home.chart_expense")
+                : t("home.chart_income")}
+            </h3>
+            <span className="card-subtitle">
+              {monthName(currentMonth)} {currentYear}
+            </span>
+          </div>
+          <div className="chart-container">
+            <DonutChart transactions={visibleTransactions} type={donutType} />
+            {(income > 0 || expense > 0) && (
+              <div className="donut-type-toggle">
+                <button
+                  className={`donut-type-btn ${
+                    donutType === "expense" ? "active-expense" : ""
+                  }`}
+                  onClick={() => setDonutType("expense")}
+                >
+                  {t("donut.expense")}
+                </button>
+                <button
+                  className={`donut-type-btn ${
+                    donutType === "income" ? "active-income" : ""
+                  }`}
+                  onClick={() => setDonutType("income")}
+                >
+                  {t("donut.income")}
+                </button>
+              </div>
+            )}
           </div>
         </section>
-      )}
-
-      {/* Gráfico */}
-      <section className="glass-card" aria-label="Gastos por categoría">
-        <div className="card-header">
-          <h3 className="card-title">Gastos por categoría</h3>
-          <span className="card-subtitle">
-            {MONTH_NAMES[currentMonth]} {currentYear}
-          </span>
-        </div>
-        <div className="chart-container">
-          <DonutChart transactions={visibleTransactions} />
-        </div>
-      </section>
+      </div>
 
       {/* Recientes */}
       <div className="section-header">
-        <h3 className="section-title">Recientes</h3>
+        <h3 className="section-title">{t("home.recent")}</h3>
         <span
           className="section-link"
           onClick={() => {
@@ -238,18 +285,16 @@ export default function HomePage() {
             navigateTo("transactions");
           }}
         >
-          Ver todas
+          {t("home.see_all")}
         </span>
       </div>
 
-      <section className="glass-card" aria-label="Movimientos recientes">
+      <section className="glass-card" aria-label={t("home.aria.recent")}>
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
-            <p style={{ fontSize: 13 }}>Aún no hay movimientos</p>
-            <p style={{ fontSize: 12, marginTop: 4 }}>
-              Toca + para agregar uno
-            </p>
+            <div className="empty-state-title">{t("home.recent_empty")}</div>
+            <p>{t("home.recent_empty.body")}</p>
           </div>
         ) : (
           recent.map((t) => (

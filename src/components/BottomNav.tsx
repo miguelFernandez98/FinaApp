@@ -1,25 +1,27 @@
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import type { PageId } from "../types";
 
-const NAV_ITEMS: { page: PageId; icon: string; label: string }[] = [
-  { page: "home", icon: "fa-house", label: "Inicio" },
+const NAV_ITEMS: { page: PageId; icon: string; labelKey: string }[] = [
+  { page: "home", icon: "fa-house", labelKey: "nav.home" },
   {
     page: "transactions",
     icon: "fa-arrow-right-arrow-left",
-    label: "Movimientos",
+    labelKey: "nav.transactions",
   },
-  { page: "stats", icon: "fa-chart-simple", label: "Estadísticas" },
-  { page: "settings", icon: "fa-gear", label: "Ajustes" },
+  { page: "stats", icon: "fa-chart-simple", labelKey: "nav.stats" },
+  { page: "settings", icon: "fa-gear", labelKey: "nav.settings" },
 ];
 
 export default function BottomNav() {
   const { currentPage, navigateTo, openTransactionModal } = useApp();
+  useI18n();
 
   return (
     <footer className="bottom-nav">
       <nav
-        style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-around" }}
-        aria-label="Navegación principal"
+        style={{ display: "flex", width: "100%", alignItems: "center" }}
+        aria-label={t("nav.main")}
       >
         {NAV_ITEMS.slice(0, 2).map((item) => (
           <button
@@ -29,14 +31,14 @@ export default function BottomNav() {
             aria-current={currentPage === item.page ? "page" : undefined}
           >
             <i className={`fa-solid ${item.icon}`} />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         ))}
 
         <button
           className="nav-add-btn"
           onClick={() => openTransactionModal()}
-          aria-label="Agregar transacción"
+          aria-label={t("nav.add")}
           id="global-add-btn"
         >
           <i className="fa-solid fa-plus" />
@@ -50,7 +52,7 @@ export default function BottomNav() {
             aria-current={currentPage === item.page ? "page" : undefined}
           >
             <i className={`fa-solid ${item.icon}`} />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         ))}
       </nav>

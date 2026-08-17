@@ -10,6 +10,9 @@ const DEFAULT_STATE: PersistedState = {
   currency: "$",
   showCalculator: true,
   showEUR: false,
+  showCustomRate: false,
+  customRate: null,
+  language: "es",
 };
 
 /**
@@ -28,6 +31,12 @@ export function loadState(): PersistedState {
         currency: parsed.currency || "$",
         showCalculator: parsed.showCalculator ?? true,
         showEUR: parsed.showEUR ?? false,
+        showCustomRate: parsed.showCustomRate ?? false,
+        customRate:
+          typeof parsed.customRate === "number" && parsed.customRate > 0
+            ? parsed.customRate
+            : null,
+        language: parsed.language === "en" ? "en" : "es",
       };
     }
   } catch (e) {
@@ -50,6 +59,9 @@ export function saveState(state: PersistedState): void {
         currency: state.currency,
         showCalculator: state.showCalculator,
         showEUR: state.showEUR,
+        showCustomRate: state.showCustomRate,
+        customRate: state.customRate,
+        language: state.language,
       }),
     );
   } catch (e) {

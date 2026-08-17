@@ -1,12 +1,25 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
+import CustomSelect from "../components/CustomSelect";
+import fLogo from "../assets/f-logo.svg";
+
+const MAX_AMOUNT = 1e15;
+
+function sanitizeAmount(raw: string): string {
+  const cleaned = raw.replace(/[^\d.,-]/g, "").replace(/,/g, ".");
+  const value = parseFloat(cleaned);
+  if (Number.isNaN(value)) return "";
+  if (!Number.isFinite(value) || Math.abs(value) > MAX_AMOUNT) return "";
+  return cleaned;
+}
 
 export default function SettingsPage() {
   const {
@@ -16,22 +29,62 @@ export default function SettingsPage() {
     setShowCalculator,
     showEUR,
     setShowEUR,
+    showCustomRate,
+    setShowCustomRate,
+    customRate,
+    setCustomRate,
+    language,
+    setLanguage,
     transactions,
     budgets,
     showConfirm,
     showToast,
     importState,
   } = useApp();
+  useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [customDraft, setCustomDraft] = useState(
+    customRate !== null ? String(customRate) : "",
+  );
+  const [ratesOpen, setRatesOpen] = useState(false);
 
-  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCurrency(e.target.value);
-    showToast("Moneda actualizada");
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
+    showToast(t("settings.currency_updated"));
+  };
+
+  const handleSaveCustomRate = () => {
+    const parsed = parseFloat(customDraft);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      showToast(
+        t("settings.custom_enter"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+      return;
+    }
+    setCustomRate(parsed);
+    showToast(t("settings.custom_saved"));
+  };
+
+  const handleClearCustomRate = () => {
+    setCustomRate(null);
+    setCustomDraft("");
+    showToast(t("settings.custom_removed"));
   };
 
   const handleExport = async () => {
     const data = JSON.stringify(
-      { transactions, budgets, currency, showCalculator, showEUR },
+      {
+        transactions,
+        budgets,
+        currency,
+        showCalculator,
+        showEUR,
+        showCustomRate,
+        customRate,
+        language,
+      },
       null,
       2,
     );
@@ -45,16 +98,16 @@ export default function SettingsPage() {
           directory: FilesystemDirectory.Cache,
         });
         await Share.share({
-          title: "Exportar datos",
-          text: "Backup de FinanzApp",
+          title: t("settings.export_share"),
+          text: t("settings.share_text"),
           files: [result.uri],
-          dialogTitle: "Guardar backup",
+          dialogTitle: t("settings.share_save"),
         });
-        showToast("Datos exportados");
+        showToast(t("settings.exported"));
       } catch (error) {
         console.error("Error exporting data on native:", error);
         showToast(
-          "No se pudo exportar",
+          t("settings.export_fail"),
           "fa-exclamation-triangle",
           "var(--danger)",
         );
@@ -69,7 +122,7 @@ export default function SettingsPage() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    showToast("Datos exportados");
+    showToast(t("settings.exported"));
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,8 +134,8 @@ export default function SettingsPage() {
         const data = JSON.parse(ev.target?.result as string);
         if (data.transactions && Array.isArray(data.transactions)) {
           showConfirm(
-            "Importar datos",
-            "Se reemplazarán todos los datos actuales.",
+            t("settings.confirm_import"),
+            t("settings.confirm_import.body"),
             () => {
               importState({
                 transactions: data.transactions,
@@ -90,20 +143,26 @@ export default function SettingsPage() {
                 currency: data.currency || "$",
                 showCalculator: data.showCalculator ?? true,
                 showEUR: data.showEUR ?? false,
+                showCustomRate: data.showCustomRate ?? false,
+                customRate:
+                  typeof data.customRate === "number" && data.customRate > 0
+                    ? data.customRate
+                    : null,
+                language: data.language === "en" ? "en" : "es",
               });
-              showToast("Datos importados correctamente");
+              showToast(t("settings.imported"));
             },
           );
         } else {
           showToast(
-            "Archivo no válido",
+            t("settings.invalid_file"),
             "fa-circle-exclamation",
             "var(--danger)",
           );
         }
       } catch {
         showToast(
-          "Error al leer el archivo",
+          t("settings.read_error"),
           "fa-circle-exclamation",
           "var(--danger)",
         );
@@ -115,8 +174,8 @@ export default function SettingsPage() {
 
   const handleLoadSample = () => {
     showConfirm(
-      "Datos de ejemplo",
-      "Se reemplazarán tus datos actuales.",
+      t("settings.confirm_sample"),
+      t("settings.confirm_sample.body"),
       () => {
         const now = new Date();
         const y = now.getFullYear();
@@ -310,16 +369,19 @@ export default function SettingsPage() {
           currency: "$",
           showCalculator: true,
           showEUR: true,
+          showCustomRate: false,
+          customRate: null,
+          language,
         });
-        showToast("Datos de ejemplo cargados");
+        showToast(t("settings.sample_loaded"));
       },
     );
   };
 
   const handleClearAll = () => {
     showConfirm(
-      "Borrar todo",
-      "Se eliminarán todas las transacciones y presupuestos permanentemente.",
+      t("settings.confirm_clear"),
+      t("settings.confirm_clear.body"),
       () => {
         importState({
           transactions: [],
@@ -327,8 +389,11 @@ export default function SettingsPage() {
           currency: "$",
           showCalculator: true,
           showEUR: false,
+          showCustomRate: false,
+          customRate: null,
+          language,
         });
-        showToast("Datos eliminados", "fa-trash", "var(--danger)");
+        showToast(t("settings.data_cleared"), "fa-trash", "var(--danger)");
       },
     );
   };
@@ -336,7 +401,7 @@ export default function SettingsPage() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1 className="page-title">Configuración</h1>
+        <h1 className="page-title">{t("settings.title")}</h1>
       </header>
 
       {/* Info */}
@@ -350,44 +415,54 @@ export default function SettingsPage() {
         }}
       >
         <div className="profile-icon">
-          <i
-            className="fa-solid fa-wallet"
-            style={{ fontSize: 22, color: "var(--accent)" }}
+          <img
+            src={fLogo}
+            alt=""
+            style={{ width: 36, height: 36, display: "block" }}
+            draggable={false}
           />
         </div>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 600 }}>FinanzApp</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600 }}>
+            {t("settings.app_name")}
+          </h3>
           <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
             v{version}
           </p>
         </div>
       </section>
 
+      {/* Idioma */}
+      <section className="glass-card" style={{ marginBottom: 12 }}>
+        <label className="field-label">{t("settings.language")}</label>
+        <CustomSelect
+          value={language}
+          onChange={(value) => setLanguage(value === "en" ? "en" : "es")}
+          options={[
+            { value: "es", label: t("settings.language_es") },
+            { value: "en", label: t("settings.language_en") },
+          ]}
+        />
+      </section>
+
       {/* Moneda */}
       <section className="glass-card" style={{ marginBottom: 12 }}>
-        <label className="field-label">Moneda</label>
-        <select
-          className="input-field"
+        <label className="field-label">{t("settings.currency")}</label>
+        <CustomSelect
           value={currency}
           onChange={handleCurrencyChange}
-          style={{ cursor: "pointer" }}
-        >
-          <option value="$">$ USD — Dólar</option>
-          <option value="€">€ EUR — Euro</option>
-          <option value="£">£ GBP — Libra</option>
-          <option value="MX$">MX$ — Peso Mexicano</option>
-          <option value="COL$">COL$ — Peso Colombiano</option>
-          <option value="S/">S/ — Sol Peruano</option>
-          <option value="AR$">AR$ — Peso Argentino</option>
-          <option value="R$">R$ — Real Brasileño</option>
-        </select>
+          options={[
+            { value: "$", label: t("settings.currency_usd") },
+            { value: "€", label: t("settings.currency_eur") },
+          ]}
+        />
       </section>
 
       {/* Calculadora */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div className="menu-item" style={{ cursor: "pointer" }}>
           <i className="fa-solid fa-calculator menu-icon" />
-          <span style={{ flex: 1 }}>Mostrar calculadora de divisas</span>
+          <span style={{ flex: 1 }}>{t("settings.show_calculator")}</span>
           <label className="switch">
             <input
               type="checkbox"
@@ -399,37 +474,104 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Tasa Euro */}
+      {/* Configuración de tasas */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
-        <div className="menu-item" style={{ cursor: "pointer" }}>
-          <i className="fa-solid fa-euro-sign menu-icon" />
-          <span style={{ flex: 1 }}>Mostrar tasa Euro (EUR/VES)</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={showEUR}
-              onChange={(e) => setShowEUR(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--fg-muted)",
-            padding: "0 16px 10px",
-          }}
+        <div
+          className="menu-item"
+          style={{ cursor: "pointer" }}
+          onClick={() => setRatesOpen((prev) => !prev)}
         >
-          La tasa se actualiza junto con el dólar. Sin conexión se muestra la
-          última guardada.
-        </p>
+          <i className="fa-solid fa-coins menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.rates")}</span>
+          <i
+            className={`fa-solid fa-chevron-down ${ratesOpen ? "rotate-180" : ""}`}
+            style={{ fontSize: 12, color: "var(--fg-muted)", transition: "transform 0.25s" }}
+          />
+        </div>
+
+        {ratesOpen && (
+          <div style={{ paddingBottom: 8 }}>
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-euro-sign menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.show_eur")}</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showEUR}
+                  onChange={(e) => setShowEUR(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <p className="settingsTextDescription">
+              {t("settings.eur_hint")}
+            </p>
+
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-sliders menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.show_custom")}</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showCustomRate}
+                  onChange={(e) => setShowCustomRate(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            {showCustomRate && (
+              <div className="custom-rate-input-container">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="input-field custom-rate-input"
+                  value={customDraft}
+                  onChange={(e) => {
+                    const sanitized = sanitizeAmount(e.target.value);
+                    if (sanitized === "" && e.target.value !== "") return;
+                    setCustomDraft(sanitized);
+                  }}
+                  placeholder={
+                    customRate !== null
+                      ? String(customRate)
+                      : t("settings.custom_placeholder")
+                  }
+                  aria-label={t("settings.custom_enter")}
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={handleSaveCustomRate}
+                  title={t("calc.custom_save")}
+                  aria-label={t("calc.custom_save_aria")}
+                >
+                  <i className="fa-solid fa-check" />
+                </button>
+                {customRate !== null && (
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-danger"
+                    onClick={handleClearCustomRate}
+                    title={t("calc.custom_delete")}
+                    aria-label={t("calc.custom_delete_aria")}
+                  >
+                    <i className="fa-solid fa-trash" />
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="settingsTextDescription">
+              {t("settings.custom_hint")}
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Acciones */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div className="menu-item" onClick={handleExport}>
           <i className="fa-solid fa-file-export menu-icon" />
-          <span style={{ flex: 1 }}>Exportar datos</span>
+          <span style={{ flex: 1 }}>{t("settings.export")}</span>
           <i
             className="fa-solid fa-chevron-right"
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
@@ -437,7 +579,7 @@ export default function SettingsPage() {
         </div>
         <div className="menu-item" onClick={() => fileRef.current?.click()}>
           <i className="fa-solid fa-file-import menu-icon" />
-          <span style={{ flex: 1 }}>Importar datos</span>
+          <span style={{ flex: 1 }}>{t("settings.import")}</span>
           <i
             className="fa-solid fa-chevron-right"
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
@@ -452,7 +594,7 @@ export default function SettingsPage() {
         />
         <div className="menu-item" onClick={handleLoadSample}>
           <i className="fa-solid fa-database menu-icon" />
-          <span style={{ flex: 1 }}>Cargar datos de ejemplo</span>
+          <span style={{ flex: 1 }}>{t("settings.load_sample")}</span>
           <i
             className="fa-solid fa-chevron-right"
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
@@ -473,13 +615,13 @@ export default function SettingsPage() {
             }}
           />
           <span style={{ flex: 1, color: "var(--danger)" }}>
-            Borrar todos los datos
+            {t("settings.clear_all")}
           </span>
         </div>
       </section>
 
       <footer className="footer-note">
-        <p>Los datos se almacenan exclusivamente en tu dispositivo.</p>
+        <p>{t("settings.storage_note")}</p>
       </footer>
     </div>
   );

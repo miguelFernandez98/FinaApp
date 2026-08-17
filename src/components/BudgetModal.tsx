@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
+import { categoryName, t, useI18n } from "../i18n";
 
 interface BudgetModalProps {
   onClose: () => void;
@@ -8,6 +9,7 @@ interface BudgetModalProps {
 
 export default function BudgetModal({ onClose }: BudgetModalProps) {
   const { budgets, setBudgets, showToast } = useApp();
+  const { language } = useI18n();
 
   const expenseCats = CATEGORIES.filter((c) => c.type === "expense");
   const [values, setValues] = useState<Record<string, string>>(() => {
@@ -25,7 +27,7 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
       if (num && num > 0) newBudgets[id] = num;
     });
     setBudgets(newBudgets);
-    showToast("Presupuestos guardados");
+    showToast(t("budget.saved"));
     onClose();
   };
 
@@ -39,7 +41,7 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
       <div className="modal-sheet">
         <div className="modal-handle" />
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
-          Presupuestos mensuales
+          {t("budget.title")}
         </h2>
 
         {expenseCats.map((cat) => (
@@ -59,12 +61,14 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
               <i className={`fa-solid ${cat.icon}`} />
             </div>
             <div style={{ flex: 1 }}>
-              <label className="field-label">{cat.name}</label>
+              <label className="field-label">
+                {categoryName(cat.id, language)}
+              </label>
               <input
                 type="number"
                 className="input-field"
                 style={{ padding: "10px 12px", fontSize: 14, marginTop: 4 }}
-                placeholder="Sin presupuesto"
+                placeholder={t("budget.placeholder")}
                 min="0"
                 step="0.01"
                 inputMode="decimal"
@@ -82,10 +86,10 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
           style={{ marginTop: 16 }}
           onClick={handleSave}
         >
-          Guardar presupuestos
+          {t("budget.save")}
         </button>
         <button className="btn-ghost" onClick={onClose}>
-          Cancelar
+          {t("budget.cancel")}
         </button>
       </div>
     </div>

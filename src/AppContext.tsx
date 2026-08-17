@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import type {
   Transaction,
   PersistedState,
@@ -30,8 +31,10 @@ import {
 } from "./utils/transactions";
 import type { ExchangeRates } from "./utils/exchangeRates";
 import { fetchAllRates } from "./utils/exchangeRates";
+import { setLanguage as setI18nLanguage, t } from "./i18n";
 import {
   notifyRateChanges,
+  notifyBudgetAlerts,
   requestNotificationPermission,
   scheduleDebtReminders,
 } from "./utils/notifications";
@@ -56,6 +59,9 @@ interface AppContextValue extends PersistedState {
   setCurrency: (currency: string) => void;
   setShowCalculator: (show: boolean) => void;
   setShowEUR: (show: boolean) => void;
+  setShowCustomRate: (show: boolean) => void;
+  setCustomRate: (rate: number | null) => void;
+  setLanguage: (language: "es" | "en") => void;
   changeMonth: (delta: number) => void;
   setFilter: (filter: FilterType) => void;
   setCategoryFilter: (filter: string) => void;
@@ -82,7 +88,7 @@ interface AppContextValue extends PersistedState {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const RATES_REFRESH_INTERVAL = 15 * 60 * 1000;
+const RATES_REFRESH_INTERVAL = 3 * 60 * 1000;
 const RATES_MIN_FETCH_GAP = 60 * 1000;
 
 /**
@@ -103,6 +109,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     savedState.showCalculator,
   );
   const [showEUR, setShowEURState] = useState(savedState.showEUR);
+  const [showCustomRate, setShowCustomRateState] = useState(
+    savedState.showCustomRate,
+  );
+  const [customRate, setCustomRateState] = useState<number | null>(
+    savedState.customRate,
+  );
+  const [language, setLanguageState] = useState<"es" | "en">(
+    savedState.language,
+  );
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -138,10 +153,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
   const lastRatesFetchRef = useRef(0);
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
+  const latestStateRef = useRef<{
+    transactions: Transaction[];
+    budgets: Record<string, number>;
+    currency: string;
+    showCalculator: boolean;
+    showEUR: boolean;
+    showCustomRate: boolean;
+    customRate: number | null;
+    language: "es" | "en";
+  }>({ transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language });
 
   useEffect(() => {
-    saveState({ transactions, budgets, currency, showCalculator, showEUR });
-  }, [transactions, budgets, currency, showCalculator, showEUR]);
+    setI18nLanguage(language);
+  }, [language]);
+
+  useEffect(() => {
+    const state = {
+      transactions,
+      budgets,
+      currency,
+      showCalculator,
+      showEUR,
+      showCustomRate,
+      customRate,
+      language,
+    };
+    latestStateRef.current = state;
+    const timer = setTimeout(() => saveState(state), 1000);
+    return () => clearTimeout(timer);
+  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,12 +190,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const granted = await requestNotificationPermission();
       if (!granted || cancelled) return;
       scheduleDebtReminders(transactions);
+      notifyBudgetAlerts(transactions, budgets, currency);
     };
     init();
     return () => {
       cancelled = true;
     };
-  }, [transactions]);
+  }, [transactions, budgets, currency]);
 
   /**
    * Obtiene las transacciones del mes especificado.
@@ -226,6 +268,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setShowEUR = useCallback((show: boolean) => {
     setShowEURState(show);
+  }, []);
+
+  const setShowCustomRate = useCallback((show: boolean) => {
+    setShowCustomRateState(show);
+  }, []);
+
+  const setCustomRate = useCallback((rate: number | null) => {
+    setCustomRateState(rate);
+  }, []);
+
+  const setLanguage = useCallback((lang: "es" | "en") => {
+    setLanguageState(lang);
   }, []);
 
   /**
@@ -380,6 +434,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newState.currency);
     setShowCalculatorState(newState.showCalculator);
     setShowEURState(newState.showEUR);
+    setShowCustomRateState(newState.showCustomRate ?? false);
+    setCustomRateState(newState.customRate ?? null);
+    setLanguageState(newState.language === "en" ? "en" : "es");
   }, []);
 
   useEffect(() => {
@@ -415,7 +472,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         previousRatesRef.current = merged;
         if (merged.fromCache) {
           showToast(
-            "Tasas parcialmente en caché (sin conexión)",
+            t("toast.rates_cache"),
             "fa-info-circle",
             "var(--warning)",
           );
@@ -432,13 +489,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ) {
           setExchangeRates(cached);
           showToast(
-            "Usando tasas en caché (sin conexión)",
+            t("toast.rates_cached_using"),
             "fa-info-circle",
             "var(--warning)",
           );
         } else {
           showToast(
-            "No se pudieron cargar tasas (sin conexión ni caché)",
+            t("toast.rates_error"),
             "fa-exclamation-triangle",
             "var(--danger)",
           );
@@ -459,12 +516,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const listener = App.addListener("appStateChange", ({ isActive }) => {
-      if (isActive) loadRatesRef.current();
+      if (isActive) {
+        loadRatesRef.current();
+      } else {
+        saveState(latestStateRef.current);
+      }
     });
     return () => {
       listener.then((l) => l.remove());
     };
   }, []);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
+    const flush = () => saveState(latestStateRef.current);
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      (notification) => {
+        const debtId = notification.notification.extra?.debtId as
+          | string
+          | undefined;
+        if (!debtId) return;
+        navigateTo("home");
+        openTransactionModal(debtId);
+      },
+    );
+    return () => {
+      listener.then((l) => l.remove());
+    };
+  }, [navigateTo, openTransactionModal]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -473,6 +563,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currency,
       showCalculator,
       showEUR,
+      showCustomRate,
+      customRate,
+      language,
       currentPage,
       currentMonth,
       currentYear,
@@ -490,6 +583,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       setShowCalculator,
       setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
+      setLanguage,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -509,6 +605,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currency,
       showCalculator,
       showEUR,
+      showCustomRate,
+      customRate,
       currentPage,
       currentMonth,
       currentYear,
@@ -526,6 +624,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrency,
       setShowCalculator,
       setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
+      setLanguage,
       changeMonth,
       setFilter,
       setCategoryFilter,
@@ -538,6 +639,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeTransactionModal,
       importState,
       exchangeRates,
+      language,
     ],
   );
 

@@ -1,10 +1,34 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { getLanguage, t } from "../i18n";
 import type { Transaction } from "../types";
 import type { ExchangeRates } from "./exchangeRates";
+import { getCategoryById } from "./transactions";
+import { formatMoney } from "./format";
 
 const RATE_CHANGE_THRESHOLD = 0.01;
+const RATE_NOTIFY_COOLDOWN_MS = 30 * 60 * 1000;
 const DEBT_WARNING_DAYS = 7;
+const DEBT_MID_DAYS = 3;
+const BUDGET_APPROACH_THRESHOLD = 0.8;
+
+/**
+ * Genera un ID de notificación dentro del rango de int de Java
+ * (Integer.MAX_VALUE ≈ 2.147e9). El plugin rechaza IDs mayores.
+ * Usa un contador secuencial con reinicio para evitar desbordes.
+ */
+let notificationIdCounter = 1;
+function notificationId(): number {
+  const id = notificationIdCounter;
+  notificationIdCounter = notificationIdCounter >= 2000000000 ? 1 : notificationIdCounter + 1;
+  return id;
+}
+
+let lastRateNotifyAt = 0;
+let lastNotifiedRates: { bcv: number | null; parallel: number | null } | null =
+  null;
+
+let budgetNotifyAt = 0;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -33,6 +57,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 /**
  * Notifica si una tasa cambió más del umbral respecto a la anterior.
+ * Limita a una notificación por ventana de 30 minutos para no saturar.
  * @param previous Tasas previas (puede ser null la primera vez).
  * @param current Tasas recién obtenidas.
  */
@@ -41,39 +66,49 @@ export async function notifyRateChanges(
   current: ExchangeRates,
 ): Promise<void> {
   if (!isNative()) return;
+  if (Date.now() - lastRateNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
+
+  const baseline = lastNotifiedRates ?? {
+    bcv: previous?.bcv ?? null,
+    parallel: previous?.parallel ?? null,
+  };
 
   const notifications: { title: string; body: string }[] = [];
 
   if (
     current.bcv !== null &&
-    previous?.bcv !== null &&
-    previous?.bcv !== undefined &&
-    Math.abs(current.bcv - previous.bcv) / previous.bcv >= RATE_CHANGE_THRESHOLD
+    baseline.bcv !== null &&
+    Math.abs(current.bcv - baseline.bcv) / baseline.bcv >=
+      RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.bcv > previous.bcv ? "subió" : "bajó";
+    const dir = current.bcv > baseline.bcv ? t("notif.up") : t("notif.down");
     const pct = Math.abs(
-      ((current.bcv - previous.bcv) / previous.bcv) * 100,
+      ((current.bcv - baseline.bcv) / baseline.bcv) * 100,
     ).toFixed(2);
     notifications.push({
-      title: "Tasa BCV actualizada",
-      body: `El dólar oficial ${dir} a Bs. ${current.bcv.toFixed(2)} (${pct}%).`,
+      title: t("notif.bcv_title"),
+      body: t("notif.bcv_body", { dir, rate: current.bcv.toFixed(2), pct }),
     });
   }
 
   if (
     current.parallel !== null &&
-    previous?.parallel !== null &&
-    previous?.parallel !== undefined &&
-    Math.abs(current.parallel - previous.parallel) / previous.parallel >=
+    baseline.parallel !== null &&
+    Math.abs(current.parallel - baseline.parallel) / baseline.parallel >=
       RATE_CHANGE_THRESHOLD
   ) {
-    const dir = current.parallel > previous.parallel ? "subió" : "bajó";
+    const dir =
+      current.parallel > baseline.parallel ? t("notif.up") : t("notif.down");
     const pct = Math.abs(
-      ((current.parallel - previous.parallel) / previous.parallel) * 100,
+      ((current.parallel - baseline.parallel) / baseline.parallel) * 100,
     ).toFixed(2);
     notifications.push({
-      title: "Tasa paralela actualizada",
-      body: `El dólar paralelo ${dir} a Bs. ${current.parallel.toFixed(2)} (${pct}%).`,
+      title: t("notif.parallel_title"),
+      body: t("notif.parallel_body", {
+        dir,
+        rate: current.parallel.toFixed(2),
+        pct,
+      }),
     });
   }
 
@@ -82,12 +117,17 @@ export async function notifyRateChanges(
   try {
     await LocalNotifications.schedule({
       notifications: notifications.map((n) => ({
-        id: Date.now() + Math.floor(Math.random() * 10000),
+        id: notificationId(),
         title: n.title,
         body: n.body,
         schedule: { at: new Date(Date.now() + 1000) },
       })),
     });
+    lastRateNotifyAt = Date.now();
+    lastNotifiedRates = {
+      bcv: current.bcv,
+      parallel: current.parallel,
+    };
   } catch (error) {
     console.error("Error scheduling rate notification:", error);
   }
@@ -98,12 +138,35 @@ interface DebtReminder {
   title: string;
   body: string;
   schedule: { at: Date };
+  extra: Record<string, string>;
 }
 
 /**
- * Programa recordatorios para las deudas pendientes o parciales:
+ * Garantiza que el horario de una notificación sea en el futuro.
+ * Si el tiempo calculado ya pasó (ej: se abrió la app después de las
+ * 9 AM del día del recordatorio), programa para ~2 segundos para que
+ * se dispare al momento de abrir.
+ */
+function futureScheduleAt(at: Date): Date {
+  if (at.getTime() > Date.now() + 1000) return at;
+  return new Date(Date.now() + 2000);
+}
+
+function formatDebtAmount(amount: number): string {
+  const locale = getLanguage() === "en" ? "en" : "es";
+  return `Bs. ${amount.toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/**
+ * Programa recordatorios para las deudas pendientes o parciales con fecha límite:
  * - 7 días antes del vencimiento (aviso de aproximación).
+ * - 3 días antes del vencimiento.
  * - El mismo día del vencimiento.
+ * Cada notificación incluye el id de la deuda en `extra` para que al tocarla
+ * la app abra esa deuda directamente.
  * Cancela notificaciones previas de deudas para evitar duplicados.
  * @param transactions Todas las transacciones.
  */
@@ -132,46 +195,151 @@ export async function scheduleDebtReminders(
 
     if (daysUntil < 0) return;
 
-    const amountLabel = `Bs. ${debt.amount.toLocaleString("es", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    const amountLabel = formatDebtAmount(debt.amount);
     const description = debt.description;
+    const extra = { debtId: debt.id };
 
     if (daysUntil === 0) {
       reminders.push({
-        id: Date.now() + reminders.length + 1,
-        title: "Deuda por vencer hoy",
-        body: `${description} vence hoy (${amountLabel}).`,
-        schedule: { at: new Date(dueTime + 9 * 3600000) },
+        id: notificationId(),
+        title: t("notif.debt_today"),
+        body: t("notif.debt_today_body", {
+          description,
+          amount: amountLabel,
+        }),
+        schedule: { at: futureScheduleAt(new Date(dueTime + 9 * 3600000)) },
+        extra,
       });
-    } else if (daysUntil > 0 && daysUntil <= DEBT_WARNING_DAYS) {
+    } else if (daysUntil > 0 && daysUntil <= DEBT_MID_DAYS) {
       const daysText =
         daysUntil === 1
-          ? "mañana"
-          : daysUntil === DEBT_WARNING_DAYS
-            ? "en una semana"
-            : `en ${daysUntil} días`;
+          ? t("notif.tomorrow")
+          : t("notif.in_days", { count: daysUntil });
       reminders.push({
-        id: Date.now() + reminders.length + 1,
-        title: "Deuda por vencer pronto",
-        body: `${description} vence ${daysText} (${amountLabel}).`,
+        id: notificationId(),
+        title: t("notif.debt_soon"),
+        body: t("notif.debt_days_body", {
+          description,
+          days: daysText,
+          amount: amountLabel,
+        }),
         schedule: {
-          at: new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
+          at: futureScheduleAt(
+            new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
+          ),
         },
+        extra,
+      });
+    } else if (daysUntil <= DEBT_WARNING_DAYS) {
+      reminders.push({
+        id: notificationId(),
+        title: t("notif.debt_soon"),
+        body: t("notif.week_body", {
+          description,
+          amount: amountLabel,
+        }),
+        schedule: {
+          at: futureScheduleAt(
+            new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
+          ),
+        },
+        extra,
       });
     }
   });
-
-  if (reminders.length === 0) return;
 
   try {
     const pending = await LocalNotifications.getPending();
     await LocalNotifications.cancel({
       notifications: pending.notifications,
     });
+  } catch (error) {
+    console.error("Error canceling pending notifications:", error);
+    return;
+  }
+
+  if (reminders.length === 0) return;
+
+  try {
     await LocalNotifications.schedule({ notifications: reminders });
   } catch (error) {
     console.error("Error scheduling debt reminders:", error);
+  }
+}
+
+/**
+ * Notifica cuando un gasto supera (o se acerca al 80% de) un presupuesto
+ * configurado para el mes actual. Limita a una notificación por ventana
+ * de 30 minutos para no saturar.
+ * @param transactions Todas las transacciones.
+ * @param budgets Presupuestos por categoría.
+ * @param currency Símbolo de moneda.
+ */
+export async function notifyBudgetAlerts(
+  transactions: Transaction[],
+  budgets: Record<string, number>,
+  currency: string,
+): Promise<void> {
+  if (!isNative()) return;
+  if (Date.now() - budgetNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const spentByCat: Record<string, number> = {};
+  transactions.forEach((t) => {
+    if (t.type !== "expense" || !t.description) return;
+    const [, ty, tm] = t.date.split("-").map(Number);
+    if (ty === year && tm === month + 1) {
+      spentByCat[t.category] = (spentByCat[t.category] || 0) + t.amount;
+    }
+  });
+
+  const notifications: { title: string; body: string }[] = [];
+
+  Object.entries(budgets).forEach(([categoryId, budget]) => {
+    if (budget <= 0) return;
+    const spent = spentByCat[categoryId] || 0;
+    const cat = getCategoryById(categoryId);
+    const pct = spent / budget;
+
+    if (spent > budget) {
+      const over = spent - budget;
+      notifications.push({
+        title: t("notif.budget_over"),
+        body: t("notif.budget_over_body", {
+          category: cat.name,
+          over: formatMoney(over, currency),
+          budget: formatMoney(budget, currency),
+        }),
+      });
+    } else if (pct >= BUDGET_APPROACH_THRESHOLD) {
+      notifications.push({
+        title: t("notif.budget_near"),
+        body: t("notif.budget_near_body", {
+          category: cat.name,
+          spent: formatMoney(spent, currency),
+          budget: formatMoney(budget, currency),
+          pct: Math.round(pct * 100),
+        }),
+      });
+    }
+  });
+
+  if (notifications.length === 0) return;
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: notifications.map((n) => ({
+        id: notificationId(),
+        title: n.title,
+        body: n.body,
+        schedule: { at: new Date(Date.now() + 1000) },
+      })),
+    });
+    budgetNotifyAt = Date.now();
+  } catch (error) {
+    console.error("Error scheduling budget notification:", error);
   }
 }

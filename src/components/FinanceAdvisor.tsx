@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useApp } from "../AppContext";
+import { t, useI18n } from "../i18n";
 import {
   ADVISOR_QUESTIONS,
   getAnswer,
@@ -24,6 +25,7 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
     currency,
     budgets,
   } = useApp();
+  useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,11 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
 
     setMessages((prev) => [
       ...prev,
-      { id: `u-${Date.now()}`, role: "user", text: question.label },
+      {
+        id: `u-${Date.now()}`,
+        role: "user",
+        text: t(`advisor.q_${questionId}`),
+      },
     ]);
     setIsTyping(true);
     scrollToBottom();
@@ -96,13 +102,17 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
           </div>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700 }}>
-              Asistente Financiero
+              {t("advisor.title")}
             </h2>
             <p className="card-subtitle" style={{ fontSize: 12 }}>
-              Analiza tus movimientos del mes y dale consejos.
+              {t("advisor.subtitle")}
             </p>
           </div>
-          <button className="advisor-reset" onClick={reset} title="Limpiar chat">
+          <button
+            className="advisor-reset"
+            onClick={reset}
+            title={t("advisor.clear")}
+          >
             <i className="fa-solid fa-rotate-left" />
           </button>
         </div>
@@ -112,7 +122,7 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
             <div className="advisor-empty">
               <i className="fa-solid fa-comments" />
               <p style={{ fontSize: 13, color: "var(--fg-muted)" }}>
-                Selecciona una pregunta para empezar.
+                {t("advisor.start")}
               </p>
             </div>
           ) : (
@@ -152,13 +162,13 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
               disabled={isTyping}
             >
               <i className={`fa-solid ${q.icon}`} />
-              {q.label}
+              {t(`advisor.q_${q.id}`)}
             </button>
           ))}
         </div>
 
         <button className="btn-ghost" onClick={onClose}>
-          Cerrar
+          {t("advisor.close")}
         </button>
       </div>
     </div>
