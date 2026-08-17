@@ -240,7 +240,11 @@ export default function TransactionModal() {
         </h2>
 
         {/* Tipo */}
-        <div className="type-toggle" style={{ marginBottom: 16 }}>
+        <div
+          className="type-toggle"
+          id="txn-type-toggle"
+          style={{ marginBottom: 16 }}
+        >
           <button
             className={`type-btn ${transactionType === "expense" ? "active-expense" : ""}`}
             onClick={() => handleTypeChange("expense")}
