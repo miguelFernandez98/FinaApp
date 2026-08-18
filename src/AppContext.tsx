@@ -105,6 +105,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 const RATES_REFRESH_INTERVAL = 3 * 60 * 1000;
 const RATES_MIN_FETCH_GAP = 60 * 1000;
+const LOCK_TIMEOUT_MS = 12 * 60 * 60 * 1000;
 
 /**
  * Proveedor principal de contexto de la aplicación.
@@ -147,6 +148,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     savedState.hasSeenTutorial,
   );
   const [locked, setLocked] = useState(savedState.pinHash !== null);
+  const backgroundedAtRef = useRef<number | null>(null);
   const [currentPage, setCurrentPage] = useState<PageId>("home");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -604,9 +606,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const listener = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) {
         loadRatesRef.current();
+        if (
+          backgroundedAtRef.current !== null &&
+          Date.now() - backgroundedAtRef.current >= LOCK_TIMEOUT_MS
+        ) {
+          setLocked(latestStateRef.current.pinHash !== null);
+        }
+        backgroundedAtRef.current = null;
       } else {
         saveState(latestStateRef.current);
-        setLocked(latestStateRef.current.pinHash !== null);
+        backgroundedAtRef.current = Date.now();
       }
     });
     return () => {

@@ -73,7 +73,10 @@ function AppContent() {
 
   // Scroll al tope al cambiar de página
   useEffect(() => {
-    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    contentRef.current?.scrollTo({
+      top: 0,
+      behavior: document.body.classList.contains("driver-active") ? "auto" : "smooth",
+    });
   }, [currentPage, notFound]);
 
   const pages: Record<PageId, JSX.Element> = {

@@ -166,7 +166,7 @@ export function startTutorial(
         popover: {
           title: t("tutorial.step15_title"),
           description: t("tutorial.step15_body"),
-          side: "bottom",
+          side: "top",
         },
       },
       {
@@ -174,21 +174,44 @@ export function startTutorial(
         popover: {
           title: t("tutorial.step16_title"),
           description: t("tutorial.step16_body"),
-          side: "bottom",
+          side: "top",
         },
       },
     ],
     onNextClick: (_element, _step, opts) => {
       const index = opts.driver.getActiveIndex() ?? 0;
+      let delay = 0;
       if (index === 4) {
         openTransactionModal();
-        setTimeout(() => opts.driver.moveNext(), 450);
-        return;
+        delay = 450;
       }
       if (index === 5) closeTransactionModal();
       const next = STEP_PAGES[index + 1];
-      if (next) navigateTo(next);
-      opts.driver.moveNext();
+      if (next) {
+        navigateTo(next);
+        if (next !== STEP_PAGES[index] || index === 5) delay = Math.max(delay, 450);
+      }
+      if (delay > 0) setTimeout(() => opts.driver.moveNext(), delay);
+      else opts.driver.moveNext();
+    },
+    onPrevClick: (_element, _step, opts) => {
+      const index = opts.driver.getActiveIndex() ?? 0;
+      let delay = 0;
+      if (index === 5) {
+        closeTransactionModal();
+        delay = 350;
+      } else if (index === 6) {
+        openTransactionModal();
+        navigateTo("home");
+        delay = 450;
+      }
+      const prev = STEP_PAGES[index - 1];
+      if (prev && delay === 0) {
+        navigateTo(prev);
+        if (prev !== STEP_PAGES[index]) delay = 450;
+      }
+      if (delay > 0) setTimeout(() => opts.driver.movePrevious(), delay);
+      else opts.driver.movePrevious();
     },
   });
   navigateTo("home");
