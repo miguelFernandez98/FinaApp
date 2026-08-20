@@ -314,7 +314,11 @@ export const messages: Record<
     "item.paid": "Pagada",
     "item.partial": "Parcial: {paid} de {total}",
     "donut.empty_expense": "Sin gastos este mes",
+    "donut.empty_expense.body":
+      "Registra un gasto para ver su distribución por categoría.",
     "donut.empty_income": "Sin ingresos este mes",
+    "donut.empty_income.body":
+      "Registra un ingreso para ver su distribución por categoría.",
     "donut.expense": "Gastos",
     "donut.income": "Ingresos",
     "bar.income": "Ingresos",
@@ -796,7 +800,11 @@ export const messages: Record<
     "item.paid": "Paid",
     "item.partial": "Partial: {paid} of {total}",
     "donut.empty_expense": "No expenses this month",
+    "donut.empty_expense.body":
+      "Log an expense to see its breakdown by category.",
     "donut.empty_income": "No income this month",
+    "donut.empty_income.body":
+      "Log income to see its breakdown by category.",
     "donut.expense": "Expenses",
     "donut.income": "Income",
     "bar.income": "Income",
