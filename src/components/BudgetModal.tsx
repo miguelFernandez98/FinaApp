@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
+import ModalSheet from "./ModalSheet";
 
 interface BudgetModalProps {
   onClose: () => void;
@@ -32,14 +33,7 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
   };
 
   return (
-    <div
-      className="modal-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-sheet">
-        <div className="modal-handle" />
+    <ModalSheet onClose={onClose}>
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
           {t("budget.title")}
         </h2>
@@ -91,7 +85,6 @@ export default function BudgetModal({ onClose }: BudgetModalProps) {
         <button className="btn-ghost" onClick={onClose}>
           {t("budget.cancel")}
         </button>
-      </div>
-    </div>
+    </ModalSheet>
   );
 }

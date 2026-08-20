@@ -990,6 +990,7 @@ body.driver-active .content-area {
   border-radius: 4px;
   margin: 0 auto 16px;
   opacity: 0.4;
+  touch-action: none;
 }
 
 /* ===== INPUTS ===== */

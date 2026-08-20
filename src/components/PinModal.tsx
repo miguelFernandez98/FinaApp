@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { hashPin } from "../utils/pin";
+import ModalSheet from "./ModalSheet";
 
 interface PinModalProps {
   onClose: () => void;
@@ -34,14 +35,7 @@ export default function PinModal({ onClose }: PinModalProps) {
   };
 
   return (
-    <div
-      className="modal-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-sheet">
-        <div className="modal-handle" />
+    <ModalSheet onClose={onClose}>
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
           {t("lock.set_title")}
         </h2>
@@ -96,7 +90,6 @@ export default function PinModal({ onClose }: PinModalProps) {
         <button className="btn-ghost" onClick={onClose}>
           {t("goals.cancel")}
         </button>
-      </div>
-    </div>
+    </ModalSheet>
   );
 }

@@ -6,6 +6,7 @@ import {
   getAnswer,
   type AdvisorQuestionId,
 } from "../utils/analysis";
+import ModalSheet from "./ModalSheet";
 
 interface FinanceAdvisorProps {
   onClose: () => void;
@@ -87,15 +88,7 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
   };
 
   return (
-    <div
-      className="modal-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-sheet advisor-sheet">
-        <div className="modal-handle" />
-
+    <ModalSheet onClose={onClose} className="advisor-sheet">
         <div className="advisor-header">
           <div className="advisor-avatar">
             <i className="fa-solid fa-robot" />
@@ -170,7 +163,6 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
         <button className="btn-ghost" onClick={onClose}>
           {t("advisor.close")}
         </button>
-      </div>
-    </div>
+    </ModalSheet>
   );
 }

@@ -4,6 +4,7 @@ import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { generateId } from "../utils/transactions";
 import { toISODate } from "../utils/date";
+import ModalSheet from "./ModalSheet";
 
 interface GoalsModalProps {
   onClose: () => void;
@@ -61,14 +62,7 @@ export default function GoalsModal({ onClose }: GoalsModalProps) {
   };
 
   return (
-    <div
-      className="modal-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-sheet">
-        <div className="modal-handle" />
+    <ModalSheet onClose={onClose}>
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
           {t("goals.title")}
         </h2>
@@ -190,7 +184,6 @@ export default function GoalsModal({ onClose }: GoalsModalProps) {
         <button className="btn-ghost" onClick={onClose}>
           {t("goals.cancel")}
         </button>
-      </div>
-    </div>
+    </ModalSheet>
   );
 }
