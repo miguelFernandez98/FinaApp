@@ -37,6 +37,7 @@ import {
   notifyRateChanges,
   notifyBudgetAlerts,
   requestNotificationPermission,
+  ensureExactAlarmPermission,
   scheduleDebtReminders,
   scheduleBackupReminder,
   scheduleMonthlySummary,
@@ -244,6 +245,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       const granted = await requestNotificationPermission();
       if (!granted || cancelled) return;
+      await ensureExactAlarmPermission();
       await scheduleDebtReminders(transactions);
       await notifyBudgetAlerts(transactions, budgets, currency);
       await scheduleBackupReminder(lastExportAt);
@@ -606,6 +608,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const listener = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) {
         loadRatesRef.current();
+        requestNotificationPermission().then((granted) => {
+          if (!granted) return;
+          ensureExactAlarmPermission();
+          scheduleDebtReminders(latestStateRef.current.transactions);
+          scheduleBackupReminder(latestStateRef.current.lastExportAt);
+          scheduleMonthlySummary(
+            latestStateRef.current.transactions,
+            latestStateRef.current.currency,
+          );
+        });
         if (
           backgroundedAtRef.current !== null &&
           Date.now() - backgroundedAtRef.current >= LOCK_TIMEOUT_MS

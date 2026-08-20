@@ -52,11 +52,35 @@ export async function requestNotificationPermission(): Promise<boolean> {
     if (display === "granted") return true;
     if (display === "prompt" || display === "prompt-with-rationale") {
       const { display: result } = await LocalNotifications.requestPermissions();
-      return result === "granted";
+      if (result !== "granted") return false;
+    } else {
+      return false;
     }
-    return false;
   } catch (error) {
     console.error("Error requesting notification permission:", error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Verifica el permiso de alarmas exactas (Android 12+). En Android 13+
+ * viene denegado por defecto aunque esté en el manifest: sin él, las
+ * notificaciones programadas se disparan como alarmas inexactas (solo
+ * cuando la app está en segundo plano o ya se abrió). Si está denegado,
+ * abre los ajustes del sistema para que el usuario lo conceda.
+ * @returns True si las alarmas exactas están permitidas.
+ */
+export async function ensureExactAlarmPermission(): Promise<boolean> {
+  if (!isNative()) return true;
+  try {
+    const { exact_alarm } =
+      await LocalNotifications.checkExactNotificationSetting();
+    if (exact_alarm === "granted") return true;
+    await LocalNotifications.changeExactNotificationSetting();
+    return false;
+  } catch (error) {
+    console.error("Error checking exact alarm setting:", error);
     return false;
   }
 }
@@ -143,7 +167,7 @@ interface DebtReminder {
   id: number;
   title: string;
   body: string;
-  schedule: { at: Date };
+  schedule: { at: Date; allowWhileIdle?: boolean };
   extra: Record<string, string>;
 }
 
@@ -213,7 +237,10 @@ export async function scheduleDebtReminders(
           description,
           amount: amountLabel,
         }),
-        schedule: { at: futureScheduleAt(new Date(dueTime + 9 * 3600000)) },
+        schedule: {
+          at: futureScheduleAt(new Date(dueTime + 9 * 3600000)),
+          allowWhileIdle: true,
+        },
         extra,
       });
     } else if (daysUntil > 0 && daysUntil <= DEBT_MID_DAYS) {
@@ -233,6 +260,7 @@ export async function scheduleDebtReminders(
           at: futureScheduleAt(
             new Date(dueTime - daysUntil * 86400000 + 9 * 3600000),
           ),
+          allowWhileIdle: true,
         },
         extra,
       });
@@ -248,6 +276,7 @@ export async function scheduleDebtReminders(
           at: futureScheduleAt(
             new Date(dueTime - DEBT_WARNING_DAYS * 86400000 + 9 * 3600000),
           ),
+          allowWhileIdle: true,
         },
         extra,
       });
@@ -383,7 +412,7 @@ export async function scheduleBackupReminder(
           id: BACKUP_REMINDER_ID,
           title: t("notif.backup"),
           body: t("notif.backup_body", { days: daysSinceExport }),
-          schedule: { at: futureScheduleAt(next) },
+          schedule: { at: futureScheduleAt(next), allowWhileIdle: true },
         },
       ],
     });
@@ -441,7 +470,7 @@ export async function scheduleMonthlySummary(
             expense: formatMoney(expense, currency),
             balance: `${balance < 0 ? "-" : ""}${formatMoney(Math.abs(balance), currency)}`,
           }),
-          schedule: { at: futureScheduleAt(at) },
+          schedule: { at: futureScheduleAt(at), allowWhileIdle: true },
         },
       ],
     });
