@@ -790,6 +790,11 @@ export default function SettingsPage() {
 
       <footer className="footer-note">
         <p>{t("settings.storage_note")}</p>
+        <p className="footer-credit">
+          © {new Date().getFullYear()} Miguel Fernández
+          <br />
+          Full-stack Developer — Isla de Margarita, Venezuela
+        </p>
       </footer>
 
       {pinModalOpen && <PinModal onClose={() => setPinModalOpen(false)} />}

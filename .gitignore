@@ -6,3 +6,4 @@ ios
 *.local
 .playwright-mcp/
 AGENTS.md
+dev-server*.log
