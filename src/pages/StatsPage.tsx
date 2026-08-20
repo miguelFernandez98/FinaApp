@@ -239,7 +239,7 @@ export default function StatsPage() {
         </section>
 
         {/* Presupuestos */}
-        <section className="glass-card">
+        <section className="glass-card" id="stats-budgets">
           <div className="card-header">
             <h3 className="card-title">{t("stats.budgets")}</h3>
             <span
@@ -309,7 +309,7 @@ export default function StatsPage() {
       </div>
 
       {/* Top categorías */}
-      <section className="glass-card">
+      <section className="glass-card" id="stats-topcats">
         <h3 className="card-title" style={{ marginBottom: 16 }}>
           {t("stats.top_cats")}
         </h3>

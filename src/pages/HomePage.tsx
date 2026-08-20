@@ -177,6 +177,7 @@ export default function HomePage() {
         {pendingDebts.length > 0 && (
           <section
             className="glass-card"
+            id="debts-section"
             aria-label={t("home.aria.debts")}
           >
             <div className="card-header">

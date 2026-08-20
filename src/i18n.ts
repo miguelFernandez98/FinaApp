@@ -484,47 +484,59 @@ export const messages: Record<
     "tutorial.step2_title": "Balance",
     "tutorial.step2_body":
       "Este es tu balance del mes. Toca las flechas para moverte entre meses y consultar tus finanzas en el tiempo.",
-    "tutorial.step3_title": "Distribución de gastos",
+    "tutorial.step3_title": "Deudas pendientes",
     "tutorial.step3_body":
-      "Este gráfico te muestra en qué categorías gastas más. Tócalo para alternar entre gastos e ingresos.",
-    "tutorial.step4_title": "Metas de ahorro",
+      "Las deudas que registres con el tipo Deuda aparecen aquí con su fecha límite. Ábrelas para ver cuánto falta por pagar.",
+    "tutorial.step4_title": "Distribución de gastos",
     "tutorial.step4_body":
-      "Crea metas de ahorro y sigue tu progreso para alcanzar tus objetivos.",
-    "tutorial.step5_title": "Agregar movimientos",
+      "Este gráfico te muestra en qué categorías gastas más. Tócalo para alternar entre gastos e ingresos.",
+    "tutorial.step5_title": "Metas de ahorro",
     "tutorial.step5_body":
-      "Toca el botón + para abrir el registro de un nuevo movimiento. Vamos a verlo.",
-    "tutorial.step6_title": "Opciones de registro",
+      "Crea metas de ahorro y sigue tu progreso para alcanzar tus objetivos.",
+    "tutorial.step6_title": "Agregar movimientos",
     "tutorial.step6_body":
-      "Elige el tipo: Gasto, Ingreso o Deuda. Completa el monto, la categoría y la descripción, ¡y listo!",
-    "tutorial.step7_title": "Filtros de movimientos",
+      "Toca el botón + para abrir el registro de un nuevo movimiento. Vamos a verlo.",
+    "tutorial.step7_title": "Opciones de registro",
     "tutorial.step7_body":
-      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o futuros.",
-    "tutorial.step8_title": "Filtros por categoría",
+      "Elige el tipo: Gasto, Ingreso o Deuda. Los ingresos suman a tu balance, los gastos restan y las deudas se registran con fecha límite y pagos parciales.",
+    "tutorial.step8_title": "Filtros de movimientos",
     "tutorial.step8_body":
-      "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
-    "tutorial.step9_title": "Estadísticas",
+      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o futuros.",
+    "tutorial.step9_title": "Filtros por categoría",
     "tutorial.step9_body":
-      "Aquí encuentras la tendencia mensual y tus presupuestos por categoría.",
-    "tutorial.step10_title": "Asistente financiero",
+      "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
+    "tutorial.step10_title": "Búsqueda rápida",
     "tutorial.step10_body":
-      "Tu asistente con IA responde preguntas sobre tus finanzas: cómo te fue, en qué gastas más y cómo mejorar.",
-    "tutorial.step11_title": "Exportar a Excel",
+      "Toca la lupa y escribe para buscar movimientos por descripción o categoría al instante.",
+    "tutorial.step11_title": "Tendencia mensual",
     "tutorial.step11_body":
-      "Exporta los movimientos del mes a un archivo CSV que puedes abrir en Excel, Sheets o cualquier hoja de cálculo.",
-    "tutorial.step12_title": "Comparativa mensual",
+      "El gráfico de barras muestra tus ingresos y gastos de los últimos meses para ver la tendencia.",
+    "tutorial.step12_title": "Presupuestos",
     "tutorial.step12_body":
-      "Compara ingresos, gastos y balance con el mes anterior. Verde es bueno, rojo es malo.",
-    "tutorial.step13_title": "Tasas de cambio",
+      "Define un límite de gasto por categoría con Editar. La app te avisa cuando te acercas o superas el límite.",
+    "tutorial.step13_title": "Top gastos del mes",
     "tutorial.step13_body":
-      "Consulta las tasas del dólar (paralelo y BCV) y del euro, actualizadas automáticamente, o define una tasa personalizada.",
-    "tutorial.step14_title": "Idioma",
+      "Las 5 categorías donde más gastaste este mes, con su porcentaje del total. Ideal para detectar fugas de dinero.",
+    "tutorial.step14_title": "Asistente financiero",
     "tutorial.step14_body":
-      "Cambia el idioma de la app entre español e inglés cuando quieras.",
-    "tutorial.step15_title": "Seguridad",
+      "Tu asistente con IA responde preguntas sobre tus finanzas: cómo te fue, en qué gastas más y cómo mejorar.",
+    "tutorial.step15_title": "Exportar a Excel",
     "tutorial.step15_body":
-      "Protege tu app con un PIN o tu huella, y gestiona tus datos desde aquí.",
-    "tutorial.step16_title": "Respaldo local",
+      "Exporta los movimientos del mes a un archivo CSV que puedes abrir en Excel, Sheets o cualquier hoja de cálculo.",
+    "tutorial.step16_title": "Comparativa mensual",
     "tutorial.step16_body":
+      "Compara ingresos, gastos y balance con el mes anterior. Verde es bueno, rojo es malo.",
+    "tutorial.step17_title": "Tasas de cambio",
+    "tutorial.step17_body":
+      "Consulta las tasas del dólar (paralelo y BCV) y del euro, actualizadas automáticamente, o define una tasa personalizada.",
+    "tutorial.step18_title": "Idioma",
+    "tutorial.step18_body":
+      "Cambia el idioma de la app entre español e inglés cuando quieras.",
+    "tutorial.step19_title": "Seguridad",
+    "tutorial.step19_body":
+      "Protege tu app con un PIN o tu huella, y gestiona tus datos desde aquí.",
+    "tutorial.step20_title": "Respaldo local",
+    "tutorial.step20_body":
       "Todo se guarda solo en tu dispositivo: no hay servidores. Exporta o importa un respaldo JSON para cuidar tus datos.",
     "tutorial.next": "Siguiente",
     "tutorial.previous": "Anterior",
@@ -971,47 +983,59 @@ export const messages: Record<
     "tutorial.step2_title": "Balance",
     "tutorial.step2_body":
       "This is your month's balance. Use the arrows to move between months and check your finances over time.",
-    "tutorial.step3_title": "Expense breakdown",
+    "tutorial.step3_title": "Pending debts",
     "tutorial.step3_body":
-      "This chart shows which categories you spend the most on. Tap it to switch between expenses and income.",
-    "tutorial.step4_title": "Savings goals",
+      "Debts you record with the Debt type appear here with their due date. Open them to see how much is left to pay.",
+    "tutorial.step4_title": "Expense breakdown",
     "tutorial.step4_body":
-      "Create savings goals and track your progress to reach your targets.",
-    "tutorial.step5_title": "Add movements",
+      "This chart shows which categories you spend the most on. Tap it to switch between expenses and income.",
+    "tutorial.step5_title": "Savings goals",
     "tutorial.step5_body":
-      "Tap the + button to open the form for a new movement. Let's take a look.",
-    "tutorial.step6_title": "Registration options",
+      "Create savings goals and track your progress to reach your targets.",
+    "tutorial.step6_title": "Add movements",
     "tutorial.step6_body":
-      "Choose the type: Expense, Income or Debt. Fill in the amount, category and description, and you're done!",
-    "tutorial.step7_title": "Movement filters",
+      "Tap the + button to open the form for a new movement. Let's take a look.",
+    "tutorial.step7_title": "Registration options",
     "tutorial.step7_body":
-      "In this tab you can filter your movements by type: all, expenses, income, debts or future.",
-    "tutorial.step8_title": "Category filters",
+      "Choose the type: Expense, Income or Debt. Income adds to your balance, expenses subtract, and debts are tracked with a due date and partial payments.",
+    "tutorial.step8_title": "Movement filters",
     "tutorial.step8_body":
-      "You can also filter by category to quickly find what you're looking for.",
-    "tutorial.step9_title": "Stats",
+      "In this tab you can filter your movements by type: all, expenses, income, debts or future.",
+    "tutorial.step9_title": "Category filters",
     "tutorial.step9_body":
-      "Here you'll find the monthly trend and your category budgets.",
-    "tutorial.step10_title": "Financial assistant",
+      "You can also filter by category to quickly find what you're looking for.",
+    "tutorial.step10_title": "Quick search",
     "tutorial.step10_body":
-      "Your AI assistant answers questions about your finances: how you did, where you spend the most and how to improve.",
-    "tutorial.step11_title": "Export to Excel",
+      "Tap the magnifier and type to find movements by description or category instantly.",
+    "tutorial.step11_title": "Monthly trend",
     "tutorial.step11_body":
-      "Export the month's movements to a CSV file you can open in Excel, Sheets or any spreadsheet.",
-    "tutorial.step12_title": "Monthly comparison",
+      "The bar chart shows your income and expenses over the last months to see the trend.",
+    "tutorial.step12_title": "Budgets",
     "tutorial.step12_body":
-      "Compare income, expenses and balance with the previous month. Green is good, red is bad.",
-    "tutorial.step13_title": "Exchange rates",
+      "Set a spending limit per category with Edit. The app warns you when you're close to or over the limit.",
+    "tutorial.step13_title": "Top monthly expenses",
     "tutorial.step13_body":
-      "Check dollar rates (parallel and BCV) and the euro, updated automatically, or set a custom rate.",
-    "tutorial.step14_title": "Language",
+      "The 5 categories where you spent the most this month, with their share of the total. Ideal for spotting money leaks.",
+    "tutorial.step14_title": "Financial assistant",
     "tutorial.step14_body":
-      "Switch the app language between Spanish and English whenever you want.",
-    "tutorial.step15_title": "Security",
+      "Your AI assistant answers questions about your finances: how you did, where you spend the most and how to improve.",
+    "tutorial.step15_title": "Export to Excel",
     "tutorial.step15_body":
-      "Protect your app with a PIN or your fingerprint, and manage your data from here.",
-    "tutorial.step16_title": "Local backup",
+      "Export the month's movements to a CSV file you can open in Excel, Sheets or any spreadsheet.",
+    "tutorial.step16_title": "Monthly comparison",
     "tutorial.step16_body":
+      "Compare income, expenses and balance with the previous month. Green is good, red is bad.",
+    "tutorial.step17_title": "Exchange rates",
+    "tutorial.step17_body":
+      "Check dollar rates (parallel and BCV) and the euro, updated automatically, or set a custom rate.",
+    "tutorial.step18_title": "Language",
+    "tutorial.step18_body":
+      "Switch the app language between Spanish and English whenever you want.",
+    "tutorial.step19_title": "Security",
+    "tutorial.step19_body":
+      "Protect your app with a PIN or your fingerprint, and manage your data from here.",
+    "tutorial.step20_title": "Local backup",
+    "tutorial.step20_body":
       "Everything is stored only on your device: no servers. Export or import a JSON backup to keep your data safe.",
     "tutorial.next": "Next",
     "tutorial.previous": "Previous",

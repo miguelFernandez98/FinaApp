@@ -111,6 +111,7 @@ export default function TransactionsPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             className={`sort-btn ${searchOpen ? "active" : ""}`}
+            id="txn-search-btn"
             onClick={() => {
               if (searchOpen) setSearchQuery("");
               setSearchOpen((prev) => !prev);
