@@ -107,14 +107,54 @@ export async function fetchBinanceRate(): Promise<number | null> {
   return null;
 }
 
+const BINANCE_PRICE_URL = "https://www.binance.com/es-LA/price/tether/VES";
+
+/**
+ * Intenta obtener la tasa USDT/VES desde la página de precio de Binance.
+ * Es una alternativa secundaria: si la página está protegida (WAF) o el
+ * HTML no contiene un precio parseable, retorna null y el flujo actual
+ * (yadio/dolarapi) sigue como respaldo.
+ */
+export async function fetchBinancePricePageRate(): Promise<number | null> {
+  try {
+    const response = await fetchWithTimeout(BINANCE_PRICE_URL, {
+      headers: { Accept: "text/html" },
+    });
+    const html = await response.text();
+
+    if (!html || html.includes("awsWaf") || html.includes("challenge.js")) {
+      return null;
+    }
+
+    const patterns = [
+      /"price"\s*:\s*"?([\d.]+)"?/,
+      /(\d{2,5}\.\d{1,4})\s*VES/,
+    ];
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        const price = parseFloat(match[1]);
+        if (Number.isFinite(price) && price > 1 && price < 100000) {
+          return price;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error scraping Binance price page:", error);
+  }
+  return null;
+}
+
 export async function fetchParallelRate(): Promise<number | null> {
-  const [binance, yadio, dolarapi] = await Promise.all([
+  const [binance, pricePage, yadio, dolarapi] = await Promise.all([
     fetchBinanceRate(),
+    fetchBinancePricePageRate(),
     fetchYadioRate(),
     fetchDolarApiParallelRate(),
   ]);
 
   if (binance !== null) return binance;
+  if (pricePage !== null) return pricePage;
   const rates = [yadio, dolarapi].filter(
     (value): value is number => value !== null,
   );
