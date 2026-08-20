@@ -39,11 +39,10 @@ function AppContent() {
   // Tutorial de bienvenida en la primera apertura (o al desbloquear)
   useEffect(() => {
     if (hasSeenTutorial || locked || pinHash) return;
-    setHasSeenTutorial(true);
-    const timer = setTimeout(
-      () => startTutorial(navigateTo, openTransactionModal, closeTransactionModal),
-      700,
-    );
+    const timer = setTimeout(() => {
+      setHasSeenTutorial(true);
+      startTutorial(navigateTo, openTransactionModal, closeTransactionModal);
+    }, 700);
     return () => clearTimeout(timer);
   }, [
     hasSeenTutorial,

@@ -526,6 +526,9 @@ export const messages: Record<
     "tutorial.step16_title": "Respaldo local",
     "tutorial.step16_body":
       "Todo se guarda solo en tu dispositivo: no hay servidores. Exporta o importa un respaldo JSON para cuidar tus datos.",
+    "tutorial.next": "Siguiente",
+    "tutorial.previous": "Anterior",
+    "tutorial.done": "Finalizar",
 
     // Toast (contexto)
     "toast.rates_cache": "Tasas parcialmente en caché (sin conexión)",
@@ -1010,6 +1013,9 @@ export const messages: Record<
     "tutorial.step16_title": "Local backup",
     "tutorial.step16_body":
       "Everything is stored only on your device: no servers. Export or import a JSON backup to keep your data safe.",
+    "tutorial.next": "Next",
+    "tutorial.previous": "Previous",
+    "tutorial.done": "Finish",
 
     "toast.rates_cache": "Rates partially cached (offline)",
     "toast.rates_cached_using": "Using cached rates (offline)",
