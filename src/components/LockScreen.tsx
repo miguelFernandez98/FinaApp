@@ -14,13 +14,14 @@ export default function LockScreen() {
   const [bioAvailable, setBioAvailable] = useState(false);
   const bioAttemptedRef = useRef(false);
 
-  const handleBiometric = async () => {
+  const attemptBio = async (retryMs?: number) => {
     if (!bioAvailable) return;
     try {
       await NativeBiometric.verifyIdentity({
         title: t("settings.app_name"),
         subtitle: t("lock.subtitle"),
         description: t("lock.subtitle"),
+        maxAttempts: 5,
       });
       unlock();
       showToast(t("lock.unlocked"), "fa-lock-open");
@@ -28,6 +29,14 @@ export default function LockScreen() {
       const message = String(err);
       if (message.includes("cancel") || message.includes("fallback")) {
         // El usuario canceló: queda en la pantalla para ingresar el PIN.
+      } else if (retryMs && retryMs > 0) {
+        bioAttemptedRef.current = false;
+        setTimeout(() => {
+          if (!bioAttemptedRef.current) {
+            bioAttemptedRef.current = true;
+            attemptBio(0);
+          }
+        }, retryMs);
       } else {
         setError(true);
       }
@@ -55,7 +64,7 @@ export default function LockScreen() {
   useEffect(() => {
     if (!bioAvailable || bioAttemptedRef.current) return;
     bioAttemptedRef.current = true;
-    const timer = setTimeout(handleBiometric, 600);
+    const timer = setTimeout(() => attemptBio(1000), 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bioAvailable]);
@@ -106,7 +115,7 @@ export default function LockScreen() {
       {error && <p className="pin-error">{t("lock.error")}</p>}
 
       {bioAvailable && (
-        <button className="btn-bio" onClick={handleBiometric}>
+        <button className="btn-bio" onClick={() => attemptBio()}>
           <i className="fa-solid fa-fingerprint" />
           {t("lock.biometric")}
         </button>

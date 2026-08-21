@@ -41,6 +41,20 @@ function isNative(): boolean {
 }
 
 /**
+ * Verifica si el permiso de notificaciones está concedido sin solicitarlo.
+ * @returns True si los permisos están concedidos.
+ */
+export async function checkNotificationPermission(): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    return display === "granted";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Solicita el permiso de notificaciones en la plataforma nativa.
  * No hace nada en navegador.
  * @returns True si los permisos están concedidos.
@@ -78,7 +92,9 @@ export async function ensureExactAlarmPermission(): Promise<boolean> {
       await LocalNotifications.checkExactNotificationSetting();
     if (exact_alarm === "granted") return true;
     await LocalNotifications.changeExactNotificationSetting();
-    return false;
+    const recheck =
+      await LocalNotifications.checkExactNotificationSetting();
+    return recheck.exact_alarm === "granted";
   } catch (error) {
     console.error("Error checking exact alarm setting:", error);
     return false;
@@ -285,12 +301,14 @@ export async function scheduleDebtReminders(
 
   try {
     const pending = await LocalNotifications.getPending();
-    await LocalNotifications.cancel({
-      notifications: pending.notifications,
-    });
+    const debtIds = pending.notifications
+      .filter((n) => n.extra?.debtId)
+      .map((n) => ({ id: n.id }));
+    if (debtIds.length > 0) {
+      await LocalNotifications.cancel({ notifications: debtIds });
+    }
   } catch (error) {
-    console.error("Error canceling pending notifications:", error);
-    return;
+    console.error("Error canceling pending debt notifications:", error);
   }
 
   if (reminders.length === 0) return;

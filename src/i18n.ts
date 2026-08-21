@@ -207,6 +207,11 @@ export const messages: Record<
       "Desbloquea con huella o reconocimiento facial en este dispositivo.",
     "settings.biometric_unsupported":
       "La biometría no está disponible en este dispositivo",
+    "settings.notifications": "Notificaciones",
+    "settings.notifications_hint":
+      "Recibe alertas de tasas, presupuestos y vencimiento de deudas.",
+    "settings.notifications_off":
+      "Las notificaciones están desactivadas en tu dispositivo. Actívalas en la configuración del sistema.",
     "settings.pin_confirm.body":
       "Se desactivará el bloqueo por PIN y la biometría de tu app.",
     "settings.tutorial": "Ver tutorial",
@@ -712,6 +717,11 @@ export const messages: Record<
       "Unlock with fingerprint or face recognition on this device.",
     "settings.biometric_unsupported":
       "Biometrics are not available on this device",
+    "settings.notifications": "Notifications",
+    "settings.notifications_hint":
+      "Receive alerts for rates, budgets, and debt due dates.",
+    "settings.notifications_off":
+      "Notifications are disabled on your device. Enable them in system settings.",
     "settings.pin_confirm.body":
       "The PIN lock and biometrics of your app will be disabled.",
     "settings.tutorial": "View tutorial",

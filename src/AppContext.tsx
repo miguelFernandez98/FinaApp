@@ -36,7 +36,7 @@ import { setLanguage as setI18nLanguage, t } from "./i18n";
 import {
   notifyRateChanges,
   notifyBudgetAlerts,
-  requestNotificationPermission,
+  checkNotificationPermission,
   ensureExactAlarmPermission,
   scheduleDebtReminders,
   scheduleBackupReminder,
@@ -243,7 +243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     const init = async () => {
-      const granted = await requestNotificationPermission();
+      const granted = await checkNotificationPermission();
       if (!granted || cancelled) return;
       await ensureExactAlarmPermission();
       await scheduleDebtReminders(transactions);
@@ -608,7 +608,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const listener = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) {
         loadRatesRef.current();
-        requestNotificationPermission().then((granted) => {
+        checkNotificationPermission().then((granted) => {
           if (!granted) return;
           ensureExactAlarmPermission();
           scheduleDebtReminders(latestStateRef.current.transactions);

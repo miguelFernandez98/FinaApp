@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -8,6 +8,10 @@ import { t, useI18n } from "../i18n";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import { startTutorial } from "../utils/tutorial";
+import {
+  checkNotificationPermission,
+  requestNotificationPermission,
+} from "../utils/notifications";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
@@ -63,6 +67,40 @@ export default function SettingsPage() {
   const [ratesOpen, setRatesOpen] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifBusy, setNotifBusy] = useState(false);
+
+  useEffect(() => {
+    checkNotificationPermission().then(setNotificationsEnabled);
+  }, []);
+
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (notifBusy) return;
+    if (!Capacitor.isNativePlatform()) return;
+    setNotifBusy(true);
+    try {
+      if (checked) {
+        const granted = await requestNotificationPermission();
+        setNotificationsEnabled(granted);
+        if (!granted) {
+          showToast(
+            t("settings.notifications_off"),
+            "fa-circle-exclamation",
+            "var(--warning)",
+          );
+        }
+      } else {
+        setNotificationsEnabled(false);
+        showToast(
+          t("settings.notifications_off"),
+          "fa-info-circle",
+          "var(--fg-muted)",
+        );
+      }
+    } finally {
+      setNotifBusy(false);
+    }
+  };
 
   const handleCurrencyChange = (value: string) => {
     setCurrency(value);
@@ -710,6 +748,20 @@ export default function SettingsPage() {
           </label>
         </div>
         <p className="settingsTextDescription">{t("settings.biometric_hint")}</p>
+
+        <div className="menu-item" style={{ cursor: "pointer" }}>
+          <i className="fa-solid fa-bell menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.notifications")}</span>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={notificationsEnabled}
+              onChange={(e) => handleNotificationToggle(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <p className="settingsTextDescription">{t("settings.notifications_hint")}</p>
       </section>
 
       {/* Ayuda */}
