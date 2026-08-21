@@ -65,6 +65,7 @@ export default function SettingsPage() {
     customRate !== null ? String(customRate) : "",
   );
   const [ratesOpen, setRatesOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [bioBusy, setBioBusy] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -717,51 +718,68 @@ export default function SettingsPage() {
         id="settings-security"
         style={{ marginBottom: 12 }}
       >
-        <div className="menu-item" style={{ cursor: "pointer" }}>
-          <i className="fa-solid fa-lock menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.pin_lock")}</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={pinHash !== null}
-              onChange={(e) => handlePinToggle(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <p className="settingsTextDescription">{t("settings.pin_hint")}</p>
-
         <div
           className="menu-item"
-          style={{ cursor: "pointer", opacity: pinHash ? 1 : 0.4 }}
+          style={{ cursor: "pointer" }}
+          onClick={() => setSecurityOpen((prev) => !prev)}
         >
-          <i className="fa-solid fa-fingerprint menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.biometric")}</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={useBiometrics}
-              disabled={pinHash === null}
-              onChange={(e) => handleBiometricToggle(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <i className="fa-solid fa-shield-halved menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.security")}</span>
+          <i
+            className={`fa-solid fa-chevron-down ${securityOpen ? "rotate-180" : ""}`}
+            style={{ fontSize: 12, color: "var(--fg-muted)", transition: "transform 0.25s" }}
+          />
         </div>
-        <p className="settingsTextDescription">{t("settings.biometric_hint")}</p>
 
-        <div className="menu-item" style={{ cursor: "pointer" }}>
-          <i className="fa-solid fa-bell menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.notifications")}</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={notificationsEnabled}
-              onChange={(e) => handleNotificationToggle(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <p className="settingsTextDescription">{t("settings.notifications_hint")}</p>
+        {securityOpen && (
+          <div style={{ paddingBottom: 8 }}>
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-lock menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.pin_lock")}</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={pinHash !== null}
+                  onChange={(e) => handlePinToggle(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <p className="settingsTextDescription">{t("settings.pin_hint")}</p>
+
+            <div
+              className="menu-item"
+              style={{ cursor: "pointer", opacity: pinHash ? 1 : 0.4 }}
+            >
+              <i className="fa-solid fa-fingerprint menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.biometric")}</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={useBiometrics}
+                  disabled={pinHash === null}
+                  onChange={(e) => handleBiometricToggle(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <p className="settingsTextDescription">{t("settings.biometric_hint")}</p>
+
+            <div className="menu-item" style={{ cursor: "pointer" }}>
+              <i className="fa-solid fa-bell menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.notifications")}</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={notificationsEnabled}
+                  onChange={(e) => handleNotificationToggle(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <p className="settingsTextDescription">{t("settings.notifications_hint")}</p>
+          </div>
+        )}
       </section>
 
       {/* Ayuda */}

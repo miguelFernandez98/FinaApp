@@ -107,7 +107,7 @@ export const messages: Record<
     "tx.expense": "Gastos",
     "tx.income": "Ingresos",
     "tx.debt": "Deudas",
-    "tx.future": "Futuros",
+    "tx.future": "Constantes",
     "tx.all_cats": "Todas",
     "tx.clear_filters": "Limpiar filtros",
     "tx.search": "Buscar por descripción o categoría",
@@ -116,7 +116,7 @@ export const messages: Record<
     "tx.sort_newest_first": "Ordenar de más nuevo a más antiguo",
     "tx.sort_oldest_first": "Ordenar de más antiguo a más nuevo",
     "tx.clear_search": "Limpiar búsqueda",
-    "tx.future_empty": "No hay movimientos futuros",
+    "tx.future_empty": "No hay movimientos constantes",
     "tx.future_empty.body":
       "Las transacciones con fecha posterior al mes actual aparecerán aquí.",
     "tx.filter_empty": "Sin resultados para este filtro",
@@ -506,7 +506,7 @@ export const messages: Record<
       "Elige el tipo: Gasto, Ingreso o Deuda. Los ingresos suman a tu balance, los gastos restan y las deudas se registran con fecha límite y pagos parciales.",
     "tutorial.step8_title": "Filtros de movimientos",
     "tutorial.step8_body":
-      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o futuros.",
+      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o constantes.",
     "tutorial.step9_title": "Filtros por categoría",
     "tutorial.step9_body":
       "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
@@ -619,7 +619,7 @@ export const messages: Record<
     "tx.expense": "Expenses",
     "tx.income": "Income",
     "tx.debt": "Debts",
-    "tx.future": "Future",
+    "tx.future": "Constants",
     "tx.all_cats": "All",
     "tx.clear_filters": "Clear filters",
     "tx.search": "Search by description or category",
@@ -628,7 +628,7 @@ export const messages: Record<
     "tx.sort_newest_first": "Sort newest to oldest",
     "tx.sort_oldest_first": "Sort oldest to newest",
     "tx.clear_search": "Clear search",
-    "tx.future_empty": "No future movements",
+    "tx.future_empty": "No constant movements",
     "tx.future_empty.body":
       "Transactions dated after the current month will appear here.",
     "tx.filter_empty": "No results for this filter",
@@ -1010,7 +1010,7 @@ export const messages: Record<
       "Choose the type: Expense, Income or Debt. Income adds to your balance, expenses subtract, and debts are tracked with a due date and partial payments.",
     "tutorial.step8_title": "Movement filters",
     "tutorial.step8_body":
-      "In this tab you can filter your movements by type: all, expenses, income, debts or future.",
+      "In this tab you can filter your movements by type: all, expenses, income, debts or constants.",
     "tutorial.step9_title": "Category filters",
     "tutorial.step9_body":
       "You can also filter by category to quickly find what you're looking for.",
