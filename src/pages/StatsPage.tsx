@@ -59,6 +59,40 @@ export default function StatsPage() {
   );
   const balance = income - expense;
 
+  // Comparativa vs mes anterior
+  const prevComparison = useMemo(() => {
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth < 0) {
+      prevMonth = 11;
+      prevYear -= 1;
+    }
+    const prevTxns = getMonthTransactions(prevMonth, prevYear);
+    const prevIncome = prevTxns
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount, 0);
+    const prevExpense = prevTxns
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + t.amount, 0);
+    if (prevIncome <= 0 && prevExpense <= 0) return null;
+
+    const pct = (cur: number, prev: number) =>
+      prev > 0 ? ((cur - prev) / prev) * 100 : cur > 0 ? 100 : 0;
+    return {
+      income: { value: income, prev: prevIncome, pct: pct(income, prevIncome) },
+      expense: {
+        value: expense,
+        prev: prevExpense,
+        pct: pct(expense, prevExpense),
+      },
+      balance: {
+        value: balance,
+        prev: prevIncome - prevExpense,
+        pct: pct(balance, prevIncome - prevExpense),
+      },
+    };
+  }, [getMonthTransactions, currentMonth, currentYear, income, expense, balance]);
+
   // Top categorías
   const topCats = useMemo(() => {
     const expenses = visibleTransactions.filter((t) => t.type === "expense");
@@ -103,6 +137,7 @@ export default function StatsPage() {
           {/* Boton Asistente */}
           <button
             className="sort-btn advisor"
+            id="stats-advisor"
             onClick={() => setAdvisorOpen(true)}
             aria-label={t("stats.advisor")}
             title={t("stats.advisor")}
@@ -112,6 +147,7 @@ export default function StatsPage() {
           {/* Boton exportar reporte */}
           <button
             className="sort-btn"
+            id="stats-export"
             onClick={handleExport}
             aria-label={t("stats.export")}
             title={t("stats.export")}
@@ -124,27 +160,69 @@ export default function StatsPage() {
       {/* Selector de mes */}
       <MonthSelector />
 
-      {/* Resumen */}
-      <section className="glass-card" style={{ marginBottom: 20 }}>
-        <div className="stats-grid">
-          <div className="stat-mini">
-            <div className="stat-value" style={{ color: "var(--accent)" }}>
+      {/* Comparativa vs mes anterior */}
+      <section
+        className="glass-card"
+        id="stats-compare"
+        style={{ marginBottom: 20 }}
+      >
+        <div className="card-header" style={{ marginBottom: 12 }}>
+          <h3 className="card-title">{t("stats.compare")}</h3>
+        </div>
+        <div className="compare-grid">
+          <div className="compare-item">
+            <span className="compare-label">{t("stats.compare_income")}</span>
+            <span className="compare-value" style={{ color: "var(--success)" }}>
+              {formatMoney(income, currency)}
+            </span>
+            {prevComparison && (
+              <span
+                className={`compare-delta ${
+                  prevComparison.income.pct > 0 ? "up" : "down"
+                }`}
+              >
+                {prevComparison.income.pct > 0 ? "+" : ""}
+                {prevComparison.income.pct.toFixed(0)}%
+              </span>
+            )}
+          </div>
+          <div className="compare-item">
+            <span className="compare-label">{t("stats.compare_expense")}</span>
+            <span className="compare-value" style={{ color: "var(--danger)" }}>
+              {formatMoney(expense, currency)}
+            </span>
+            {prevComparison && (
+              <span
+                className={`compare-delta ${
+                  -prevComparison.expense.pct > 0 ? "up" : "down"
+                }`}
+              >
+                {-prevComparison.expense.pct > 0 ? "+" : ""}
+                {(-prevComparison.expense.pct).toFixed(0)}%
+              </span>
+            )}
+          </div>
+          <div className="compare-item">
+            <span className="compare-label">{t("stats.compare_balance")}</span>
+            <span
+              className="compare-value"
+              style={{
+                color: balance >= 0 ? "var(--accent)" : "var(--danger)",
+              }}
+            >
               {balance < 0 ? "-" : ""}
               {formatMoney(balance, currency)}
-            </div>
-            <div className="stat-label">{t("stats.balance")}</div>
-          </div>
-          <div className="stat-mini">
-            <div className="stat-value" style={{ color: "var(--success)" }}>
-              {formatMoney(income, currency)}
-            </div>
-            <div className="stat-label">{t("stats.income")}</div>
-          </div>
-          <div className="stat-mini">
-            <div className="stat-value" style={{ color: "var(--danger)" }}>
-              {formatMoney(expense, currency)}
-            </div>
-            <div className="stat-label">{t("stats.expense")}</div>
+            </span>
+            {prevComparison && (
+              <span
+                className={`compare-delta ${
+                  prevComparison.balance.pct > 0 ? "up" : "down"
+                }`}
+              >
+                {prevComparison.balance.pct > 0 ? "+" : ""}
+                {prevComparison.balance.pct.toFixed(0)}%
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -161,7 +239,7 @@ export default function StatsPage() {
         </section>
 
         {/* Presupuestos */}
-        <section className="glass-card">
+        <section className="glass-card" id="stats-budgets">
           <div className="card-header">
             <h3 className="card-title">{t("stats.budgets")}</h3>
             <span
@@ -231,7 +309,7 @@ export default function StatsPage() {
       </div>
 
       {/* Top categorías */}
-      <section className="glass-card">
+      <section className="glass-card" id="stats-topcats">
         <h3 className="card-title" style={{ marginBottom: 16 }}>
           {t("stats.top_cats")}
         </h3>

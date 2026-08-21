@@ -76,12 +76,17 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
 
   if (!chartData.length) {
     return (
-      <div className="empty-state">
+      <div className="empty-state" style={{ padding: "24px 16px" }}>
         <i className="fa-solid fa-chart-pie" />
-        <p style={{ fontSize: 13 }}>
+        <div className="empty-state-title">
           {type === "expense"
             ? t("donut.empty_expense")
             : t("donut.empty_income")}
+        </div>
+        <p>
+          {type === "expense"
+            ? t("donut.empty_expense.body")
+            : t("donut.empty_income.body")}
         </p>
       </div>
     );

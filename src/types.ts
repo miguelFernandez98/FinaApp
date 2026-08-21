@@ -29,6 +29,14 @@ export interface Category {
   hidden?: boolean;
 }
 
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  target: number;
+  saved: number;
+  deadline?: string;
+}
+
 export interface PersistedState {
   transactions: Transaction[];
   budgets: Record<string, number>;
@@ -38,6 +46,11 @@ export interface PersistedState {
   showCustomRate: boolean;
   customRate: number | null;
   language: "es" | "en";
+  pinHash: string | null;
+  useBiometrics: boolean;
+  goals: SavingsGoal[];
+  lastExportAt: number | null;
+  hasSeenTutorial: boolean;
 }
 
 export interface ToastState {

@@ -5,6 +5,7 @@ import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
+import ModalSheet from "./ModalSheet";
 
 export default function TransactionModal() {
   const {
@@ -226,21 +227,17 @@ export default function TransactionModal() {
   };
 
   return (
-    <div
-      className="modal-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-sheet">
-        <div className="modal-handle" />
-
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
+    <ModalSheet onClose={onClose}>
+      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>
           {editingId ? t("modal.edit") : t("modal.new")}
         </h2>
 
         {/* Tipo */}
-        <div className="type-toggle" style={{ marginBottom: 16 }}>
+        <div
+          className="type-toggle"
+          id="txn-type-toggle"
+          style={{ marginBottom: 16 }}
+        >
           <button
             className={`type-btn ${transactionType === "expense" ? "active-expense" : ""}`}
             onClick={() => handleTypeChange("expense")}
@@ -466,7 +463,6 @@ export default function TransactionModal() {
         <button className="btn-ghost" onClick={onClose}>
           {t("modal.cancel")}
         </button>
-      </div>
-    </div>
+    </ModalSheet>
   );
 }

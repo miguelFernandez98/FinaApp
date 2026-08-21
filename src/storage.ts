@@ -13,6 +13,11 @@ const DEFAULT_STATE: PersistedState = {
   showCustomRate: false,
   customRate: null,
   language: "es",
+  pinHash: null,
+  useBiometrics: false,
+  goals: [],
+  lastExportAt: null,
+  hasSeenTutorial: false,
 };
 
 /**
@@ -37,6 +42,15 @@ export function loadState(): PersistedState {
             ? parsed.customRate
             : null,
         language: parsed.language === "en" ? "en" : "es",
+        pinHash:
+          typeof parsed.pinHash === "string" && parsed.pinHash
+            ? parsed.pinHash
+            : null,
+        useBiometrics: parsed.useBiometrics ?? false,
+        goals: Array.isArray(parsed.goals) ? parsed.goals : [],
+        lastExportAt:
+          typeof parsed.lastExportAt === "number" ? parsed.lastExportAt : null,
+        hasSeenTutorial: parsed.hasSeenTutorial ?? false,
       };
     }
   } catch (e) {
@@ -62,6 +76,11 @@ export function saveState(state: PersistedState): void {
         showCustomRate: state.showCustomRate,
         customRate: state.customRate,
         language: state.language,
+        pinHash: state.pinHash,
+        useBiometrics: state.useBiometrics,
+        goals: state.goals,
+        lastExportAt: state.lastExportAt,
+        hasSeenTutorial: state.hasSeenTutorial,
       }),
     );
   } catch (e) {

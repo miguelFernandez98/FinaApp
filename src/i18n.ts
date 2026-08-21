@@ -90,6 +90,13 @@ export const messages: Record<
     "home.aria.debts": "Deudas pendientes",
     "home.aria.chart": "Distribución por categoría",
     "home.aria.recent": "Movimientos recientes",
+    "home.goals": "Metas de ahorro",
+    "home.goals_manage": "Gestionar",
+    "home.goals_empty": "Sin metas de ahorro",
+    "home.goals_empty.body":
+      "Crea una meta para seguir tu progreso y alcanzar tus objetivos.",
+    "home.goals_deadline": "Límite: {date}",
+    "home.goals_completed": "¡Meta alcanzada!",
     "greeting.morning": "Buenos días",
     "greeting.afternoon": "Buenas tardes",
     "greeting.evening": "Buenas noches",
@@ -100,7 +107,7 @@ export const messages: Record<
     "tx.expense": "Gastos",
     "tx.income": "Ingresos",
     "tx.debt": "Deudas",
-    "tx.future": "Futuros",
+    "tx.future": "Constantes",
     "tx.all_cats": "Todas",
     "tx.clear_filters": "Limpiar filtros",
     "tx.search": "Buscar por descripción o categoría",
@@ -109,7 +116,7 @@ export const messages: Record<
     "tx.sort_newest_first": "Ordenar de más nuevo a más antiguo",
     "tx.sort_oldest_first": "Ordenar de más antiguo a más nuevo",
     "tx.clear_search": "Limpiar búsqueda",
-    "tx.future_empty": "No hay movimientos futuros",
+    "tx.future_empty": "No hay movimientos constantes",
     "tx.future_empty.body":
       "Las transacciones con fecha posterior al mes actual aparecerán aquí.",
     "tx.filter_empty": "Sin resultados para este filtro",
@@ -139,6 +146,13 @@ export const messages: Record<
     "stats.advisor": "Asistente financiero",
     "stats.export": "Exportar reporte CSV",
     "stats.export_error": "No se pudo exportar el reporte.",
+    "stats.compare": "Comparativa vs mes anterior",
+    "stats.compare_income": "Ingresos",
+    "stats.compare_expense": "Gastos",
+    "stats.compare_balance": "Balance",
+    "stats.compare_empty": "Aún no hay datos del mes anterior para comparar.",
+    "stats.compare_empty.body":
+      "Cuando registres movimientos el mes pasado verás aquí tu evolución.",
 
     // Ajustes
     "settings.title": "Configuración",
@@ -185,6 +199,24 @@ export const messages: Record<
     "settings.confirm_clear": "Borrar todo",
     "settings.confirm_clear.body":
       "Se eliminarán todas las transacciones y presupuestos permanentemente.",
+    "settings.security": "Seguridad",
+    "settings.pin_lock": "Bloqueo con PIN",
+    "settings.pin_hint": "Protege el acceso a tus finanzas con un PIN de 4 dígitos.",
+    "settings.biometric": "Desbloqueo biométrico",
+    "settings.biometric_hint":
+      "Desbloquea con huella o reconocimiento facial en este dispositivo.",
+    "settings.biometric_unsupported":
+      "La biometría no está disponible en este dispositivo",
+    "settings.notifications": "Notificaciones",
+    "settings.notifications_hint":
+      "Recibe alertas de tasas, presupuestos y vencimiento de deudas.",
+    "settings.notifications_off":
+      "Las notificaciones están desactivadas en tu dispositivo. Actívalas en la configuración del sistema.",
+    "settings.pin_confirm.body":
+      "Se desactivará el bloqueo por PIN y la biometría de tu app.",
+    "settings.tutorial": "Ver tutorial",
+    "settings.tutorial_hint": "Repite la guía de bienvenida de la app.",
+    "settings.help": "Ayuda",
 
     // Modal de transacción
     "modal.edit": "Editar transacción",
@@ -287,7 +319,11 @@ export const messages: Record<
     "item.paid": "Pagada",
     "item.partial": "Parcial: {paid} de {total}",
     "donut.empty_expense": "Sin gastos este mes",
+    "donut.empty_expense.body":
+      "Registra un gasto para ver su distribución por categoría.",
     "donut.empty_income": "Sin ingresos este mes",
+    "donut.empty_income.body":
+      "Registra un ingreso para ver su distribución por categoría.",
     "donut.expense": "Gastos",
     "donut.income": "Ingresos",
     "bar.income": "Ingresos",
@@ -403,6 +439,113 @@ export const messages: Record<
     "notif.budget_near": "Presupuesto casi al límite",
     "notif.budget_near_body":
       "{category}: llevas {spent} de {budget} ({pct}%).",
+    "notif.backup": "Respaldo mensual",
+    "notif.backup_body":
+      "Hace {days} días que no exportas tus datos. Exporta un respaldo para no perderlos.",
+    "notif.summary": "Resumen del mes",
+    "notif.summary_body":
+      "{month}: ingresos {income}, gastos {expense}. Balance {balance}.",
+
+    // Bloqueo
+    "lock.subtitle": "Ingresa tu PIN para desbloquear",
+    "lock.biometric": "Desbloquear con biometría",
+    "lock.error": "PIN incorrecto",
+    "lock.unlocked": "Sesión desbloqueada",
+    "lock.set_title": "Configurar PIN",
+    "lock.set_subtitle": "Elige un PIN de 4 dígitos",
+    "lock.enter_pin": "Nuevo PIN",
+    "lock.confirm_pin": "Confirmar PIN",
+    "lock.current_pin": "PIN actual",
+    "lock.mismatch": "Los PIN no coinciden",
+    "lock.invalid": "El PIN debe tener 4 dígitos",
+    "lock.wrong_current": "PIN actual incorrecto",
+    "lock.set_success": "PIN configurado",
+    "lock.disabled": "Bloqueo desactivado",
+
+    // Metas de ahorro
+    "goals.title": "Metas de ahorro",
+    "goals.add": "Agregar meta",
+    "goals.name": "Nombre",
+    "goals.name_placeholder": "Ej: Fondo de emergencia",
+    "goals.target": "Monto objetivo",
+    "goals.target_placeholder": "0.00",
+    "goals.saved": "Ahorrado",
+    "goals.deadline": "Fecha límite (opcional)",
+    "goals.add_btn": "Agregar",
+    "goals.save": "Guardar",
+    "goals.cancel": "Cancelar",
+    "goals.delete": "Eliminar meta",
+    "goals.delete.body": "Esta meta se eliminará permanentemente.",
+    "goals.saved_toast": "Meta guardada",
+    "goals.deleted_toast": "Meta eliminada",
+    "goals.updated_toast": "Progreso actualizado",
+    "goals.name_required": "Ingresa un nombre para la meta",
+    "goals.target_required": "Ingresa un monto objetivo válido",
+
+    // Tutorial
+    "tutorial.step1_title": "Tu panel principal",
+    "tutorial.step1_body":
+      "Aquí ves tu balance, tus ingresos y gastos del mes, deudas pendientes y tus metas de ahorro.",
+    "tutorial.step2_title": "Balance",
+    "tutorial.step2_body":
+      "Este es tu balance del mes. Toca las flechas para moverte entre meses y consultar tus finanzas en el tiempo.",
+    "tutorial.step3_title": "Deudas pendientes",
+    "tutorial.step3_body":
+      "Las deudas que registres con el tipo Deuda aparecen aquí con su fecha límite. Ábrelas para ver cuánto falta por pagar.",
+    "tutorial.step4_title": "Distribución de gastos",
+    "tutorial.step4_body":
+      "Este gráfico te muestra en qué categorías gastas más. Tócalo para alternar entre gastos e ingresos.",
+    "tutorial.step5_title": "Metas de ahorro",
+    "tutorial.step5_body":
+      "Crea metas de ahorro y sigue tu progreso para alcanzar tus objetivos.",
+    "tutorial.step6_title": "Agregar movimientos",
+    "tutorial.step6_body":
+      "Toca el botón + para abrir el registro de un nuevo movimiento. Vamos a verlo.",
+    "tutorial.step7_title": "Opciones de registro",
+    "tutorial.step7_body":
+      "Elige el tipo: Gasto, Ingreso o Deuda. Los ingresos suman a tu balance, los gastos restan y las deudas se registran con fecha límite y pagos parciales.",
+    "tutorial.step8_title": "Filtros de movimientos",
+    "tutorial.step8_body":
+      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o constantes.",
+    "tutorial.step9_title": "Filtros por categoría",
+    "tutorial.step9_body":
+      "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
+    "tutorial.step10_title": "Búsqueda rápida",
+    "tutorial.step10_body":
+      "Toca la lupa y escribe para buscar movimientos por descripción o categoría al instante.",
+    "tutorial.step11_title": "Tendencia mensual",
+    "tutorial.step11_body":
+      "El gráfico de barras muestra tus ingresos y gastos de los últimos meses para ver la tendencia.",
+    "tutorial.step12_title": "Presupuestos",
+    "tutorial.step12_body":
+      "Define un límite de gasto por categoría con Editar. La app te avisa cuando te acercas o superas el límite.",
+    "tutorial.step13_title": "Top gastos del mes",
+    "tutorial.step13_body":
+      "Las 5 categorías donde más gastaste este mes, con su porcentaje del total. Ideal para detectar fugas de dinero.",
+    "tutorial.step14_title": "Asistente financiero",
+    "tutorial.step14_body":
+      "Tu asistente con IA responde preguntas sobre tus finanzas: cómo te fue, en qué gastas más y cómo mejorar.",
+    "tutorial.step15_title": "Exportar a Excel",
+    "tutorial.step15_body":
+      "Exporta los movimientos del mes a un archivo CSV que puedes abrir en Excel, Sheets o cualquier hoja de cálculo.",
+    "tutorial.step16_title": "Comparativa mensual",
+    "tutorial.step16_body":
+      "Compara ingresos, gastos y balance con el mes anterior. Verde es bueno, rojo es malo.",
+    "tutorial.step17_title": "Tasas de cambio",
+    "tutorial.step17_body":
+      "Consulta las tasas del dólar (paralelo y BCV) y del euro, actualizadas automáticamente, o define una tasa personalizada.",
+    "tutorial.step18_title": "Idioma",
+    "tutorial.step18_body":
+      "Cambia el idioma de la app entre español e inglés cuando quieras.",
+    "tutorial.step19_title": "Seguridad",
+    "tutorial.step19_body":
+      "Protege tu app con un PIN o tu huella, y gestiona tus datos desde aquí.",
+    "tutorial.step20_title": "Respaldo local",
+    "tutorial.step20_body":
+      "Todo se guarda solo en tu dispositivo: no hay servidores. Exporta o importa un respaldo JSON para cuidar tus datos.",
+    "tutorial.next": "Siguiente",
+    "tutorial.previous": "Anterior",
+    "tutorial.done": "Finalizar",
 
     // Toast (contexto)
     "toast.rates_cache": "Tasas parcialmente en caché (sin conexión)",
@@ -460,6 +603,13 @@ export const messages: Record<
     "home.aria.debts": "Pending debts",
     "home.aria.chart": "Distribution by category",
     "home.aria.recent": "Recent movements",
+    "home.goals": "Savings goals",
+    "home.goals_manage": "Manage",
+    "home.goals_empty": "No savings goals",
+    "home.goals_empty.body":
+      "Create a goal to track your progress and reach your targets.",
+    "home.goals_deadline": "Deadline: {date}",
+    "home.goals_completed": "Goal reached!",
     "greeting.morning": "Good morning",
     "greeting.afternoon": "Good afternoon",
     "greeting.evening": "Good evening",
@@ -469,7 +619,7 @@ export const messages: Record<
     "tx.expense": "Expenses",
     "tx.income": "Income",
     "tx.debt": "Debts",
-    "tx.future": "Future",
+    "tx.future": "Constants",
     "tx.all_cats": "All",
     "tx.clear_filters": "Clear filters",
     "tx.search": "Search by description or category",
@@ -478,7 +628,7 @@ export const messages: Record<
     "tx.sort_newest_first": "Sort newest to oldest",
     "tx.sort_oldest_first": "Sort oldest to newest",
     "tx.clear_search": "Clear search",
-    "tx.future_empty": "No future movements",
+    "tx.future_empty": "No constant movements",
     "tx.future_empty.body":
       "Transactions dated after the current month will appear here.",
     "tx.filter_empty": "No results for this filter",
@@ -507,6 +657,13 @@ export const messages: Record<
     "stats.advisor": "Financial advisor",
     "stats.export": "Export CSV report",
     "stats.export_error": "Could not export the report.",
+    "stats.compare": "Comparison vs last month",
+    "stats.compare_income": "Income",
+    "stats.compare_expense": "Expenses",
+    "stats.compare_balance": "Balance",
+    "stats.compare_empty": "No data from last month to compare yet.",
+    "stats.compare_empty.body":
+      "When you log movements last month you will see your progress here.",
 
     "settings.title": "Settings",
     "settings.app_name": "FinanzApp",
@@ -552,6 +709,24 @@ export const messages: Record<
     "settings.confirm_clear": "Clear everything",
     "settings.confirm_clear.body":
       "All transactions and budgets will be permanently deleted.",
+    "settings.security": "Security",
+    "settings.pin_lock": "PIN lock",
+    "settings.pin_hint": "Protect access to your finances with a 4-digit PIN.",
+    "settings.biometric": "Biometric unlock",
+    "settings.biometric_hint":
+      "Unlock with fingerprint or face recognition on this device.",
+    "settings.biometric_unsupported":
+      "Biometrics are not available on this device",
+    "settings.notifications": "Notifications",
+    "settings.notifications_hint":
+      "Receive alerts for rates, budgets, and debt due dates.",
+    "settings.notifications_off":
+      "Notifications are disabled on your device. Enable them in system settings.",
+    "settings.pin_confirm.body":
+      "The PIN lock and biometrics of your app will be disabled.",
+    "settings.tutorial": "View tutorial",
+    "settings.tutorial_hint": "Replay the welcome guide of the app.",
+    "settings.help": "Help",
 
     "modal.edit": "Edit transaction",
     "modal.new": "New transaction",
@@ -650,7 +825,11 @@ export const messages: Record<
     "item.paid": "Paid",
     "item.partial": "Partial: {paid} of {total}",
     "donut.empty_expense": "No expenses this month",
+    "donut.empty_expense.body":
+      "Log an expense to see its breakdown by category.",
     "donut.empty_income": "No income this month",
+    "donut.empty_income.body":
+      "Log income to see its breakdown by category.",
     "donut.expense": "Expenses",
     "donut.income": "Income",
     "bar.income": "Income",
@@ -764,6 +943,113 @@ export const messages: Record<
     "notif.budget_near": "Budget almost at the limit",
     "notif.budget_near_body":
       "{category}: you have {spent} of {budget} ({pct}%).",
+    "notif.backup": "Monthly backup",
+    "notif.backup_body":
+      "You haven't exported your data in {days} days. Export a backup to avoid losing it.",
+    "notif.summary": "Month summary",
+    "notif.summary_body":
+      "{month}: income {income}, expenses {expense}. Balance {balance}.",
+
+    // Lock
+    "lock.subtitle": "Enter your PIN to unlock",
+    "lock.biometric": "Unlock with biometrics",
+    "lock.error": "Wrong PIN",
+    "lock.unlocked": "Session unlocked",
+    "lock.set_title": "Set PIN",
+    "lock.set_subtitle": "Choose a 4-digit PIN",
+    "lock.enter_pin": "New PIN",
+    "lock.confirm_pin": "Confirm PIN",
+    "lock.current_pin": "Current PIN",
+    "lock.mismatch": "PINs do not match",
+    "lock.invalid": "The PIN must have 4 digits",
+    "lock.wrong_current": "Current PIN is wrong",
+    "lock.set_success": "PIN set",
+    "lock.disabled": "Lock disabled",
+
+    // Savings goals
+    "goals.title": "Savings goals",
+    "goals.add": "Add goal",
+    "goals.name": "Name",
+    "goals.name_placeholder": "e.g. Emergency fund",
+    "goals.target": "Target amount",
+    "goals.target_placeholder": "0.00",
+    "goals.saved": "Saved",
+    "goals.deadline": "Deadline (optional)",
+    "goals.add_btn": "Add",
+    "goals.save": "Save",
+    "goals.cancel": "Cancel",
+    "goals.delete": "Delete goal",
+    "goals.delete.body": "This goal will be permanently deleted.",
+    "goals.saved_toast": "Goal saved",
+    "goals.deleted_toast": "Goal deleted",
+    "goals.updated_toast": "Progress updated",
+    "goals.name_required": "Enter a name for the goal",
+    "goals.target_required": "Enter a valid target amount",
+
+    // Tutorial
+    "tutorial.step1_title": "Your main dashboard",
+    "tutorial.step1_body":
+      "Here you see your balance, monthly income and expenses, pending debts and your savings goals.",
+    "tutorial.step2_title": "Balance",
+    "tutorial.step2_body":
+      "This is your month's balance. Use the arrows to move between months and check your finances over time.",
+    "tutorial.step3_title": "Pending debts",
+    "tutorial.step3_body":
+      "Debts you record with the Debt type appear here with their due date. Open them to see how much is left to pay.",
+    "tutorial.step4_title": "Expense breakdown",
+    "tutorial.step4_body":
+      "This chart shows which categories you spend the most on. Tap it to switch between expenses and income.",
+    "tutorial.step5_title": "Savings goals",
+    "tutorial.step5_body":
+      "Create savings goals and track your progress to reach your targets.",
+    "tutorial.step6_title": "Add movements",
+    "tutorial.step6_body":
+      "Tap the + button to open the form for a new movement. Let's take a look.",
+    "tutorial.step7_title": "Registration options",
+    "tutorial.step7_body":
+      "Choose the type: Expense, Income or Debt. Income adds to your balance, expenses subtract, and debts are tracked with a due date and partial payments.",
+    "tutorial.step8_title": "Movement filters",
+    "tutorial.step8_body":
+      "In this tab you can filter your movements by type: all, expenses, income, debts or constants.",
+    "tutorial.step9_title": "Category filters",
+    "tutorial.step9_body":
+      "You can also filter by category to quickly find what you're looking for.",
+    "tutorial.step10_title": "Quick search",
+    "tutorial.step10_body":
+      "Tap the magnifier and type to find movements by description or category instantly.",
+    "tutorial.step11_title": "Monthly trend",
+    "tutorial.step11_body":
+      "The bar chart shows your income and expenses over the last months to see the trend.",
+    "tutorial.step12_title": "Budgets",
+    "tutorial.step12_body":
+      "Set a spending limit per category with Edit. The app warns you when you're close to or over the limit.",
+    "tutorial.step13_title": "Top monthly expenses",
+    "tutorial.step13_body":
+      "The 5 categories where you spent the most this month, with their share of the total. Ideal for spotting money leaks.",
+    "tutorial.step14_title": "Financial assistant",
+    "tutorial.step14_body":
+      "Your AI assistant answers questions about your finances: how you did, where you spend the most and how to improve.",
+    "tutorial.step15_title": "Export to Excel",
+    "tutorial.step15_body":
+      "Export the month's movements to a CSV file you can open in Excel, Sheets or any spreadsheet.",
+    "tutorial.step16_title": "Monthly comparison",
+    "tutorial.step16_body":
+      "Compare income, expenses and balance with the previous month. Green is good, red is bad.",
+    "tutorial.step17_title": "Exchange rates",
+    "tutorial.step17_body":
+      "Check dollar rates (parallel and BCV) and the euro, updated automatically, or set a custom rate.",
+    "tutorial.step18_title": "Language",
+    "tutorial.step18_body":
+      "Switch the app language between Spanish and English whenever you want.",
+    "tutorial.step19_title": "Security",
+    "tutorial.step19_body":
+      "Protect your app with a PIN or your fingerprint, and manage your data from here.",
+    "tutorial.step20_title": "Local backup",
+    "tutorial.step20_body":
+      "Everything is stored only on your device: no servers. Export or import a JSON backup to keep your data safe.",
+    "tutorial.next": "Next",
+    "tutorial.previous": "Previous",
+    "tutorial.done": "Finish",
 
     "toast.rates_cache": "Rates partially cached (offline)",
     "toast.rates_cached_using": "Using cached rates (offline)",
