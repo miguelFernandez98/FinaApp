@@ -84,13 +84,30 @@ export default function ModalSheet({
 
     const onTouchEnd = () => endDrag();
 
+    const onWinPointerMove = (e: globalThis.PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag.active) return;
+      const dy = e.clientY - drag.startY;
+      if (dy <= 0) return;
+      drag.dy = dy;
+      applyDrag(dy);
+    };
+
+    const onWinPointerUp = () => endDrag();
+
     sheet.addEventListener("touchmove", onTouchMove, { passive: false });
     sheet.addEventListener("touchend", onTouchEnd);
     sheet.addEventListener("touchcancel", onTouchEnd);
+    window.addEventListener("pointermove", onWinPointerMove);
+    window.addEventListener("pointerup", onWinPointerUp);
+    window.addEventListener("pointercancel", onWinPointerUp);
     return () => {
       sheet.removeEventListener("touchmove", onTouchMove);
       sheet.removeEventListener("touchend", onTouchEnd);
       sheet.removeEventListener("touchcancel", onTouchEnd);
+      window.removeEventListener("pointermove", onWinPointerMove);
+      window.removeEventListener("pointerup", onWinPointerUp);
+      window.removeEventListener("pointercancel", onWinPointerUp);
     };
   }, [endDrag]);
 
@@ -105,20 +122,6 @@ export default function ModalSheet({
       active: true,
       fromHandle,
     };
-    try {
-      sheet.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const handlePointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag.active) return;
-    const dy = e.clientY - drag.startY;
-    if (dy <= 0) return;
-    drag.dy = dy;
-    applyDrag(dy);
   };
 
   return (
@@ -133,9 +136,6 @@ export default function ModalSheet({
         ref={sheetRef}
         className={`modal-sheet ${className}`.trim()}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
       >
         <div className="modal-handle" />
         {children}
