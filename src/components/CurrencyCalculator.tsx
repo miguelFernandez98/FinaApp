@@ -77,10 +77,6 @@ export default function CurrencyCalculator() {
     setParallelShowCustom((prev) => !prev);
   };
 
-  useEffect(() => {
-    console.log("💱 Current exchange rates:", exchangeRates);
-  }, [exchangeRates]);
-
   const handleFromChange = (value: string) => {
     const newFrom = value as CurrencyType;
     if (newFrom === "CUSTOM") {
@@ -206,6 +202,9 @@ export default function CurrencyCalculator() {
     if (exchangeRates.lastUpdated === null) return t("calc.loading_short");
     return t("calc.nd");
   };
+
+  const bcvRate =
+    effectiveBcvDisplay === "EUR" ? exchangeRates.eur : exchangeRates.bcv;
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>
@@ -357,7 +356,7 @@ export default function CurrencyCalculator() {
                 : t("calc.bcv_usd")}
             </div>
             <div
-              key={`${effectiveBcvDisplay}-value`}
+              key={`${effectiveBcvDisplay}-value-${bcvRate ?? "na"}`}
               className="rate-swap"
             >
               {effectiveBcvDisplay === "EUR"
