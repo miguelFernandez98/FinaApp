@@ -12,6 +12,11 @@ import { startTutorial } from "../utils/tutorial";
 import {
   checkNotificationPermission,
   requestNotificationPermission,
+  ensureExactAlarmPermission,
+  scheduleDebtReminders,
+  notifyBudgetAlerts,
+  scheduleBackupReminder,
+  scheduleMonthlySummary,
 } from "../utils/notifications";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
@@ -93,6 +98,12 @@ export default function SettingsPage() {
             "fa-circle-exclamation",
             "var(--warning)",
           );
+        } else {
+          await ensureExactAlarmPermission();
+          await scheduleDebtReminders(transactions);
+          await notifyBudgetAlerts(transactions, budgets, currency);
+          await scheduleBackupReminder(lastExportAt);
+          await scheduleMonthlySummary(transactions, currency);
         }
       } else {
         setNotificationsEnabled(false);

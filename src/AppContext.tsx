@@ -662,6 +662,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!granted) return;
           ensureExactAlarmPermission();
           scheduleDebtReminders(latestStateRef.current.transactions);
+          notifyBudgetAlerts(latestStateRef.current.transactions, latestStateRef.current.budgets, latestStateRef.current.currency);
           scheduleBackupReminder(latestStateRef.current.lastExportAt);
           scheduleMonthlySummary(
             latestStateRef.current.transactions,

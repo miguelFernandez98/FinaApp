@@ -78,9 +78,10 @@ export default function CurrencyCalculator() {
     const interval = setInterval(() => {
       if (Date.now() < bcvManualUntil) return;
       setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
+      triggerBcvAnim();
     }, 3500);
     return () => clearInterval(interval);
-  }, [showEUR, bcvManualUntil]);
+  }, [showEUR, bcvManualUntil, triggerBcvAnim]);
 
   const effectiveBcvDisplay: BcvDisplay = showEUR ? bcvDisplay : "USD";
 
@@ -98,9 +99,10 @@ export default function CurrencyCalculator() {
     const interval = setInterval(() => {
       if (Date.now() < parallelManualUntil) return;
       setParallelShowCustom((prev) => !prev);
+      triggerParAnim();
     }, 3500);
     return () => clearInterval(interval);
-  }, [showCustomRate, customRate, parallelManualUntil]);
+  }, [showCustomRate, customRate, parallelManualUntil, triggerParAnim]);
 
   const handleParallelClick = () => {
     if (!showCustomRate || customRate === null) return;
