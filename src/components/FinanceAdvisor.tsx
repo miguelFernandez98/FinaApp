@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import {
   getAdvisorQuestions,
@@ -19,13 +19,8 @@ interface ChatMessage {
 }
 
 export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
-  const {
-    transactions,
-    currentMonth,
-    currentYear,
-    currency,
-    budgets,
-  } = useApp();
+  const { transactions, currency, budgets } = useAppData();
+  const { currentMonth, currentYear } = useAppUI();
   useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);

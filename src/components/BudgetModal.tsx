@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
 import ModalSheet from "./ModalSheet";
@@ -9,7 +9,8 @@ interface BudgetModalProps {
 }
 
 export default function BudgetModal({ onClose }: BudgetModalProps) {
-  const { budgets, setBudgets, showToast } = useApp();
+  const { budgets } = useAppData();
+  const { setBudgets, showToast } = useAppActions();
   const { language } = useI18n();
 
   const expenseCats = CATEGORIES.filter((c) => c.type === "expense");

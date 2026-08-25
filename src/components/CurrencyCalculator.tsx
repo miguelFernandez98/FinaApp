@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import CustomSelect from "./CustomSelect";
@@ -18,13 +18,9 @@ function sanitizeAmount(raw: string): string {
 }
 
 export default function CurrencyCalculator() {
-  const {
-    exchangeRates,
-    showEUR,
-    showCustomRate,
-    customRate,
-    setCustomRate,
-  } = useApp();
+  const { showEUR, showCustomRate, customRate } = useAppData();
+  const { exchangeRates } = useAppUI();
+  const { setCustomRate } = useAppActions();
   const { language } = useI18n();
   const [amount, setAmount] = useState("");
 

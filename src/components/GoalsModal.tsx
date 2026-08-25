@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { generateId } from "../utils/transactions";
@@ -11,7 +11,8 @@ interface GoalsModalProps {
 }
 
 export default function GoalsModal({ onClose }: GoalsModalProps) {
-  const { goals, setGoals, currency, showConfirm, showToast } = useApp();
+  const { goals, currency } = useAppData();
+  const { setGoals, showConfirm, showToast } = useAppActions();
   useI18n();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");

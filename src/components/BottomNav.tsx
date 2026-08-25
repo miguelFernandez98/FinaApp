@@ -1,4 +1,4 @@
-import { useApp } from "../AppContext";
+import { useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import type { PageId } from "../types";
 
@@ -14,7 +14,8 @@ const NAV_ITEMS: { page: PageId; icon: string; labelKey: string }[] = [
 ];
 
 export default function BottomNav() {
-  const { currentPage, navigateTo, openTransactionModal } = useApp();
+  const { currentPage } = useAppUI();
+  const { navigateTo, openTransactionModal } = useAppActions();
   useI18n();
 
   return (

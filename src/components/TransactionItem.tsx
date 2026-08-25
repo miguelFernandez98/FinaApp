@@ -1,4 +1,5 @@
-import { useApp } from "../AppContext";
+import { memo } from "react";
+import { useAppData } from "../AppContext";
 import { getLanguage, t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -10,11 +11,11 @@ interface TransactionItemProps {
   onEdit: () => void;
 }
 
-export default function TransactionItem({
+function TransactionItem({
   transaction,
   onEdit,
 }: TransactionItemProps) {
-  const { currency } = useApp();
+  const { currency } = useAppData();
   useI18n();
   const category = getCategoryById(transaction.category);
   const isDebt = transaction.type === "debt";
@@ -105,3 +106,5 @@ export default function TransactionItem({
     </article>
   );
 }
+
+export default memo(TransactionItem);

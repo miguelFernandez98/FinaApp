@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { hashPin } from "../utils/pin";
 import ModalSheet from "./ModalSheet";
@@ -9,7 +9,8 @@ interface PinModalProps {
 }
 
 export default function PinModal({ onClose }: PinModalProps) {
-  const { pinHash, setPinHash, showToast } = useApp();
+  const { pinHash } = useAppData();
+  const { setPinHash, showToast } = useAppActions();
   useI18n();
   const needsCurrent = pinHash !== null;
   const [current, setCurrent] = useState("");

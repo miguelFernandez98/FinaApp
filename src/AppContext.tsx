@@ -43,15 +43,49 @@ import {
   scheduleMonthlySummary,
 } from "./utils/notifications";
 
-interface AppContextValue extends PersistedState {
+/**
+ * Datos persistidos: cambian solo cuando el usuario edita información.
+ * Consumidores: páginas y componentes que muestran datos.
+ */
+interface AppDataContextValue {
+  transactions: Transaction[];
+  budgets: Record<string, number>;
+  currency: string;
+  showCalculator: boolean;
+  showEUR: boolean;
+  showCustomRate: boolean;
+  customRate: number | null;
+  language: "es" | "en";
+  pinHash: string | null;
+  useBiometrics: boolean;
+  goals: SavingsGoal[];
+  lastExportAt: number | null;
+  hasSeenTutorial: boolean;
+}
+
+/**
+ * Estado transitorio de interfaz: filtros, navegación y overlays.
+ * Cambia con frecuencia pero tiene pocos consumidores.
+ */
+interface AppUIContextValue {
   currentPage: PageId;
   currentMonth: number;
   currentYear: number;
   currentTypeFilter: FilterType;
   currentCategoryFilter: string;
+  locked: boolean;
   toast: ToastState;
   confirm: ConfirmState;
+  txnModalOpen: boolean;
+  txnModalEditingId: string | null;
   exchangeRates: ExchangeRates;
+}
+
+/**
+ * Acciones y mutadores de estado. Todas las funciones son estables
+ * (identidad constante), por lo que este contexto no dispara re-renders.
+ */
+interface AppActionsContextValue {
   navigateTo: (page: PageId) => void;
   addTransaction: (data: Omit<Transaction, "id" | "createdAt">) => void;
   updateTransaction: (
@@ -66,12 +100,6 @@ interface AppContextValue extends PersistedState {
   setShowCustomRate: (show: boolean) => void;
   setCustomRate: (rate: number | null) => void;
   setLanguage: (language: "es" | "en") => void;
-  pinHash: string | null;
-  useBiometrics: boolean;
-  goals: SavingsGoal[];
-  lastExportAt: number | null;
-  hasSeenTutorial: boolean;
-  locked: boolean;
   setPinHash: (hash: string | null) => void;
   setUseBiometrics: (use: boolean) => void;
   setGoals: (goals: SavingsGoal[]) => void;
@@ -95,23 +123,23 @@ interface AppContextValue extends PersistedState {
     },
   ) => void;
   closeConfirm: () => void;
-  txnModalOpen: boolean;
-  txnModalEditingId: string | null;
   openTransactionModal: (editingId?: string | null) => void;
   closeTransactionModal: () => void;
   importState: (state: PersistedState) => void;
 }
 
-const AppContext = createContext<AppContextValue | null>(null);
+const AppDataContext = createContext<AppDataContextValue | null>(null);
+const AppUIContext = createContext<AppUIContextValue | null>(null);
+const AppActionsContext = createContext<AppActionsContextValue | null>(null);
 
 const RATES_REFRESH_INTERVAL = 3 * 60 * 1000;
 const RATES_MIN_FETCH_GAP = 60 * 1000;
 const LOCK_TIMEOUT_MS = 12 * 60 * 60 * 1000;
 
 /**
- * Proveedor principal de contexto de la aplicación.
- * Maneja estado global, transacciones, configuración y navegación.
- * @param children Componentes hijos que consumen el contexto.
+ * Proveedor principal de la aplicación.
+ * Compone tres contextos (datos, UI y acciones) para minimizar re-renders:
+ * los consumidores se suscriben únicamente al contexto que necesitan.
  */
 export function AppProvider({ children }: { children: ReactNode }) {
   const [savedState] = useState(loadState);
@@ -151,8 +179,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [locked, setLocked] = useState(savedState.pinHash !== null);
   const backgroundedAtRef = useRef<number | null>(null);
   const [currentPage, setCurrentPage] = useState<PageId>("home");
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [period, setPeriod] = useState(() => ({
+    month: new Date().getMonth(),
+    year: new Date().getFullYear(),
+  }));
   const [currentTypeFilter, setCurrentTypeFilter] =
     useState<FilterType>("all");
   const [currentCategoryFilter, setCurrentCategoryFilter] = useState("all");
@@ -185,21 +215,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
   const lastRatesFetchRef = useRef(0);
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
-  const latestStateRef = useRef<{
-    transactions: Transaction[];
-    budgets: Record<string, number>;
-    currency: string;
-    showCalculator: boolean;
-    showEUR: boolean;
-    showCustomRate: boolean;
-    customRate: number | null;
-    language: "es" | "en";
-    pinHash: string | null;
-    useBiometrics: boolean;
-    goals: SavingsGoal[];
-    lastExportAt: number | null;
-    hasSeenTutorial: boolean;
-  }>({
+  const latestStateRef = useRef<PersistedState>({
     transactions,
     budgets,
     currency,
@@ -257,11 +273,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [transactions, budgets, currency, lastExportAt]);
 
+  /* ------------------------------ Acciones ------------------------------ */
+
   /**
    * Obtiene las transacciones del mes especificado.
-   * @param month Mes seleccionado (0-11).
-   * @param year Año seleccionado.
-   * @returns Transacciones con fecha dentro del mes.
    */
   const getMonthTransactions = useCallback(
     (month: number, year: number) =>
@@ -271,7 +286,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Agrega una nueva transacción al estado.
-   * @param data Datos de la transacción sin id ni createdAt.
    */
   const addTransaction = useCallback(
     (data: Omit<Transaction, "id" | "createdAt">) => {
@@ -285,8 +299,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Actualiza una transacción existente.
-   * @param id Id de la transacción.
-   * @param data Nuevos datos de la transacción.
    */
   const updateTransaction = useCallback(
     (id: string, data: Omit<Transaction, "id" | "createdAt">) => {
@@ -299,7 +311,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Elimina una transacción por su id.
-   * @param id Id de la transacción a eliminar.
    */
   const deleteTransaction = useCallback((id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -307,7 +318,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Reemplaza el objeto de presupuestos.
-   * @param b Nuevo diccionario de presupuestos.
    */
   const setBudgets = useCallback((b: Record<string, number>) => {
     setBudgetsState(b);
@@ -315,7 +325,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Cambia la moneda actual.
-   * @param c Símbolo de moneda.
    */
   const setCurrency = useCallback((c: string) => {
     setCurrencyState(c);
@@ -366,21 +375,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Avanza o retrocede el mes actual.
-   * @param delta Incremento de meses (+1 o -1).
+   * Avanza o retrocede el mes actual con actualizador puro.
    */
-  const changeMonth = useCallback(
-    (delta: number) => {
-      const total = currentYear * 12 + currentMonth + delta;
-      setCurrentMonth(((total % 12) + 12) % 12);
-      setCurrentYear(Math.floor(total / 12));
-    },
-    [currentMonth, currentYear],
-  );
+  const changeMonth = useCallback((delta: number) => {
+    setPeriod((prev) => {
+      const total = prev.year * 12 + prev.month + delta;
+      return {
+        month: ((total % 12) + 12) % 12,
+        year: Math.floor(total / 12),
+      };
+    });
+  }, []);
 
   /**
    * Navega a una página principal.
-   * @param page Identificador de página.
    */
   const navigateTo = useCallback((page: PageId) => {
     setCurrentPage(page);
@@ -392,7 +400,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Establece el filtro de tipo de transacción.
-   * @param f Filtro seleccionado.
    */
   const setFilter = useCallback(
     (f: FilterType) => setCurrentTypeFilter(f),
@@ -401,7 +408,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Establece el filtro de categoría.
-   * @param f Identificador de categoría.
    */
   const setCategoryFilter = useCallback(
     (f: string) => setCurrentCategoryFilter(f),
@@ -412,9 +418,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Muestra un toast temporal en pantalla.
-   * @param message Mensaje a mostrar.
-   * @param icon Icono opcional.
-   * @param color Color del toast.
    */
   const showToast = useCallback(
     (message: string, icon = "fa-check-circle", color = "var(--accent)") => {
@@ -438,9 +441,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Muestra un diálogo de confirmación.
-   * @param title Título del diálogo.
-   * @param message Mensaje de confirmación.
-   * @param onConfirm Acción a ejecutar si se confirma.
    */
   const showConfirm = useCallback(
     (
@@ -481,7 +481,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Abre el modal de transacciones desde cualquier vista.
-   * @param editingId Id de la transacción a editar (null para crear nueva).
    */
   const openTransactionModal = useCallback((editingId: string | null = null) => {
     setTxnModalEditingId(editingId);
@@ -498,7 +497,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /**
    * Reemplaza el estado completo de la aplicación.
-   * @param newState Nuevo estado de la aplicación.
    */
   const importState = useCallback((newState: PersistedState) => {
     setTransactions(newState.transactions);
@@ -517,6 +515,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
     setHasSeenTutorialState(newState.hasSeenTutorial ?? false);
   }, []);
+
+  const actionsValue = useMemo<AppActionsContextValue>(
+    () => ({
+      navigateTo,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      setBudgets,
+      setCurrency,
+      setShowCalculator,
+      setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
+      setLanguage,
+      setPinHash,
+      setUseBiometrics,
+      setGoals,
+      setLastExportAt,
+      setHasSeenTutorial,
+      unlock,
+      changeMonth,
+      setFilter,
+      setCategoryFilter,
+      getMonthTransactions,
+      showToast,
+      closeToast,
+      showConfirm,
+      closeConfirm,
+      openTransactionModal,
+      closeTransactionModal,
+      importState,
+    }),
+    [
+      navigateTo,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      setBudgets,
+      setCurrency,
+      setShowCalculator,
+      setShowEUR,
+      setShowCustomRate,
+      setCustomRate,
+      setLanguage,
+      setPinHash,
+      setUseBiometrics,
+      setGoals,
+      setLastExportAt,
+      setHasSeenTutorial,
+      unlock,
+      changeMonth,
+      setFilter,
+      setCategoryFilter,
+      getMonthTransactions,
+      showToast,
+      closeToast,
+      showConfirm,
+      closeConfirm,
+      openTransactionModal,
+      closeTransactionModal,
+      importState,
+    ],
+  );
+
+  /* ------------------------- Efectos de plataforma ----------------------- */
 
   useEffect(() => {
     let cancelled = false;
@@ -651,7 +714,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [navigateTo, openTransactionModal]);
 
-  const value = useMemo<AppContextValue>(
+  /* -------------------------------- Valores ------------------------------ */
+
+  const dataValue = useMemo<AppDataContextValue>(
     () => ({
       transactions,
       budgets,
@@ -666,45 +731,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       goals,
       lastExportAt,
       hasSeenTutorial,
-      locked,
-      currentPage,
-      currentMonth,
-      currentYear,
-      currentTypeFilter,
-      currentCategoryFilter,
-      toast,
-      confirm,
-      txnModalOpen,
-      txnModalEditingId,
-      navigateTo,
-      addTransaction,
-      updateTransaction,
-      deleteTransaction,
-      setBudgets,
-      setCurrency,
-      setShowCalculator,
-      setShowEUR,
-      setShowCustomRate,
-      setCustomRate,
-      setLanguage,
-      setPinHash,
-      setUseBiometrics,
-      setGoals,
-      setLastExportAt,
-      setHasSeenTutorial,
-      unlock,
-      changeMonth,
-      setFilter,
-      setCategoryFilter,
-      getMonthTransactions,
-      showToast,
-      closeToast,
-      showConfirm,
-      closeConfirm,
-      openTransactionModal,
-      closeTransactionModal,
-      importState,
-      exchangeRates,
     }),
     [
       transactions,
@@ -714,64 +740,72 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
-      currentPage,
-      currentMonth,
-      currentYear,
-      currentTypeFilter,
-      currentCategoryFilter,
-      toast,
-      confirm,
-      txnModalOpen,
-      txnModalEditingId,
-      navigateTo,
-      addTransaction,
-      updateTransaction,
-      deleteTransaction,
-      setBudgets,
-      setCurrency,
-      setShowCalculator,
-      setShowEUR,
-      setShowCustomRate,
-      setCustomRate,
-      setLanguage,
-      setPinHash,
-      setUseBiometrics,
-      setGoals,
-      setLastExportAt,
-      setHasSeenTutorial,
-      unlock,
-      locked,
+      language,
       pinHash,
       useBiometrics,
       goals,
       lastExportAt,
       hasSeenTutorial,
-      changeMonth,
-      setFilter,
-      setCategoryFilter,
-      getMonthTransactions,
-      showToast,
-      closeToast,
-      showConfirm,
-      closeConfirm,
-      openTransactionModal,
-      closeTransactionModal,
-      importState,
-      exchangeRates,
-      language,
     ],
   );
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  const uiValue = useMemo<AppUIContextValue>(
+    () => ({
+      currentPage,
+      currentMonth: period.month,
+      currentYear: period.year,
+      currentTypeFilter,
+      currentCategoryFilter,
+      locked,
+      toast,
+      confirm,
+      txnModalOpen,
+      txnModalEditingId,
+      exchangeRates,
+    }),
+    [
+      currentPage,
+      period.month,
+      period.year,
+      currentTypeFilter,
+      currentCategoryFilter,
+      locked,
+      toast,
+      confirm,
+      txnModalOpen,
+      txnModalEditingId,
+      exchangeRates,
+    ],
+  );
+
+  return (
+    <AppDataContext.Provider value={dataValue}>
+      <AppUIContext.Provider value={uiValue}>
+        <AppActionsContext.Provider value={actionsValue}>
+          {children}
+        </AppActionsContext.Provider>
+      </AppUIContext.Provider>
+    </AppDataContext.Provider>
+  );
 }
 
-/**
- * Hook para acceder al contexto global de la aplicación.
- * @returns Valor del contexto de la app.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useApp(): AppContextValue {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp debe usarse dentro de AppProvider");
+function useAppData(): AppDataContextValue {
+  const ctx = useContext(AppDataContext);
+  if (!ctx) throw new Error("useAppData debe usarse dentro de AppProvider");
   return ctx;
 }
+
+function useAppUI(): AppUIContextValue {
+  const ctx = useContext(AppUIContext);
+  if (!ctx) throw new Error("useAppUI debe usarse dentro de AppProvider");
+  return ctx;
+}
+
+function useAppActions(): AppActionsContextValue {
+  const ctx = useContext(AppActionsContext);
+  if (!ctx) throw new Error("useAppActions debe usarse dentro de AppProvider");
+  return ctx;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export { useAppData, useAppUI, useAppActions };

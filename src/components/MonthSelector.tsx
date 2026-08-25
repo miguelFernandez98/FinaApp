@@ -1,8 +1,9 @@
-import { useApp } from "../AppContext";
+import { useAppUI, useAppActions } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
 
 export default function MonthSelector() {
-  const { currentMonth, currentYear, changeMonth } = useApp();
+  const { currentMonth, currentYear } = useAppUI();
+  const { changeMonth } = useAppActions();
   useI18n();
 
   return (

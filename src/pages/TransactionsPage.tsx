@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -15,17 +15,15 @@ import AppVersion from "../components/AppVersion";
 import type { Transaction, FilterType } from "../types";
 
 export default function TransactionsPage() {
+  const { transactions, currency } = useAppData();
   const {
-    transactions,
     currentMonth,
     currentYear,
-    currency,
     currentTypeFilter,
     currentCategoryFilter,
-    setFilter,
-    setCategoryFilter,
-    openTransactionModal,
-  } = useApp();
+  } = useAppUI();
+  const { setFilter, setCategoryFilter, openTransactionModal } =
+    useAppActions();
   const { language } = useI18n();
 
   const [newestFirst, setNewestFirst] = useState(true);

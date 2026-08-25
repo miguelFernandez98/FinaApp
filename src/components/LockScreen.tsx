@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { hashPin } from "../utils/pin";
 import fLogo from "../assets/f-logo.svg";
 
 export default function LockScreen() {
-  const { pinHash, useBiometrics, unlock, showToast } = useApp();
+  const { pinHash, useBiometrics } = useAppData();
+  const { unlock, showToast } = useAppActions();
   useI18n();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);

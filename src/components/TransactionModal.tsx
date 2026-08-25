@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
@@ -8,16 +8,16 @@ import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
 
 export default function TransactionModal() {
+  const { transactions } = useAppData();
+  const { txnModalEditingId: editingId } = useAppUI();
   const {
-    transactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
     showToast,
     showConfirm,
-    txnModalEditingId: editingId,
     closeTransactionModal: onClose,
-  } = useApp();
+  } = useAppActions();
   const { language } = useI18n();
 
   const editingTransaction = editingId

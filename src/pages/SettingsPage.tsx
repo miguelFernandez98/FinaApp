@@ -3,7 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { normalizePersistedState } from "../storage";
 import { generateId } from "../utils/transactions";
@@ -33,34 +33,35 @@ function sanitizeAmount(raw: string): string {
 export default function SettingsPage() {
   const {
     currency,
-    setCurrency,
     showCalculator,
-    setShowCalculator,
     showEUR,
-    setShowEUR,
     showCustomRate,
-    setShowCustomRate,
     customRate,
-    setCustomRate,
     language,
-    setLanguage,
     transactions,
     budgets,
+    pinHash,
+    useBiometrics,
+    goals,
+    lastExportAt,
+    hasSeenTutorial,
+  } = useAppData();
+  const {
+    setCurrency,
+    setShowCalculator,
+    setShowEUR,
+    setShowCustomRate,
+    setCustomRate,
+    setLanguage,
+    setPinHash,
+    setUseBiometrics,    setLastExportAt,
     showConfirm,
     showToast,
     importState,
-    pinHash,
-    setPinHash,
-    useBiometrics,
-    setUseBiometrics,
-    goals,
-    lastExportAt,
-    setLastExportAt,
-    hasSeenTutorial,
     navigateTo,
     openTransactionModal,
     closeTransactionModal,
-  } = useApp();
+  } = useAppActions();
   useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const [customDraft, setCustomDraft] = useState(

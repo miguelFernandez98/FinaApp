@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getMonthTransactions } from "../utils/transactions";
@@ -43,7 +43,8 @@ function BarTooltip({
 }
 
 export default function BarChart() {
-  const { currentMonth, currentYear, transactions, currency } = useApp();
+  const { transactions, currency } = useAppData();
+  const { currentMonth, currentYear } = useAppUI();
   const { language } = useI18n();
 
   const chartData = useMemo(() => {

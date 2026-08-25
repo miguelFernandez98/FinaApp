@@ -6,7 +6,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { useApp } from "../AppContext";
+import { useAppData } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
@@ -50,7 +50,7 @@ function DonutTooltip({
 }
 
 export default function DonutChart({ transactions, type }: DonutChartProps) {
-  const { currency } = useApp();
+  const { currency } = useAppData();
   const { language } = useI18n();
   const [hovered, setHovered] = useState<number | null>(null);
 

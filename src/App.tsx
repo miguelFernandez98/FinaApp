@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from "react";
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider, useAppData, useAppUI, useAppActions } from "./AppContext";
 import BottomNav from "./components/BottomNav";
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -29,17 +29,14 @@ const PAGES: Record<PageId, () => JSX.Element> = {
 };
 
 function AppContent() {
+  const { currentPage, txnModalOpen, locked } = useAppUI();
+  const { hasSeenTutorial, pinHash } = useAppData();
   const {
-    currentPage,
     navigateTo,
-    txnModalOpen,
-    locked,
-    hasSeenTutorial,
     setHasSeenTutorial,
-    pinHash,
     openTransactionModal,
     closeTransactionModal,
-  } = useApp();
+  } = useAppActions();
   const contentRef = useRef<HTMLElement>(null);
   const [notFound, setNotFound] = useState(false);
   const PageComponent = PAGES[currentPage];

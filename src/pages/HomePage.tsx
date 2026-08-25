@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import {
@@ -26,17 +26,18 @@ export default function HomePage() {
   useI18n();
   const {
     transactions,
-    getMonthTransactions,
-    currentMonth,
-    currentYear,
     currency,
+    showCalculator,
+    goals,
+  } = useAppData();
+  const { currentMonth, currentYear } = useAppUI();
+  const {
+    getMonthTransactions,
     navigateTo,
     setFilter,
     setCategoryFilter,
-    showCalculator,
     openTransactionModal,
-    goals,
-  } = useApp();
+  } = useAppActions();
 
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),

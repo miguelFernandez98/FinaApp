@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import {
@@ -15,13 +15,9 @@ import AppVersion from "../components/AppVersion";
 import { exportTransactionsToCSV } from "../utils/export";
 
 export default function StatsPage() {
-  const {
-    getMonthTransactions,
-    currentMonth,
-    currentYear,
-    currency,
-    budgets,
-  } = useApp();
+  const { currency, budgets } = useAppData();
+  const { currentMonth, currentYear } = useAppUI();
+  const { getMonthTransactions } = useAppActions();
   useI18n();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);

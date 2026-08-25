@@ -1,8 +1,9 @@
-import { useApp } from "../AppContext";
+import { useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 
 export default function ConfirmDialog() {
-  const { confirm, closeConfirm } = useApp();
+  const { confirm } = useAppUI();
+  const { closeConfirm } = useAppActions();
   useI18n();
 
   if (!confirm.visible) return null;
