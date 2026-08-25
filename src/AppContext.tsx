@@ -214,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const previousRatesRef = useRef<ExchangeRates | null>(exchangeRates);
   const lastRatesFetchRef = useRef(0);
+  const hasFetchedRatesRef = useRef(false);
   const loadRatesRef = useRef<() => Promise<void>>(async () => {});
   const latestStateRef = useRef<PersistedState>({
     transactions,
@@ -610,13 +611,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         saveExchangeRates(merged);
         notifyRateChanges(previousRatesRef.current, merged);
         previousRatesRef.current = merged;
-        if (merged.fromCache) {
+        if (merged.fromCache && hasFetchedRatesRef.current) {
           showToast(
             t("toast.rates_cache"),
             "fa-info-circle",
             "var(--warning)",
           );
         }
+        hasFetchedRatesRef.current = true;
       } catch (error) {
         if (cancelled) return;
         console.error("Error refreshing exchange rates:", error);
