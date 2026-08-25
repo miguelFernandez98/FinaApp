@@ -5,6 +5,7 @@ import { Share } from "@capacitor/share";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { useApp } from "../AppContext";
 import { t, useI18n } from "../i18n";
+import { normalizePersistedState } from "../storage";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import { startTutorial } from "../utils/tutorial";
@@ -16,6 +17,7 @@ import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
 import PinModal from "../components/PinModal";
+import LegalModal from "../components/LegalModal";
 import fLogo from "../assets/f-logo.svg";
 
 const MAX_AMOUNT = 1e15;
@@ -70,6 +72,7 @@ export default function SettingsPage() {
   const [bioBusy, setBioBusy] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifBusy, setNotifBusy] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<null | "terms" | "privacy">(null);
 
   useEffect(() => {
     checkNotificationPermission().then(setNotificationsEnabled);
@@ -199,30 +202,7 @@ export default function SettingsPage() {
             t("settings.confirm_import"),
             t("settings.confirm_import.body"),
             () => {
-              importState({
-                transactions: data.transactions,
-                budgets: data.budgets || {},
-                currency: data.currency || "$",
-                showCalculator: data.showCalculator ?? true,
-                showEUR: data.showEUR ?? false,
-                showCustomRate: data.showCustomRate ?? false,
-                customRate:
-                  typeof data.customRate === "number" && data.customRate > 0
-                    ? data.customRate
-                    : null,
-                language: data.language === "en" ? "en" : "es",
-                pinHash:
-                  typeof data.pinHash === "string" && data.pinHash
-                    ? data.pinHash
-                    : null,
-                useBiometrics: data.useBiometrics ?? false,
-                goals: Array.isArray(data.goals) ? data.goals : [],
-                lastExportAt:
-                  typeof data.lastExportAt === "number"
-                    ? data.lastExportAt
-                    : null,
-                hasSeenTutorial: data.hasSeenTutorial ?? false,
-              });
+              importState(normalizePersistedState(data));
               showToast(t("settings.imported"));
             },
           );
@@ -782,23 +762,32 @@ export default function SettingsPage() {
         )}
       </section>
 
-      {/* Ayuda */}
+      {/* Legal */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div
           className="menu-item"
-          onClick={() =>
-            startTutorial(navigateTo, openTransactionModal, closeTransactionModal)
-          }
-          aria-label={t("settings.tutorial")}
+          onClick={() => setLegalDoc("terms")}
+          aria-label={t("legal.terms")}
         >
-          <i className="fa-solid fa-circle-question menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.tutorial")}</span>
+          <i className="fa-solid fa-file-contract menu-icon" />
+          <span style={{ flex: 1 }}>{t("legal.terms")}</span>
           <i
             className="fa-solid fa-chevron-right"
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <p className="settingsTextDescription">{t("settings.tutorial_hint")}</p>
+        <div
+          className="menu-item"
+          onClick={() => setLegalDoc("privacy")}
+          aria-label={t("legal.privacy")}
+        >
+          <i className="fa-solid fa-user-shield menu-icon" />
+          <span style={{ flex: 1 }}>{t("legal.privacy")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+          />
+        </div>
       </section>
 
       {/* Acciones */}
@@ -840,6 +829,24 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* tutorial */}
+      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div
+          className="menu-item"
+          onClick={() =>
+            startTutorial(navigateTo, openTransactionModal, closeTransactionModal)
+          }
+          aria-label={t("settings.tutorial")}
+        >
+          <i className="fa-solid fa-circle-question menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.tutorial")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+          />
+        </div>
+      </section>
+
       {/* Danger */}
       <section className="glass-card menu-list danger-list">
         <div className="menu-item" onClick={handleClearAll}>
@@ -862,12 +869,13 @@ export default function SettingsPage() {
         <p>{t("settings.storage_note")}</p>
         <p className="footer-credit">
           © {new Date().getFullYear()} Miguel Fernández
-          <br />
-          Full-stack Developer — Isla de Margarita, Venezuela
         </p>
       </footer>
 
       {pinModalOpen && <PinModal onClose={() => setPinModalOpen(false)} />}
+      {legalDoc && (
+        <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />
+      )}
     </div>
   );
 }
