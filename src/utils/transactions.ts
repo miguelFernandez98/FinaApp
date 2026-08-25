@@ -46,6 +46,38 @@ export function getDebtOutstandingAmount(transaction: Transaction): number {
 }
 
 /**
+ * Ordena una copia de la lista por fecha descendente,
+ * desempatando por fecha de creación.
+ * @param txns Transacciones a ordenar.
+ * @param dir 1 = más recientes primero, -1 = más antiguas primero.
+ */
+export function sortByDateDesc(
+  txns: Transaction[],
+  dir: 1 | -1 = 1,
+): Transaction[] {
+  return [...txns].sort((a, b) => {
+    const dateDiff =
+      (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) * dir;
+    if (dateDiff !== 0) return dateDiff;
+    return dir === 1 ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
+  });
+}
+
+/**
+ * Suma los montos de las transacciones de un tipo dado.
+ */
+export function sumByType(
+  txns: Transaction[],
+  type: "income" | "expense",
+): number {
+  let sum = 0;
+  for (const t of txns) {
+    if (t.type === type) sum += t.amount;
+  }
+  return sum;
+}
+
+/**
  * Determina si una deuda debe mostrarse en un mes dado.
  * Las deudas pendientes o parciales se muestran desde su mes de creación
  * hasta el mes actual.
@@ -362,7 +394,7 @@ function monthIncrement(month: number, year: number): [number, number] {
   return [month + 1, year];
 }
 
-function monthDecrement(month: number, year: number): [number, number] {
+export function monthDecrement(month: number, year: number): [number, number] {
   if (month === 0) return [11, year - 1];
   return [month - 1, year];
 }
@@ -371,11 +403,11 @@ function getEarliestTransactionMonth(
   transactions: Transaction[],
 ): [number, number] {
   if (transactions.length === 0) return [0, 0];
-  const sorted = [...transactions].sort(
-    (a, b) =>
-      parseISODate(a.date).getTime() - parseISODate(b.date).getTime(),
-  );
-  const earliest = parseISODate(sorted[0].date);
+  let earliest = parseISODate(transactions[0].date);
+  for (let i = 1; i < transactions.length; i++) {
+    const d = parseISODate(transactions[i].date);
+    if (d < earliest) earliest = d;
+  }
   return [earliest.getMonth(), earliest.getFullYear()];
 }
 

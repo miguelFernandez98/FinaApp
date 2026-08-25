@@ -21,6 +21,13 @@ function parseHash(hash: string): PageId | null {
   return VALID_PAGES.includes(cleaned as PageId) ? (cleaned as PageId) : null;
 }
 
+const PAGES: Record<PageId, () => JSX.Element> = {
+  home: HomePage,
+  transactions: TransactionsPage,
+  stats: StatsPage,
+  settings: SettingsPage,
+};
+
 function AppContent() {
   const {
     currentPage,
@@ -35,6 +42,7 @@ function AppContent() {
   } = useApp();
   const contentRef = useRef<HTMLElement>(null);
   const [notFound, setNotFound] = useState(false);
+  const PageComponent = PAGES[currentPage];
 
   // Tutorial de bienvenida en la primera apertura (o al desbloquear)
   useEffect(() => {
@@ -78,18 +86,11 @@ function AppContent() {
     });
   }, [currentPage, notFound]);
 
-  const pages: Record<PageId, JSX.Element> = {
-    home: <HomePage />,
-    transactions: <TransactionsPage />,
-    stats: <StatsPage />,
-    settings: <SettingsPage />,
-  };
-
   return (
     <div className="app-container">
       <div className="ambient-bg" aria-hidden="true" />
       <main className="content-area" ref={contentRef}>
-        {notFound ? <NotFoundPage /> : pages[currentPage]}
+        {notFound ? <NotFoundPage /> : <PageComponent />}
       </main>
       <BottomNav />
       {txnModalOpen && <TransactionModal />}

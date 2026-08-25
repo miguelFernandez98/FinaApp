@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
-import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
   getCategoryById,
@@ -9,6 +8,9 @@ import {
   calculatePreviousBalance,
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
+  getDebtOutstandingAmount,
+  sortByDateDesc,
+  sumByType,
 } from "../utils/transactions";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
@@ -42,17 +44,11 @@ export default function HomePage() {
   );
 
   const income = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
+    () => sumByType(visibleTransactions, "income"),
     [visibleTransactions],
   );
   const expense = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0),
+    () => sumByType(visibleTransactions, "expense"),
     [visibleTransactions],
   );
   const previousBalance = useMemo(
@@ -66,36 +62,18 @@ export default function HomePage() {
   const balance = previousBalance + income - expense - debtAmount;
   const pendingDebts = useMemo(
     () =>
-      getPendingDebtsForMonth(transactions, currentMonth, currentYear).sort(
-        (a, b) => {
-          const dateDiff =
-            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.createdAt - a.createdAt;
-        },
+      sortByDateDesc(
+        getPendingDebtsForMonth(transactions, currentMonth, currentYear),
       ),
     [transactions, currentMonth, currentYear],
   );
   const pendingDebtsTotal = useMemo(
-    () =>
-      pendingDebts.reduce(
-        (sum, t) =>
-          sum + (t.debtPaidAmount ? t.amount - t.debtPaidAmount : t.amount),
-        0,
-      ),
+    () => pendingDebts.reduce((sum, t) => sum + getDebtOutstandingAmount(t), 0),
     [pendingDebts],
   );
 
   const recent = useMemo(
-    () =>
-      [...visibleTransactions]
-        .sort((a, b) => {
-          const dateDiff =
-            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.createdAt - a.createdAt;
-        })
-        .slice(0, 5),
+    () => sortByDateDesc(visibleTransactions).slice(0, 5),
     [visibleTransactions],
   );
 
@@ -109,7 +87,7 @@ export default function HomePage() {
             {t("home.title")} <AppVersion />
           </h1>
         </div>
-        <div className="avatar-btn" onClick={() => {}}>
+        <div className="avatar-btn" aria-hidden="true">
           <img
             src={fLogo}
             alt=""
@@ -358,11 +336,11 @@ const done = goal.saved >= goal.target && goal.target > 0;
             <p>{t("home.recent_empty.body")}</p>
           </div>
         ) : (
-          recent.map((t) => (
+          recent.map((txn) => (
             <TransactionItem
-              key={t.id}
-              transaction={t}
-              onEdit={() => openTransactionModal(t.recurringId ?? t.id)}
+              key={txn.id}
+              transaction={txn}
+              onEdit={() => openTransactionModal(txn.recurringId ?? txn.id)}
             />
           ))
         )}

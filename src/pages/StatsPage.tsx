@@ -2,7 +2,11 @@ import { useState, useMemo } from "react";
 import { useApp } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
-import { getCategoryById } from "../utils/transactions";
+import {
+  getCategoryById,
+  sumByType,
+  monthDecrement,
+} from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
@@ -44,36 +48,21 @@ export default function StatsPage() {
   );
 
   const income = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
+    () => sumByType(visibleTransactions, "income"),
     [visibleTransactions],
   );
   const expense = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0),
+    () => sumByType(visibleTransactions, "expense"),
     [visibleTransactions],
   );
   const balance = income - expense;
 
   // Comparativa vs mes anterior
   const prevComparison = useMemo(() => {
-    let prevMonth = currentMonth - 1;
-    let prevYear = currentYear;
-    if (prevMonth < 0) {
-      prevMonth = 11;
-      prevYear -= 1;
-    }
+    const [prevMonth, prevYear] = monthDecrement(currentMonth, currentYear);
     const prevTxns = getMonthTransactions(prevMonth, prevYear);
-    const prevIncome = prevTxns
-      .filter((t) => t.type === "income")
-      .reduce((s, t) => s + t.amount, 0);
-    const prevExpense = prevTxns
-      .filter((t) => t.type === "expense")
-      .reduce((s, t) => s + t.amount, 0);
+    const prevIncome = sumByType(prevTxns, "income");
+    const prevExpense = sumByType(prevTxns, "expense");
     if (prevIncome <= 0 && prevExpense <= 0) return null;
 
     const pct = (cur: number, prev: number) =>

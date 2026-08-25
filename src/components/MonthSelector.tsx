@@ -1,5 +1,5 @@
 import { useApp } from "../AppContext";
-import { monthName, useI18n } from "../i18n";
+import { monthName, t, useI18n } from "../i18n";
 
 export default function MonthSelector() {
   const { currentMonth, currentYear, changeMonth } = useApp();
@@ -7,13 +7,13 @@ export default function MonthSelector() {
 
   return (
     <div className="month-selector">
-      <button className="month-arrow" onClick={() => changeMonth(-1)}>
+      <button className="month-arrow" onClick={() => changeMonth(-1)} aria-label={t("month.prev")}>
         <i className="fa-solid fa-chevron-left" />
       </button>
       <span className="month-label">
         {monthName(currentMonth)} {currentYear}
       </span>
-      <button className="month-arrow" onClick={() => changeMonth(1)}>
+      <button className="month-arrow" onClick={() => changeMonth(1)} aria-label={t("month.next")}>
         <i className="fa-solid fa-chevron-right" />
       </button>
     </div>

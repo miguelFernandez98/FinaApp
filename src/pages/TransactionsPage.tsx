@@ -7,6 +7,7 @@ import {
   getCategoryById,
   getMonthTransactionsWithDebtCarry,
   getFutureTransactions,
+  sortByDateDesc,
 } from "../utils/transactions";
 import TransactionItem from "../components/TransactionItem";
 import MonthSelector from "../components/MonthSelector";
@@ -75,13 +76,7 @@ export default function TransactionsPage() {
           getCategoryById(t.category).name.toLowerCase().includes(q),
       );
     }
-    return result.sort((a, b) => {
-      const dateDiff =
-        (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) *
-        (newestFirst ? 1 : -1);
-      if (dateDiff !== 0) return dateDiff;
-      return newestFirst ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
-    });
+    return sortByDateDesc(result, newestFirst ? 1 : -1);
   }, [
     visibleTransactions,
     currentTypeFilter,

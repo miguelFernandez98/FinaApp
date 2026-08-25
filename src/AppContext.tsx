@@ -371,22 +371,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const changeMonth = useCallback(
     (delta: number) => {
-      setCurrentMonth((prev) => {
-        let m = prev + delta;
-        let y = currentYear;
-        if (m > 11) {
-          m = 0;
-          y++;
-        }
-        if (m < 0) {
-          m = 11;
-          y--;
-        }
-        setCurrentYear(y);
-        return m;
-      });
+      const total = currentYear * 12 + currentMonth + delta;
+      setCurrentMonth(((total % 12) + 12) % 12);
+      setCurrentYear(Math.floor(total / 12));
     },
-    [currentYear],
+    [currentMonth, currentYear],
   );
 
   /**
@@ -540,7 +529,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
         return;
       lastRatesFetchRef.current = Date.now();
-      console.log("🔄 Refreshing exchange rates...");
       try {
         const rates = await fetchAllRates();
         if (cancelled) return;
@@ -555,7 +543,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             (rates.bcv == null && cached?.bcv != null) ||
             (rates.eur == null && cached?.eur != null),
         };
-        console.log("✅ Exchange rates updated:", merged);
         setExchangeRates(merged);
         saveExchangeRates(merged);
         notifyRateChanges(previousRatesRef.current, merged);
@@ -569,7 +556,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         if (cancelled) return;
-        console.error("❌ Error refreshing exchange rates:", error);
+        console.error("Error refreshing exchange rates:", error);
         const cached = loadExchangeRates();
         if (
           cached &&
