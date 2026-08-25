@@ -107,6 +107,9 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
             cornerRadius={8}
             paddingAngle={2}
             strokeWidth={0}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
             onMouseEnter={(_, index) => setHovered(index)}
             onMouseLeave={() => setHovered(null)}
           >

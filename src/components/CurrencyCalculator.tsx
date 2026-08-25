@@ -36,6 +36,36 @@ export default function CurrencyCalculator() {
     null,
   );
 
+  const [bcvAnimating, setBcvAnimating] = useState(false);
+  const [parAnimating, setParAnimating] = useState(false);
+  const bcvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const parTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerBcvAnim = useCallback(() => {
+    if (bcvTimerRef.current) clearTimeout(bcvTimerRef.current);
+    setBcvAnimating(false);
+    requestAnimationFrame(() => {
+      setBcvAnimating(true);
+      bcvTimerRef.current = setTimeout(() => setBcvAnimating(false), 450);
+    });
+  }, []);
+
+  const triggerParAnim = useCallback(() => {
+    if (parTimerRef.current) clearTimeout(parTimerRef.current);
+    setParAnimating(false);
+    requestAnimationFrame(() => {
+      setParAnimating(true);
+      parTimerRef.current = setTimeout(() => setParAnimating(false), 450);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bcvTimerRef.current) clearTimeout(bcvTimerRef.current);
+      if (parTimerRef.current) clearTimeout(parTimerRef.current);
+    };
+  }, []);
+
   const effectiveFrom: CurrencyType =
     fromCurrency === "CUSTOM" && !showCustomRate ? "VES" : fromCurrency;
   const effectiveTo: CurrencyType =
@@ -58,6 +88,7 @@ export default function CurrencyCalculator() {
     if (!showEUR) return;
     setBcvManualUntil(Date.now() + 7000);
     setBcvDisplay((prev) => (prev === "USD" ? "EUR" : "USD"));
+    triggerBcvAnim();
   };
 
   // Alterna automáticamente entre Paralelo y Tasa personalizada cada 3.5s
@@ -75,6 +106,7 @@ export default function CurrencyCalculator() {
     if (!showCustomRate || customRate === null) return;
     setParallelManualUntil(Date.now() + 7000);
     setParallelShowCustom((prev) => !prev);
+    triggerParAnim();
   };
 
   const handleFromChange = (value: string) => {
@@ -203,41 +235,9 @@ export default function CurrencyCalculator() {
     return t("calc.nd");
   };
 
-  const bcvRate =
-    effectiveBcvDisplay === "EUR" ? exchangeRates.eur : exchangeRates.bcv;
   const parallelRate = parallelShowCustom && customRate !== null
     ? customRate
     : exchangeRates.parallel;
-
-  // Dispara la animación "drop" vía WAAPI: a diferencia de una animación CSS
-  // ligada al montaje del nodo, esta arranca de forma programática en cada
-  // cambio de tasa o alternancia, sin depender del pipeline de render.
-  const bcvLabelRef = useRef<HTMLDivElement>(null);
-  const bcvValueRef = useRef<HTMLDivElement>(null);
-  const parallelLabelRef = useRef<HTMLDivElement>(null);
-  const parallelValueRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const playDrop = (el: HTMLElement | null) => {
-      el?.animate(
-        [
-          { opacity: 0, transform: "translateY(-14px)" },
-          { opacity: 1, transform: "translateY(2px)", offset: 0.6 },
-          { transform: "translateY(-1px)", offset: 0.8 },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        { duration: 800, easing: "cubic-bezier(0.34, 1.3, 0.44, 1)" },
-      );
-    };
-    if (showEUR) {
-      playDrop(bcvLabelRef.current);
-      playDrop(bcvValueRef.current);
-    }
-    if (!showCustomRate || customRate !== null) {
-      playDrop(parallelLabelRef.current);
-      playDrop(parallelValueRef.current);
-    }
-  }, [showEUR, bcvRate, effectiveBcvDisplay, showCustomRate, customRate, parallelRate]);
 
   return (
     <div className="glass-card" style={{ marginBottom: 20 }}>
@@ -373,18 +373,24 @@ export default function CurrencyCalculator() {
         >
           <div
             onClick={handleBcvClick}
+            className={bcvAnimating ? "rate-swap-animating" : ""}
             style={{
               cursor: showEUR ? "pointer" : "default",
               userSelect: "none",
             }}
             title={showEUR ? t("calc.bcv_tap_title") : undefined}
           >
-            <div ref={bcvLabelRef} className="rate-swap" style={{ color: "var(--accent)" }}>
+            <div
+              className="rate-swap"
+              style={{ color: "var(--accent)" }}
+            >
               {effectiveBcvDisplay === "EUR"
                 ? t("calc.bcv_eur")
                 : t("calc.bcv_usd")}
             </div>
-            <div ref={bcvValueRef} className="rate-swap">
+            <div
+              className="rate-swap"
+            >
               {effectiveBcvDisplay === "EUR"
                 ? rateDisplay(exchangeRates.eur)
                 : rateDisplay(exchangeRates.bcv)}
@@ -392,6 +398,7 @@ export default function CurrencyCalculator() {
           </div>
           <div
             onClick={handleParallelClick}
+            className={parAnimating ? "rate-swap-animating" : ""}
             style={{
               cursor:
                 showCustomRate && customRate !== null ? "pointer" : "default",
@@ -404,7 +411,6 @@ export default function CurrencyCalculator() {
             }
           >
             <div
-              ref={parallelLabelRef}
               className="rate-swap"
               style={{ color: "#F0B90B" }}
             >
@@ -412,7 +418,9 @@ export default function CurrencyCalculator() {
                 ? t("calc.custom")
                 : t("calc.parallel")}
             </div>
-            <div ref={parallelValueRef} className="rate-swap">
+            <div
+              className="rate-swap"
+            >
               {parallelRate === null ? rateDisplay(null) : rateDisplay(parallelRate)}
             </div>
           </div>

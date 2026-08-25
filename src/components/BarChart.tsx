@@ -128,6 +128,9 @@ export default function BarChart() {
             fill="rgba(74, 222, 128, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
           <Bar
             dataKey="expense"
@@ -135,6 +138,9 @@ export default function BarChart() {
             fill="rgba(255, 92, 92, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </RechartsBarChart>
       </ResponsiveContainer>
