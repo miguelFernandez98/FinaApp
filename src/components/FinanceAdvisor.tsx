@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useApp } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import {
-  ADVISOR_QUESTIONS,
+  getAdvisorQuestions,
   getAnswer,
   type AdvisorQuestionId,
 } from "../utils/analysis";
@@ -41,7 +41,7 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
   };
 
   const ask = (questionId: AdvisorQuestionId) => {
-    const question = ADVISOR_QUESTIONS.find((q) => q.id === questionId);
+    const question = getAdvisorQuestions().find((q) => q.id === questionId);
     if (!question) return;
     if (isTyping) return;
 
@@ -147,7 +147,7 @@ export default function FinanceAdvisor({ onClose }: FinanceAdvisorProps) {
         </div>
 
         <div className="advisor-questions">
-          {ADVISOR_QUESTIONS.map((q) => (
+          {getAdvisorQuestions().map((q) => (
             <button
               key={q.id}
               className="advisor-chip"
