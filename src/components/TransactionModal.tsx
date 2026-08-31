@@ -3,7 +3,7 @@ import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
-import { convertAmount } from "../utils/format";
+import { convertAmount, formatMoney } from "../utils/format";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
@@ -310,6 +310,13 @@ export default function TransactionModal() {
               style={{ paddingLeft: 56 }}
             />
           </div>
+          {amount && parseFloat(amount) > 0 && equivRate != null && (
+            <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: 4 }}>
+              {txnCurrency === "$"
+                ? formatMoney(convertAmount(parseFloat(amount), "$", "Bs.", equivRate), "Bs.")
+                : formatMoney(convertAmount(parseFloat(amount), "Bs.", "$", equivRate), "$")}
+            </p>
+          )}
       </div>
 
         {transactionType !== "debt" && (
