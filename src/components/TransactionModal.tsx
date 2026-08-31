@@ -8,6 +8,17 @@ import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
 
+function formatDisplayAmount(raw: string): string {
+  if (!raw) return "";
+  const cleaned = raw.replace(/[^0-9.,]/g, "").replace(",", ".");
+  const parts = cleaned.split(".");
+  const intPart = parts[0] || "";
+  const decPart = parts.length > 1 ? "." + parts[1].slice(0, 2) : "";
+  const locale = navigator.language?.startsWith("es") ? "es" : "en";
+  const intFormatted = parseInt(intPart || "0", 10).toLocaleString(locale);
+  return intFormatted + decPart;
+}
+
 export default function TransactionModal() {
   const { transactions, equivalentRate, customRate } = useAppData();
   const { txnModalEditingId: editingId, exchangeRates } = useAppUI();
@@ -299,14 +310,15 @@ export default function TransactionModal() {
               {txnCurrency}
             </button>
             <input
-              type="number"
+              type="text"
               className="input-field input-amount"
               placeholder={t("modal.amount_placeholder")}
-              step="0.01"
-              min="0"
               inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={formatDisplayAmount(amount)}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                setAmount(cleaned);
+              }}
               style={{ paddingLeft: 56 }}
             />
           </div>
