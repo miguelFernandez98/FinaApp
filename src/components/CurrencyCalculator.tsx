@@ -20,7 +20,7 @@ function sanitizeAmount(raw: string): string {
 export default function CurrencyCalculator() {
   const { showEUR, showCustomRate, customRate } = useAppData();
   const { exchangeRates } = useAppUI();
-  const { setCustomRate } = useAppActions();
+  const { setCustomRate, showToast } = useAppActions();
   const { language } = useI18n();
   const [amount, setAmount] = useState("");
 
@@ -220,6 +220,17 @@ export default function CurrencyCalculator() {
     return formatMoney(rounded, symbol);
   }, [amount, effectiveFrom, effectiveTo, convertAmount]);
 
+  const handleCopyResult = async () => {
+    if (!result) return;
+    try {
+      const numStr = result.replace(/[^\d.,-]/g, "").replace(",", ".");
+      await navigator.clipboard.writeText(numStr);
+      showToast(t("calc.copied"));
+    } catch {
+      showToast(t("calc.copied"));
+    }
+  };
+
   const lastUpdatedParts = exchangeRates.lastUpdated
     ? (() => {
         const d = new Date(exchangeRates.lastUpdated);
@@ -357,10 +368,22 @@ export default function CurrencyCalculator() {
             >
               {t("calc.result")}
             </div>
-            <div
-              style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)", overflow: "scroll" }}
-            >
-              {result}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{ fontSize: 18, fontWeight: 600, color: "var(--accent)", flex: 1, overflow: "scroll" }}
+              >
+                {result}
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={handleCopyResult}
+                title={t("calc.copy")}
+                aria-label={t("calc.copy")}
+                style={{ flexShrink: 0 }}
+              >
+                <i className="fa-regular fa-copy" />
+              </button>
             </div>
           </div>
         )}
