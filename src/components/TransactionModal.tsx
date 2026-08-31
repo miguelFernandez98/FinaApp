@@ -3,13 +3,14 @@ import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
+import { convertAmount } from "../utils/format";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
 
 export default function TransactionModal() {
-  const { transactions } = useAppData();
-  const { txnModalEditingId: editingId } = useAppUI();
+  const { transactions, equivalentRate, customRate } = useAppData();
+  const { txnModalEditingId: editingId, exchangeRates } = useAppUI();
   const {
     addTransaction,
     updateTransaction,
@@ -69,6 +70,13 @@ export default function TransactionModal() {
 
   const isEditing = !!editingTransaction;
 
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
+
   const handleTypeChange = (next: TransactionType) => {
     if (isEditing) return;
     setTransactionType(next);
@@ -81,19 +89,14 @@ export default function TransactionModal() {
     }
   };
 
-  const handleCopyAmount = async () => {
+  const handleCurrencyToggle = () => {
     const numAmount = parseFloat(amount);
-    if (!amount || isNaN(numAmount) || numAmount === 0) return;
-    try {
-      await navigator.clipboard.writeText(numAmount.toString());
-      showToast(t("modal.amount_copied"));
-    } catch {
-      showToast(
-        t("modal.amount_copy_error"),
-        "fa-circle-exclamation",
-        "var(--danger)",
-      );
+    if (amount && !isNaN(numAmount) && numAmount !== 0 && equivRate != null) {
+      const newCurrency = txnCurrency === "$" ? "Bs." : "$";
+      const converted = convertAmount(numAmount, txnCurrency, newCurrency, equivRate);
+      setAmount(String(parseFloat(converted.toFixed(2))));
     }
+    setTxnCurrency((c) => (c === "$" ? "Bs." : "$"));
   };
 
   const handleSave = () => {
@@ -276,7 +279,7 @@ export default function TransactionModal() {
           <div style={{ position: "relative" }}>
             <button
               type="button"
-              onClick={() => setTxnCurrency((c) => (c === "$" ? "Bs." : "$"))}
+              onClick={handleCurrencyToggle}
               style={{
                 position: "absolute",
                 left: 12,
@@ -306,30 +309,6 @@ export default function TransactionModal() {
               onChange={(e) => setAmount(e.target.value)}
               style={{ paddingLeft: 56 }}
             />
-            <button
-              type="button"
-              onClick={handleCopyAmount}
-              style={{
-                position: "absolute",
-                right: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "var(--card)",
-                color: "var(--fg)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                width: 36,
-                height: 36,
-                display: "grid",
-                placeItems: "center",
-                cursor:
-                  amount && parseFloat(amount) !== 0
-                    ? "pointer"
-                    : "not-allowed",
-              }}
-            >
-              <i className="fa-solid fa-copy" />
-            </button>
           </div>
       </div>
 
