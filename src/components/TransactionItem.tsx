@@ -120,7 +120,7 @@ function TransactionItem({
         }}
       >
         {sign}
-        {showBs && equivRate != null && txnCurrency !== currency
+        {showBs && equivRate != null
           ? formatMoney(convertAmount(transaction.amount, txnCurrency, "Bs.", equivRate), "Bs.")
           : formatMoney(
               equivRate != null && equivRate > 0 && txnCurrency !== currency
