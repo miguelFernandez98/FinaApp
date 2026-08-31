@@ -903,6 +903,16 @@ body.driver-active .bottom-nav {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.budget-header span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .budget-bar-track {
@@ -954,6 +964,11 @@ body.driver-active .bottom-nav {
   font-weight: 700;
   color: var(--danger);
   font-family: "Space Grotesk";
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  text-align: right;
 }
 
 /* ===== MODAL ===== */
@@ -1932,16 +1947,29 @@ body.driver-active .bottom-nav {
   border-radius: 14px;
   background: var(--card);
   border: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .compare-label {
   font-size: 11px;
   color: var(--fg-muted);
+  flex-shrink: 0;
 }
 
 .compare-value {
   font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  text-align: center;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.compare-value::-webkit-scrollbar {
+  display: none;
 }
 
 .compare-delta {

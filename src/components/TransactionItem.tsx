@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { useAppData, useAppUI } from "../AppContext";
 import { getLanguage, t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
-import { formatMoney } from "../utils/format";
+import { formatMoney, convertAmount } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
 import type { Transaction } from "../types";
 
@@ -120,8 +120,8 @@ function TransactionItem({
         }}
       >
         {sign}
-        {showBs && equivRate != null && txnCurrency !== currency
-          ? `Bs. ${(transaction.amount * equivRate).toFixed(2)}`
+        {showBs && equivRate != null
+          ? formatMoney(convertAmount(transaction.amount, txnCurrency, "Bs.", equivRate), "Bs.")
           : formatMoney(
               equivRate != null && equivRate > 0 && txnCurrency !== currency
                 ? txnCurrency === "Bs."
