@@ -14,9 +14,11 @@ const DEBT_MID_DAYS = 3;
 const BUDGET_APPROACH_THRESHOLD = 0.8;
 const BACKUP_REMINDER_ID = 9001;
 const MONTHLY_SUMMARY_ID = 9002;
+const DAILY_REMINDER_ID = 9003;
 const BACKUP_REMINDER_DAYS = 30;
 const BACKUP_REMINDER_HOUR = 10;
 const MONTHLY_SUMMARY_HOUR = 20;
+const DAILY_REMINDER_HOUR = 9;
 
 /**
  * Genera un ID de notificación dentro del rango de int de Java
@@ -35,6 +37,7 @@ let lastNotifiedRates: { bcv: number | null; parallel: number | null } | null =
   null;
 
 let budgetNotifyAt = 0;
+let permissionRequestInProgress = false;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -57,10 +60,13 @@ export async function checkNotificationPermission(): Promise<boolean> {
 /**
  * Solicita el permiso de notificaciones en la plataforma nativa.
  * No hace nada en navegador.
+ * Incluye un guard para evitar múltiples diálogos simultáneos.
  * @returns True si los permisos están concedidos.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!isNative()) return false;
+  if (permissionRequestInProgress) return false;
+  permissionRequestInProgress = true;
   try {
     const { display } = await LocalNotifications.checkPermissions();
     if (display === "granted") return true;
@@ -73,9 +79,13 @@ export async function requestNotificationPermission(): Promise<boolean> {
   } catch (error) {
     console.error("Error requesting notification permission:", error);
     return false;
+  } finally {
+    permissionRequestInProgress = false;
   }
   return true;
 }
+
+let exactAlarmPermissionInProgress = false;
 
 /**
  * Verifica el permiso de alarmas exactas (Android 12+). En Android 13+
@@ -83,10 +93,13 @@ export async function requestNotificationPermission(): Promise<boolean> {
  * notificaciones programadas se disparan como alarmas inexactas (solo
  * cuando la app está en segundo plano o ya se abrió). Si está denegado,
  * abre los ajustes del sistema para que el usuario lo conceda.
+ * Incluye un guard para evitar múltiples aperturas de ajustes.
  * @returns True si las alarmas exactas están permitidas.
  */
 export async function ensureExactAlarmPermission(): Promise<boolean> {
   if (!isNative()) return true;
+  if (exactAlarmPermissionInProgress) return false;
+  exactAlarmPermissionInProgress = true;
   try {
     const { exact_alarm } =
       await LocalNotifications.checkExactNotificationSetting();
@@ -98,6 +111,8 @@ export async function ensureExactAlarmPermission(): Promise<boolean> {
   } catch (error) {
     console.error("Error checking exact alarm setting:", error);
     return false;
+  } finally {
+    exactAlarmPermissionInProgress = false;
   }
 }
 
@@ -494,5 +509,82 @@ export async function scheduleMonthlySummary(
     });
   } catch (error) {
     console.error("Error scheduling monthly summary:", error);
+  }
+}
+
+/**
+ * Programa un recordatorio diario a las 9:00 AM del día siguiente.
+ * Sirve para mantener la cola de notificaciones viva cuando la app
+ * está cerrada. Al tocarlo, la app se abre y reprograma todo.
+ * Se cancela y reprograma cada vez que la app va a background.
+ */
+export async function scheduleDailyReminder(): Promise<void> {
+  if (!isNative()) return;
+
+  try {
+    const pending = await LocalNotifications.getPending();
+    if (pending.notifications.some((n) => n.id === DAILY_REMINDER_ID)) {
+      return;
+    }
+  } catch (error) {
+    console.error("Error checking pending daily reminder:", error);
+  }
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(DAILY_REMINDER_HOUR, 0, 0, 0);
+
+  const now = new Date();
+  let summaryBody: string;
+  if (getLanguage() === "en") {
+    summaryBody = `Good morning! Check your finances. It's ${now.toLocaleDateString("en", { weekday: "long" })}.`;
+  } else {
+    summaryBody = `¡Buenos días! Revisa tus finanzas. Es ${now.toLocaleDateString("es-VE", { weekday: "long" })}.`;
+  }
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: DAILY_REMINDER_ID,
+          title: t("notif.daily_title"),
+          body: summaryBody,
+          schedule: { at: futureScheduleAt(tomorrow), allowWhileIdle: true },
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error scheduling daily reminder:", error);
+  }
+}
+
+/**
+ * Programa TODAS las notificaciones cuando la app va a background.
+ * Esto garantiza que siempre haya notificaciones pendientes en la
+ * cola de Android, incluso si la app es cerrada/kill.
+ * @param transactions Todas las transacciones.
+ * @param budgets Presupuestos por categoría.
+ * @param currency Símbolo de moneda.
+ * @param lastExportAt Timestamp de última exportación.
+ */
+export async function scheduleAllOnBackground(
+  transactions: Transaction[],
+  budgets: Record<string, number>,
+  currency: string,
+  lastExportAt: number | null,
+): Promise<void> {
+  if (!isNative()) return;
+
+  try {
+    const granted = await checkNotificationPermission();
+    if (!granted) return;
+    await ensureExactAlarmPermission();
+    await scheduleDebtReminders(transactions);
+    await notifyBudgetAlerts(transactions, budgets, currency);
+    await scheduleBackupReminder(lastExportAt);
+    await scheduleMonthlySummary(transactions, currency);
+    await scheduleDailyReminder();
+  } catch (error) {
+    console.error("Error scheduling notifications on background:", error);
   }
 }

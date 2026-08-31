@@ -1,4 +1,5 @@
-import { useApp } from "../AppContext";
+import { memo, useState } from "react";
+import { useAppData, useAppUI } from "../AppContext";
 import { getLanguage, t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -10,11 +11,13 @@ interface TransactionItemProps {
   onEdit: () => void;
 }
 
-export default function TransactionItem({
+function TransactionItem({
   transaction,
   onEdit,
 }: TransactionItemProps) {
-  const { currency } = useApp();
+  const { currency, equivalentRate, customRate } = useAppData();
+  const { exchangeRates } = useAppUI();
+  const [showBs, setShowBs] = useState(false);
   useI18n();
   const category = getCategoryById(transaction.category);
   const isDebt = transaction.type === "debt";
@@ -31,6 +34,15 @@ export default function TransactionItem({
     day: "numeric",
     month: "short",
   });
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
+
+  const txnCurrency = transaction.currency ?? currency;
 
   const isRecurringTxn = transaction.isRecurring || !!transaction.recurringId;
   const badgeText = (() => {
@@ -98,10 +110,29 @@ export default function TransactionItem({
           </span>
         )}
       </div>
-      <div className="txn-amount" style={{ color: amountColor }}>
+      <div
+        className="txn-amount"
+        style={{ color: amountColor, cursor: equivRate != null ? "pointer" : undefined }}
+        onClick={(e) => {
+          if (equivRate == null) return;
+          e.stopPropagation();
+          setShowBs((v) => !v);
+        }}
+      >
         {sign}
-        {formatMoney(transaction.amount, currency)}
+        {showBs && equivRate != null && txnCurrency !== currency
+          ? `Bs. ${(transaction.amount * equivRate).toFixed(2)}`
+          : formatMoney(
+              equivRate != null && equivRate > 0 && txnCurrency !== currency
+                ? txnCurrency === "Bs."
+                  ? transaction.amount / equivRate
+                  : transaction.amount * equivRate
+                : transaction.amount,
+              currency,
+            )}
       </div>
     </article>
   );
 }
+
+export default memo(TransactionItem);

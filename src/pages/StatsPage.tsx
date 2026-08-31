@@ -1,8 +1,12 @@
 import { useState, useMemo } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
-import { getCategoryById } from "../utils/transactions";
+import {
+  getCategoryById,
+  sumByType,
+  monthDecrement,
+} from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
 import MonthSelector from "../components/MonthSelector";
@@ -11,17 +15,21 @@ import AppVersion from "../components/AppVersion";
 import { exportTransactionsToCSV } from "../utils/export";
 
 export default function StatsPage() {
-  const {
-    getMonthTransactions,
-    currentMonth,
-    currentYear,
-    currency,
-    budgets,
-  } = useApp();
+  const { currency, budgets, equivalentRate, customRate } = useAppData();
+  const { currentMonth, currentYear, exchangeRates } = useAppUI();
+  const { getMonthTransactions } = useAppActions();
   useI18n();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showBs, setShowBs] = useState(false);
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
 
   const handleExport = async () => {
     if (exporting) return;
@@ -44,36 +52,21 @@ export default function StatsPage() {
   );
 
   const income = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "income", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const expense = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "expense", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const balance = income - expense;
 
   // Comparativa vs mes anterior
   const prevComparison = useMemo(() => {
-    let prevMonth = currentMonth - 1;
-    let prevYear = currentYear;
-    if (prevMonth < 0) {
-      prevMonth = 11;
-      prevYear -= 1;
-    }
+    const [prevMonth, prevYear] = monthDecrement(currentMonth, currentYear);
     const prevTxns = getMonthTransactions(prevMonth, prevYear);
-    const prevIncome = prevTxns
-      .filter((t) => t.type === "income")
-      .reduce((s, t) => s + t.amount, 0);
-    const prevExpense = prevTxns
-      .filter((t) => t.type === "expense")
-      .reduce((s, t) => s + t.amount, 0);
+    const prevIncome = sumByType(prevTxns, "income", currency, equivRate);
+    const prevExpense = sumByType(prevTxns, "expense", currency, equivRate);
     if (prevIncome <= 0 && prevExpense <= 0) return null;
 
     const pct = (cur: number, prev: number) =>
@@ -91,7 +84,7 @@ export default function StatsPage() {
         pct: pct(balance, prevIncome - prevExpense),
       },
     };
-  }, [getMonthTransactions, currentMonth, currentYear, income, expense, balance]);
+  }, [getMonthTransactions, currentMonth, currentYear, income, expense, balance, currency, equivRate]);
 
   // Top categorías
   const topCats = useMemo(() => {
@@ -164,7 +157,8 @@ export default function StatsPage() {
       <section
         className="glass-card"
         id="stats-compare"
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 20, cursor: equivRate != null ? "pointer" : undefined }}
+        onClick={() => equivRate != null && setShowBs((v) => !v)}
       >
         <div className="card-header" style={{ marginBottom: 12 }}>
           <h3 className="card-title">{t("stats.compare")}</h3>
@@ -173,7 +167,9 @@ export default function StatsPage() {
           <div className="compare-item">
             <span className="compare-label">{t("stats.compare_income")}</span>
             <span className="compare-value" style={{ color: "var(--success)" }}>
-              {formatMoney(income, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(income * equivRate).toFixed(2)}`
+                : formatMoney(income, currency)}
             </span>
             {prevComparison && (
               <span
@@ -189,7 +185,9 @@ export default function StatsPage() {
           <div className="compare-item">
             <span className="compare-label">{t("stats.compare_expense")}</span>
             <span className="compare-value" style={{ color: "var(--danger)" }}>
-              {formatMoney(expense, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(expense * equivRate).toFixed(2)}`
+                : formatMoney(expense, currency)}
             </span>
             {prevComparison && (
               <span
@@ -210,8 +208,9 @@ export default function StatsPage() {
                 color: balance >= 0 ? "var(--accent)" : "var(--danger)",
               }}
             >
-              {balance < 0 ? "-" : ""}
-              {formatMoney(balance, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(Math.abs(balance) * equivRate).toFixed(2)}`
+                : `${balance < 0 ? "-" : ""}${formatMoney(balance, currency)}`}
             </span>
             {prevComparison && (
               <span
@@ -229,7 +228,7 @@ export default function StatsPage() {
 
       <div className="stats-main">
         {/* Barras */}
-        <section className="glass-card">
+        <section id="stats-trend" className="glass-card">
           <h3 className="card-title" style={{ marginBottom: 12 }}>
             {t("stats.trend")}
           </h3>

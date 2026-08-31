@@ -73,6 +73,8 @@ export const messages: Record<
     "home.title": "Mis Finanzas",
     "home.balance": "Balance total",
     "home.previous_balance": "Saldo anterior",
+    "month.prev": "Mes anterior",
+    "month.next": "Mes siguiente",
     "home.income": "Ingresos",
     "home.expense": "Gastos",
     "home.debt_pending_total": "Deudas total pendiente",
@@ -175,12 +177,26 @@ export const messages: Record<
       "La tasa se actualiza junto con el dólar. Sin conexión se muestra la última guardada.",
     "settings.custom_hint":
       "Puede cargar una tasa personalizada según lo requiera, la misma no se actualiza automáticamente.",
+    "settings.equivalent_rate": "Tasa para equivalentes",
+    "settings.equiv_bcv": "BCV (oficial)",
+    "settings.equiv_parallel": "Paralelo",
+    "settings.equiv_custom": "Personalizada",
+    "settings.equiv_hint": "Tasa usada para mostrar montos en Bs. al tocar las tarjetas.",
+    "modal.currency": "Moneda",
+    "modal.currency_bs": "Bolívares",
+    "modal.currency_usd": "Dólares",
     "settings.export": "Exportar datos",
     "settings.import": "Importar datos",
     "settings.load_sample": "Cargar datos de ejemplo",
     "settings.clear_all": "Borrar todos los datos",
     "settings.storage_note":
       "Los datos se almacenan exclusivamente en tu dispositivo.",
+    "legal.section": "Legal",
+    "legal.terms": "Términos y Condiciones",
+    "legal.privacy": "Política de Privacidad",
+    "legal.terms_title": "Términos y Condiciones",
+    "legal.privacy_title": "Política de Privacidad",
+    "legal.last_updated": "Última actualización: {date}",
     "settings.currency_updated": "Moneda actualizada",
     "settings.exported": "Datos exportados",
     "settings.export_fail": "No se pudo exportar",
@@ -285,6 +301,8 @@ export const messages: Record<
     "calc.from": "De",
     "calc.to": "A",
     "calc.result": "Resultado:",
+    "calc.copy": "Copiar resultado",
+    "calc.copied": "Resultado copiado",
     "calc.cache": "Caché",
     "calc.updated": "Actualizado",
     "calc.loading": "Cargando tasas...",
@@ -445,6 +463,7 @@ export const messages: Record<
     "notif.summary": "Resumen del mes",
     "notif.summary_body":
       "{month}: ingresos {income}, gastos {expense}. Balance {balance}.",
+    "notif.daily_title": "Revisa tus finanzas",
 
     // Bloqueo
     "lock.subtitle": "Ingresa tu PIN para desbloquear",
@@ -481,6 +500,8 @@ export const messages: Record<
     "goals.updated_toast": "Progreso actualizado",
     "goals.name_required": "Ingresa un nombre para la meta",
     "goals.target_required": "Ingresa un monto objetivo válido",
+    "goals.completed": "¡Completada!",
+    "goals.remaining": "restante",
 
     // Tutorial
     "tutorial.step1_title": "Tu panel principal",
@@ -498,54 +519,58 @@ export const messages: Record<
     "tutorial.step5_title": "Metas de ahorro",
     "tutorial.step5_body":
       "Crea metas de ahorro y sigue tu progreso para alcanzar tus objetivos.",
-    "tutorial.step6_title": "Agregar movimientos",
+    "tutorial.step6_title": "Movimientos recientes",
     "tutorial.step6_body":
-      "Toca el botón + para abrir el registro de un nuevo movimiento. Vamos a verlo.",
-    "tutorial.step7_title": "Opciones de registro",
+      "Aquí ves los últimos movimientos registrados. Toca \"Ver todos\" para ir a la lista completa.",
+    "tutorial.step7_title": "Agregar movimientos",
     "tutorial.step7_body":
-      "Elige el tipo: Gasto, Ingreso o Deuda. Los ingresos suman a tu balance, los gastos restan y las deudas se registran con fecha límite y pagos parciales.",
-    "tutorial.step8_title": "Filtros de movimientos",
+      "Toca el botón + para abrir el registro de un nuevo movimiento. Vamos a verlo.",
+    "tutorial.step8_title": "Opciones de registro",
     "tutorial.step8_body":
-      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o constantes.",
-    "tutorial.step9_title": "Filtros por categoría",
+      "Elige el tipo: Gasto, Ingreso o Deuda. Los ingresos suman a tu balance, los gastos restan y las deudas se registran con fecha límite y pagos parciales.",
+    "tutorial.step9_title": "Búsqueda rápida",
     "tutorial.step9_body":
-      "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
-    "tutorial.step10_title": "Búsqueda rápida",
-    "tutorial.step10_body":
       "Toca la lupa y escribe para buscar movimientos por descripción o categoría al instante.",
-    "tutorial.step11_title": "Tendencia mensual",
+    "tutorial.step10_title": "Filtros de movimientos",
+    "tutorial.step10_body":
+      "En esta pestaña puedes filtrar tus movimientos por tipo: todos, gastos, ingresos, deudas o constantes.",
+    "tutorial.step11_title": "Filtros por categoría",
     "tutorial.step11_body":
-      "El gráfico de barras muestra tus ingresos y gastos de los últimos meses para ver la tendencia.",
-    "tutorial.step12_title": "Presupuestos",
+      "También puedes filtrar por categoría para encontrar lo que buscas rápido.",
+    "tutorial.step12_title": "Asistente financiero",
     "tutorial.step12_body":
-      "Define un límite de gasto por categoría con Editar. La app te avisa cuando te acercas o superas el límite.",
-    "tutorial.step13_title": "Top gastos del mes",
-    "tutorial.step13_body":
-      "Las 5 categorías donde más gastaste este mes, con su porcentaje del total. Ideal para detectar fugas de dinero.",
-    "tutorial.step14_title": "Asistente financiero",
-    "tutorial.step14_body":
       "Tu asistente con IA responde preguntas sobre tus finanzas: cómo te fue, en qué gastas más y cómo mejorar.",
-    "tutorial.step15_title": "Exportar a Excel",
-    "tutorial.step15_body":
+    "tutorial.step13_title": "Exportar a Excel",
+    "tutorial.step13_body":
       "Exporta los movimientos del mes a un archivo CSV que puedes abrir en Excel, Sheets o cualquier hoja de cálculo.",
-    "tutorial.step16_title": "Comparativa mensual",
-    "tutorial.step16_body":
+    "tutorial.step14_title": "Comparativa mensual",
+    "tutorial.step14_body":
       "Compara ingresos, gastos y balance con el mes anterior. Verde es bueno, rojo es malo.",
-    "tutorial.step17_title": "Tasas de cambio",
+    "tutorial.step15_title": "Tendencia mensual",
+    "tutorial.step15_body":
+      "El gráfico de barras muestra tus ingresos y gastos de los últimos meses para ver la tendencia.",
+    "tutorial.step16_title": "Presupuestos",
+    "tutorial.step16_body":
+      "Define un límite de gasto por categoría con Editar. La app te avisa cuando te acercas o superas el límite.",
+    "tutorial.step17_title": "Top gastos del mes",
     "tutorial.step17_body":
-      "Consulta las tasas del dólar (paralelo y BCV) y del euro, actualizadas automáticamente, o define una tasa personalizada.",
+      "Las 5 categorías donde más gastaste este mes, con su porcentaje del total. Ideal para detectar fugas de dinero.",
     "tutorial.step18_title": "Idioma",
     "tutorial.step18_body":
       "Cambia el idioma de la app entre español e inglés cuando quieras.",
-    "tutorial.step19_title": "Seguridad",
+    "tutorial.step19_title": "Tasas de cambio",
     "tutorial.step19_body":
-      "Protege tu app con un PIN o tu huella, y gestiona tus datos desde aquí.",
-    "tutorial.step20_title": "Respaldo local",
+      "Consulta las tasas del dólar (paralelo y BCV) y del euro, actualizadas automáticamente, o define una tasa personalizada.",
+    "tutorial.step20_title": "Seguridad",
     "tutorial.step20_body":
+      "Protege tu app con un PIN o tu huella, y gestiona tus datos desde aquí.",
+    "tutorial.step21_title": "Respaldo local",
+    "tutorial.step21_body":
       "Todo se guarda solo en tu dispositivo: no hay servidores. Exporta o importa un respaldo JSON para cuidar tus datos.",
     "tutorial.next": "Siguiente",
     "tutorial.previous": "Anterior",
     "tutorial.done": "Finalizar",
+    "tutorial.skip": "Saltar",
 
     // Toast (contexto)
     "toast.rates_cache": "Tasas parcialmente en caché (sin conexión)",
@@ -586,6 +611,8 @@ export const messages: Record<
     "home.title": "My Finances",
     "home.balance": "Total balance",
     "home.previous_balance": "Previous balance",
+    "month.prev": "Previous month",
+    "month.next": "Next month",
     "home.income": "Income",
     "home.expense": "Expenses",
     "home.debt_pending_total": "Total pending debt",
@@ -685,12 +712,26 @@ export const messages: Record<
       "The rate updates together with the dollar. Offline it shows the last saved one.",
     "settings.custom_hint":
       "You can set a custom rate as needed; it does not update automatically.",
+    "settings.equivalent_rate": "Rate for equivalents",
+    "settings.equiv_bcv": "BCV (official)",
+    "settings.equiv_parallel": "Parallel",
+    "settings.equiv_custom": "Custom",
+    "settings.equiv_hint": "Rate used to show Bs. amounts when tapping cards.",
+    "modal.currency": "Currency",
+    "modal.currency_bs": "Bolívares",
+    "modal.currency_usd": "Dollars",
     "settings.export": "Export data",
     "settings.import": "Import data",
     "settings.load_sample": "Load sample data",
     "settings.clear_all": "Clear all data",
     "settings.storage_note":
       "All data is stored exclusively on your device.",
+    "legal.section": "Legal",
+    "legal.terms": "Terms & Conditions",
+    "legal.privacy": "Privacy Policy",
+    "legal.terms_title": "Terms & Conditions",
+    "legal.privacy_title": "Privacy Policy",
+    "legal.last_updated": "Last updated: {date}",
     "settings.currency_updated": "Currency updated",
     "settings.exported": "Data exported",
     "settings.export_fail": "Could not export",
@@ -792,6 +833,8 @@ export const messages: Record<
     "calc.from": "From",
     "calc.to": "To",
     "calc.result": "Result:",
+    "calc.copy": "Copy result",
+    "calc.copied": "Result copied",
     "calc.cache": "Cache",
     "calc.updated": "Updated",
     "calc.loading": "Loading rates...",
@@ -949,6 +992,7 @@ export const messages: Record<
     "notif.summary": "Month summary",
     "notif.summary_body":
       "{month}: income {income}, expenses {expense}. Balance {balance}.",
+    "notif.daily_title": "Check your finances",
 
     // Lock
     "lock.subtitle": "Enter your PIN to unlock",
@@ -985,6 +1029,8 @@ export const messages: Record<
     "goals.updated_toast": "Progress updated",
     "goals.name_required": "Enter a name for the goal",
     "goals.target_required": "Enter a valid target amount",
+    "goals.completed": "Completed!",
+    "goals.remaining": "remaining",
 
     // Tutorial
     "tutorial.step1_title": "Your main dashboard",
@@ -1002,54 +1048,58 @@ export const messages: Record<
     "tutorial.step5_title": "Savings goals",
     "tutorial.step5_body":
       "Create savings goals and track your progress to reach your targets.",
-    "tutorial.step6_title": "Add movements",
+    "tutorial.step6_title": "Recent transactions",
     "tutorial.step6_body":
-      "Tap the + button to open the form for a new movement. Let's take a look.",
-    "tutorial.step7_title": "Registration options",
+      "See your latest recorded transactions here. Tap \"See all\" to go to the full list.",
+    "tutorial.step7_title": "Add movements",
     "tutorial.step7_body":
-      "Choose the type: Expense, Income or Debt. Income adds to your balance, expenses subtract, and debts are tracked with a due date and partial payments.",
-    "tutorial.step8_title": "Movement filters",
+      "Tap the + button to open the form for a new movement. Let's take a look.",
+    "tutorial.step8_title": "Registration options",
     "tutorial.step8_body":
-      "In this tab you can filter your movements by type: all, expenses, income, debts or constants.",
-    "tutorial.step9_title": "Category filters",
+      "Choose the type: Expense, Income or Debt. Income adds to your balance, expenses subtract, and debts are tracked with a due date and partial payments.",
+    "tutorial.step9_title": "Quick search",
     "tutorial.step9_body":
-      "You can also filter by category to quickly find what you're looking for.",
-    "tutorial.step10_title": "Quick search",
-    "tutorial.step10_body":
       "Tap the magnifier and type to find movements by description or category instantly.",
-    "tutorial.step11_title": "Monthly trend",
+    "tutorial.step10_title": "Movement filters",
+    "tutorial.step10_body":
+      "In this tab you can filter your movements by type: all, expenses, income, debts or constants.",
+    "tutorial.step11_title": "Category filters",
     "tutorial.step11_body":
-      "The bar chart shows your income and expenses over the last months to see the trend.",
-    "tutorial.step12_title": "Budgets",
+      "You can also filter by category to quickly find what you're looking for.",
+    "tutorial.step12_title": "Financial assistant",
     "tutorial.step12_body":
-      "Set a spending limit per category with Edit. The app warns you when you're close to or over the limit.",
-    "tutorial.step13_title": "Top monthly expenses",
-    "tutorial.step13_body":
-      "The 5 categories where you spent the most this month, with their share of the total. Ideal for spotting money leaks.",
-    "tutorial.step14_title": "Financial assistant",
-    "tutorial.step14_body":
       "Your AI assistant answers questions about your finances: how you did, where you spend the most and how to improve.",
-    "tutorial.step15_title": "Export to Excel",
-    "tutorial.step15_body":
+    "tutorial.step13_title": "Export to Excel",
+    "tutorial.step13_body":
       "Export the month's movements to a CSV file you can open in Excel, Sheets or any spreadsheet.",
-    "tutorial.step16_title": "Monthly comparison",
-    "tutorial.step16_body":
+    "tutorial.step14_title": "Monthly comparison",
+    "tutorial.step14_body":
       "Compare income, expenses and balance with the previous month. Green is good, red is bad.",
-    "tutorial.step17_title": "Exchange rates",
+    "tutorial.step15_title": "Monthly trend",
+    "tutorial.step15_body":
+      "The bar chart shows your income and expenses over the last months to see the trend.",
+    "tutorial.step16_title": "Budgets",
+    "tutorial.step16_body":
+      "Set a spending limit per category with Edit. The app warns you when you're close to or over the limit.",
+    "tutorial.step17_title": "Top monthly expenses",
     "tutorial.step17_body":
-      "Check dollar rates (parallel and BCV) and the euro, updated automatically, or set a custom rate.",
+      "The 5 categories where you spent the most this month, with their share of the total. Ideal for spotting money leaks.",
     "tutorial.step18_title": "Language",
     "tutorial.step18_body":
       "Switch the app language between Spanish and English whenever you want.",
-    "tutorial.step19_title": "Security",
+    "tutorial.step19_title": "Exchange rates",
     "tutorial.step19_body":
-      "Protect your app with a PIN or your fingerprint, and manage your data from here.",
-    "tutorial.step20_title": "Local backup",
+      "Check dollar rates (parallel and BCV) and the euro, updated automatically, or set a custom rate.",
+    "tutorial.step20_title": "Security",
     "tutorial.step20_body":
+      "Protect your app with a PIN or your fingerprint, and manage your data from here.",
+    "tutorial.step21_title": "Local backup",
+    "tutorial.step21_body":
       "Everything is stored only on your device: no servers. Export or import a JSON backup to keep your data safe.",
     "tutorial.next": "Next",
     "tutorial.previous": "Previous",
     "tutorial.done": "Finish",
+    "tutorial.skip": "Skip",
 
     "toast.rates_cache": "Rates partially cached (offline)",
     "toast.rates_cached_using": "Using cached rates (offline)",

@@ -36,7 +36,7 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "home",
-    element: "#debts-section",
+    element: ".home-grid",
     popover: {
       title: t("tutorial.step3_title"),
       description: t("tutorial.step3_body"),
@@ -45,7 +45,7 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "home",
-    element: ".home-grid",
+    element: "#debts-section",
     popover: {
       title: t("tutorial.step4_title"),
       description: t("tutorial.step4_body"),
@@ -63,7 +63,7 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "home",
-    element: "#global-add-btn",
+    element: "#recent-section",
     popover: {
       title: t("tutorial.step6_title"),
       description: t("tutorial.step6_body"),
@@ -72,26 +72,26 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "home",
-    element: "#txn-type-toggle",
+    element: "#global-add-btn",
     popover: {
       title: t("tutorial.step7_title"),
       description: t("tutorial.step7_body"),
+      side: "top",
+    },
+  },
+  {
+    page: "home",
+    element: "#txn-type-toggle",
+    popover: {
+      title: t("tutorial.step8_title"),
+      description: t("tutorial.step8_body"),
       side: "bottom",
       align: "start",
     },
   },
   {
     page: "transactions",
-    element: ".filters-scroll",
-    popover: {
-      title: t("tutorial.step8_title"),
-      description: t("tutorial.step8_body"),
-      side: "bottom",
-    },
-  },
-  {
-    page: "transactions",
-    element: ".cats-scroll",
+    element: "#txn-search-btn",
     popover: {
       title: t("tutorial.step9_title"),
       description: t("tutorial.step9_body"),
@@ -100,7 +100,7 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "transactions",
-    element: "#txn-search-btn",
+    element: ".filters-scroll",
     popover: {
       title: t("tutorial.step10_title"),
       description: t("tutorial.step10_body"),
@@ -108,8 +108,8 @@ const STEP_DEFS: StepDef[] = [
     },
   },
   {
-    page: "stats",
-    element: ".stats-main",
+    page: "transactions",
+    element: ".cats-scroll",
     popover: {
       title: t("tutorial.step11_title"),
       description: t("tutorial.step11_body"),
@@ -118,28 +118,10 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "stats",
-    element: "#stats-budgets",
+    element: "#stats-advisor",
     popover: {
       title: t("tutorial.step12_title"),
       description: t("tutorial.step12_body"),
-      side: "bottom",
-    },
-  },
-  {
-    page: "stats",
-    element: "#stats-topcats",
-    popover: {
-      title: t("tutorial.step13_title"),
-      description: t("tutorial.step13_body"),
-      side: "bottom",
-    },
-  },
-  {
-    page: "stats",
-    element: "#stats-advisor",
-    popover: {
-      title: t("tutorial.step14_title"),
-      description: t("tutorial.step14_body"),
       side: "bottom",
       align: "start",
     },
@@ -148,8 +130,8 @@ const STEP_DEFS: StepDef[] = [
     page: "stats",
     element: "#stats-export",
     popover: {
-      title: t("tutorial.step15_title"),
-      description: t("tutorial.step15_body"),
+      title: t("tutorial.step13_title"),
+      description: t("tutorial.step13_body"),
       side: "bottom",
       align: "start",
     },
@@ -158,18 +140,36 @@ const STEP_DEFS: StepDef[] = [
     page: "stats",
     element: "#stats-compare",
     popover: {
-      title: t("tutorial.step16_title"),
-      description: t("tutorial.step16_body"),
+      title: t("tutorial.step14_title"),
+      description: t("tutorial.step14_body"),
       side: "bottom",
     },
   },
   {
-    page: "settings",
-    element: "#settings-rates",
+    page: "stats",
+    element: "#stats-trend",
+    popover: {
+      title: t("tutorial.step15_title"),
+      description: t("tutorial.step15_body"),
+      side: "top",
+    },
+  },
+  {
+    page: "stats",
+    element: "#stats-budgets",
+    popover: {
+      title: t("tutorial.step16_title"),
+      description: t("tutorial.step16_body"),
+      side: "top",
+    },
+  },
+  {
+    page: "stats",
+    element: "#stats-topcats",
     popover: {
       title: t("tutorial.step17_title"),
       description: t("tutorial.step17_body"),
-      side: "bottom",
+      side: "top",
     },
   },
   {
@@ -183,10 +183,19 @@ const STEP_DEFS: StepDef[] = [
   },
   {
     page: "settings",
-    element: "#settings-security",
+    element: "#settings-rates",
     popover: {
       title: t("tutorial.step19_title"),
       description: t("tutorial.step19_body"),
+      side: "bottom",
+    },
+  },
+  {
+    page: "settings",
+    element: "#settings-security",
+    popover: {
+      title: t("tutorial.step20_title"),
+      description: t("tutorial.step20_body"),
       side: "top",
     },
   },
@@ -194,8 +203,8 @@ const STEP_DEFS: StepDef[] = [
     page: "settings",
     element: "#settings-actions",
     popover: {
-      title: t("tutorial.step20_title"),
-      description: t("tutorial.step20_body"),
+      title: t("tutorial.step21_title"),
+      description: t("tutorial.step21_body"),
       side: "top",
     },
   },
@@ -231,13 +240,17 @@ export function startTutorial(
 
     const d = driver({
       animate: false,
-      allowClose: false,
+      allowClose: true,
       showProgress: true,
       progressText: "{{current}} / {{total}}",
       nextBtnText: t("tutorial.next"),
       prevBtnText: t("tutorial.previous"),
       doneBtnText: t("tutorial.done"),
-      showButtons: ["next", "previous"],
+      showButtons: ["next", "previous", "close"],
+      onPopoverRender: (popover) => {
+        const closeBtn = popover.footerButtons.querySelector(".driver-popover-close-btn");
+        if (closeBtn) closeBtn.textContent = t("tutorial.skip");
+      },
       overlayColor: "#0a0a0f",
       overlayOpacity: 0.75,
       popoverClass: "fina-driver-popover",
@@ -258,8 +271,30 @@ export function startTutorial(
             delay = Math.max(delay, 450);
           }
         }
-        if (delay > 0) setTimeout(() => opts.driver.moveNext(), delay);
-        else opts.driver.moveNext();
+        const advance = () => {
+          opts.driver.moveNext();
+          const nextIdx = opts.driver.getActiveIndex();
+          if (nextIdx !== undefined) {
+            const nextStep = visibleDefs[nextIdx];
+            if (nextStep) {
+              const el = document.querySelector(nextStep.element);
+              if (el) {
+                const navH = document.querySelector(".bottom-nav")?.getBoundingClientRect().height ?? 64;
+                const sysBar = window.innerHeight - document.documentElement.clientHeight;
+                const bottomReserved = navH + sysBar + 20;
+                el.scrollIntoView({ behavior: "auto", block: "center" });
+                requestAnimationFrame(() => {
+                  const rect = el.getBoundingClientRect();
+                  if (rect.bottom > window.innerHeight - bottomReserved) {
+                    window.scrollBy(0, rect.bottom - window.innerHeight + bottomReserved);
+                  }
+                });
+              }
+            }
+          }
+        };
+        if (delay > 0) setTimeout(advance, delay);
+        else advance();
       },
       onPrevClick: (_element, _step, opts) => {
         const index = opts.driver.getActiveIndex() ?? 0;
@@ -277,8 +312,30 @@ export function startTutorial(
           navigateTo(prev);
           if (prev !== stepPages[index]) delay = 450;
         }
-        if (delay > 0) setTimeout(() => opts.driver.movePrevious(), delay);
-        else opts.driver.movePrevious();
+        const advance = () => {
+          opts.driver.movePrevious();
+          const prevIdx = opts.driver.getActiveIndex();
+          if (prevIdx !== undefined) {
+            const prevStep = visibleDefs[prevIdx];
+            if (prevStep) {
+              const el = document.querySelector(prevStep.element);
+              if (el) {
+                const navH = document.querySelector(".bottom-nav")?.getBoundingClientRect().height ?? 64;
+                const sysBar = window.innerHeight - document.documentElement.clientHeight;
+                const bottomReserved = navH + sysBar + 20;
+                el.scrollIntoView({ behavior: "auto", block: "center" });
+                requestAnimationFrame(() => {
+                  const rect = el.getBoundingClientRect();
+                  if (rect.bottom > window.innerHeight - bottomReserved) {
+                    window.scrollBy(0, rect.bottom - window.innerHeight + bottomReserved);
+                  }
+                });
+              }
+            }
+          }
+        };
+        if (delay > 0) setTimeout(advance, delay);
+        else advance();
       },
     });
     d.drive();

@@ -1,7 +1,8 @@
-import { useApp } from "../AppContext";
+import { useAppUI, useAppActions } from "../AppContext";
 
 export default function Toast() {
-  const { toast, closeToast } = useApp();
+  const { toast } = useAppUI();
+  const { closeToast } = useAppActions();
   return (
     <button
       className={`toast ${toast.visible ? "show" : ""}`}

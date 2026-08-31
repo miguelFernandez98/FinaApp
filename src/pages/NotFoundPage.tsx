@@ -1,9 +1,9 @@
-import { useApp } from "../AppContext";
+import { useAppActions } from "../AppContext";
 import AppVersion from "../components/AppVersion";
 import { t, useI18n } from "../i18n";
 
 export default function NotFoundPage() {
-  const { navigateTo } = useApp();
+  const { navigateTo } = useAppActions();
   useI18n();
 
   return (

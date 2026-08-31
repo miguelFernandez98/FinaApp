@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
-import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
 import {
   getCategoryById,
@@ -9,6 +8,9 @@ import {
   calculatePreviousBalance,
   calculateMonthDebtAmount,
   getPendingDebtsForMonth,
+  getDebtOutstandingAmount,
+  sortByDateDesc,
+  sumByType,
 } from "../utils/transactions";
 import TransactionItem from "../components/TransactionItem";
 import DonutChart from "../components/DonutChart";
@@ -21,20 +23,31 @@ import fLogo from "../assets/f-logo.svg";
 export default function HomePage() {
   const [donutType, setDonutType] = useState<"expense" | "income">("expense");
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const [showBs, setShowBs] = useState(false);
   useI18n();
   const {
     transactions,
-    getMonthTransactions,
-    currentMonth,
-    currentYear,
     currency,
+    showCalculator,
+    goals,
+    equivalentRate,
+    customRate,
+  } = useAppData();
+  const { currentMonth, currentYear, exchangeRates } = useAppUI();
+  const {
+    getMonthTransactions,
     navigateTo,
     setFilter,
     setCategoryFilter,
-    showCalculator,
     openTransactionModal,
-    goals,
-  } = useApp();
+  } = useAppActions();
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
 
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
@@ -42,60 +55,36 @@ export default function HomePage() {
   );
 
   const income = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "income", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const expense = useMemo(
-    () =>
-      visibleTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "expense", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const previousBalance = useMemo(
-    () => calculatePreviousBalance(transactions, currentMonth, currentYear),
-    [transactions, currentMonth, currentYear],
+    () => calculatePreviousBalance(transactions, currentMonth, currentYear, currency, equivRate),
+    [transactions, currentMonth, currentYear, currency, equivRate],
   );
   const debtAmount = useMemo(
-    () => calculateMonthDebtAmount(transactions, currentMonth, currentYear),
-    [transactions, currentMonth, currentYear],
+    () => calculateMonthDebtAmount(transactions, currentMonth, currentYear, currency, equivRate),
+    [transactions, currentMonth, currentYear, currency, equivRate],
   );
   const balance = previousBalance + income - expense - debtAmount;
   const pendingDebts = useMemo(
     () =>
-      getPendingDebtsForMonth(transactions, currentMonth, currentYear).sort(
-        (a, b) => {
-          const dateDiff =
-            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.createdAt - a.createdAt;
-        },
+      sortByDateDesc(
+        getPendingDebtsForMonth(transactions, currentMonth, currentYear),
       ),
     [transactions, currentMonth, currentYear],
   );
   const pendingDebtsTotal = useMemo(
-    () =>
-      pendingDebts.reduce(
-        (sum, t) =>
-          sum + (t.debtPaidAmount ? t.amount - t.debtPaidAmount : t.amount),
-        0,
-      ),
+    () => pendingDebts.reduce((sum, t) => sum + getDebtOutstandingAmount(t), 0),
     [pendingDebts],
   );
 
   const recent = useMemo(
-    () =>
-      [...visibleTransactions]
-        .sort((a, b) => {
-          const dateDiff =
-            parseISODate(b.date).getTime() - parseISODate(a.date).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.createdAt - a.createdAt;
-        })
-        .slice(0, 5),
+    () => sortByDateDesc(visibleTransactions).slice(0, 5),
     [visibleTransactions],
   );
 
@@ -109,7 +98,7 @@ export default function HomePage() {
             {t("home.title")} <AppVersion />
           </h1>
         </div>
-        <div className="avatar-btn" onClick={() => {}}>
+        <div className="avatar-btn" aria-hidden="true">
           <img
             src={fLogo}
             alt=""
@@ -143,28 +132,40 @@ export default function HomePage() {
       <section
         className="balance-hero"
         aria-label={t("home.aria.balance")}
+        onClick={() => equivRate != null && setShowBs((v) => !v)}
+        style={{ cursor: equivRate != null ? "pointer" : undefined }}
       >
         <p className="balance-label">{t("home.balance")}</p>
         <div
           className="balance-amount"
           style={{ color: balance >= 0 ? "var(--accent)" : "var(--danger)" }}
         >
-          {balance < 0 ? "-" : ""}
-          {formatMoney(balance, currency)}
+          {showBs && equivRate != null
+            ? `Bs. ${(Math.abs(balance) * equivRate).toFixed(2)}`
+            : `${balance < 0 ? "-" : ""}${formatMoney(balance, currency)}`}
         </div>
+        {showBs && equivRate != null && (
+          <p className="bs-hint">
+            {balance < 0 ? "-" : ""}{formatMoney(balance, currency)}
+          </p>
+        )}
         <div className="balance-row">
           <div className="balance-detail">
             <span className="balance-dot income" />
             <span className="balance-text">{t("home.income")}</span>
             <span className="balance-value income">
-              {formatMoney(income, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(income * equivRate).toFixed(2)}`
+                : formatMoney(income, currency)}
             </span>
           </div>
           <div className="balance-detail">
             <span className="balance-dot expense" />
             <span className="balance-text">{t("home.expense")}</span>
             <span className="balance-value expense">
-              {formatMoney(expense, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(expense * equivRate).toFixed(2)}`
+                : formatMoney(expense, currency)}
             </span>
           </div>
         </div>
@@ -350,7 +351,7 @@ const done = goal.saved >= goal.target && goal.target > 0;
         </span>
       </div>
 
-      <section className="glass-card" aria-label={t("home.aria.recent")}>
+      <section id="recent-section" className="glass-card" aria-label={t("home.aria.recent")}>
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
@@ -358,11 +359,11 @@ const done = goal.saved >= goal.target && goal.target > 0;
             <p>{t("home.recent_empty.body")}</p>
           </div>
         ) : (
-          recent.map((t) => (
+          recent.map((txn) => (
             <TransactionItem
-              key={t.id}
-              transaction={t}
-              onEdit={() => openTransactionModal(t.recurringId ?? t.id)}
+              key={txn.id}
+              transaction={txn}
+              onEdit={() => openTransactionModal(txn.recurringId ?? txn.id)}
             />
           ))
         )}

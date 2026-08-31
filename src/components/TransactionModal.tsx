@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
 import { toISODate } from "../utils/date";
@@ -8,16 +8,16 @@ import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
 
 export default function TransactionModal() {
+  const { transactions } = useAppData();
+  const { txnModalEditingId: editingId } = useAppUI();
   const {
-    transactions,
     addTransaction,
     updateTransaction,
     deleteTransaction,
     showToast,
     showConfirm,
-    txnModalEditingId: editingId,
     closeTransactionModal: onClose,
-  } = useApp();
+  } = useAppActions();
   const { language } = useI18n();
 
   const editingTransaction = editingId
@@ -58,6 +58,9 @@ export default function TransactionModal() {
   );
   const [recurringBackfill, setRecurringBackfill] = useState(
     !!editingTransaction?.recurringBackfill,
+  );
+  const [txnCurrency, setTxnCurrency] = useState(
+    editingTransaction?.currency ?? "$",
   );
 
   const filteredCats = CATEGORIES.filter(
@@ -180,6 +183,7 @@ export default function TransactionModal() {
       category: cat,
       description: description.trim(),
       date,
+      currency: txnCurrency,
       ...(transactionType === "debt"
         ? {
             debtStatus,
@@ -264,12 +268,33 @@ export default function TransactionModal() {
           <p style={{ fontSize: 12, color: "var(--fg-muted)", marginTop: -8, marginBottom: 16 }}>
             {t("modal.type_locked")}
           </p>
-        )}
+      )}
 
         {/* Monto */}
         <div style={{ marginBottom: 16 }}>
           <label className="field-label">{t("modal.amount")}</label>
           <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setTxnCurrency((c) => (c === "$" ? "Bs." : "$"))}
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "var(--accent-dim)",
+                color: "var(--accent)",
+                border: "none",
+                borderRadius: 8,
+                padding: "4px 10px",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                zIndex: 1,
+              }}
+            >
+              {txnCurrency}
+            </button>
             <input
               type="number"
               className="input-field input-amount"
@@ -279,6 +304,7 @@ export default function TransactionModal() {
               inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              style={{ paddingLeft: 56 }}
             />
             <button
               type="button"
@@ -305,7 +331,7 @@ export default function TransactionModal() {
               <i className="fa-solid fa-copy" />
             </button>
           </div>
-        </div>
+      </div>
 
         {transactionType !== "debt" && (
           <div style={{ marginBottom: 16 }}>

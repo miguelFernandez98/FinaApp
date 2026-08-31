@@ -12,6 +12,7 @@ const DEFAULT_STATE: PersistedState = {
   showEUR: false,
   showCustomRate: false,
   customRate: null,
+  equivalentRate: "bcv",
   language: "es",
   pinHash: null,
   useBiometrics: false,
@@ -19,6 +20,38 @@ const DEFAULT_STATE: PersistedState = {
   lastExportAt: null,
   hasSeenTutorial: false,
 };
+
+/**
+ * Normaliza un objeto arbitrario a un PersistedState válido,
+ * aplicando valores por defecto y validaciones por campo.
+ */
+export function normalizePersistedState(parsed: unknown): PersistedState {
+  const p = (parsed ?? {}) as Record<string, unknown>;
+  return {
+    transactions: Array.isArray(p.transactions) ? p.transactions : [],
+    budgets:
+      typeof p.budgets === "object" && p.budgets !== null
+        ? (p.budgets as PersistedState["budgets"])
+        : {},
+    currency: typeof p.currency === "string" && p.currency ? p.currency : "$",
+    showCalculator: typeof p.showCalculator === "boolean" ? p.showCalculator : true,
+    showEUR: p.showEUR === true,
+    showCustomRate: p.showCustomRate === true,
+    customRate:
+      typeof p.customRate === "number" && p.customRate > 0 ? p.customRate : null,
+    equivalentRate:
+      p.equivalentRate === "parallel" || p.equivalentRate === "custom"
+        ? p.equivalentRate
+        : "bcv",
+    language: p.language === "en" ? "en" : "es",
+    pinHash:
+      typeof p.pinHash === "string" && p.pinHash ? p.pinHash : null,
+    useBiometrics: p.useBiometrics === true,
+    goals: Array.isArray(p.goals) ? p.goals : [],
+    lastExportAt: typeof p.lastExportAt === "number" ? p.lastExportAt : null,
+    hasSeenTutorial: p.hasSeenTutorial === true,
+  };
+}
 
 /**
  * Carga el estado de la aplicación desde localStorage.
@@ -29,29 +62,7 @@ export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        transactions: parsed.transactions || [],
-        budgets: parsed.budgets || {},
-        currency: parsed.currency || "$",
-        showCalculator: parsed.showCalculator ?? true,
-        showEUR: parsed.showEUR ?? false,
-        showCustomRate: parsed.showCustomRate ?? false,
-        customRate:
-          typeof parsed.customRate === "number" && parsed.customRate > 0
-            ? parsed.customRate
-            : null,
-        language: parsed.language === "en" ? "en" : "es",
-        pinHash:
-          typeof parsed.pinHash === "string" && parsed.pinHash
-            ? parsed.pinHash
-            : null,
-        useBiometrics: parsed.useBiometrics ?? false,
-        goals: Array.isArray(parsed.goals) ? parsed.goals : [],
-        lastExportAt:
-          typeof parsed.lastExportAt === "number" ? parsed.lastExportAt : null,
-        hasSeenTutorial: parsed.hasSeenTutorial ?? false,
-      };
+      return normalizePersistedState(JSON.parse(raw));
     }
   } catch (e) {
     console.warn("Error cargando estado:", e);
@@ -75,6 +86,7 @@ export function saveState(state: PersistedState): void {
         showEUR: state.showEUR,
         showCustomRate: state.showCustomRate,
         customRate: state.customRate,
+        equivalentRate: state.equivalentRate,
         language: state.language,
         pinHash: state.pinHash,
         useBiometrics: state.useBiometrics,

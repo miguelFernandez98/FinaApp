@@ -3,19 +3,28 @@ import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
-import { useApp } from "../AppContext";
+import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
+import { normalizePersistedState } from "../storage";
+import { loadExchangeRates } from "../storage";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import { startTutorial } from "../utils/tutorial";
 import {
   checkNotificationPermission,
   requestNotificationPermission,
+  ensureExactAlarmPermission,
+  scheduleDebtReminders,
+  notifyBudgetAlerts,
+  scheduleBackupReminder,
+  scheduleMonthlySummary,
 } from "../utils/notifications";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
 import PinModal from "../components/PinModal";
+import LegalModal from "../components/LegalModal";
 import fLogo from "../assets/f-logo.svg";
 
 const MAX_AMOUNT = 1e15;
@@ -31,34 +40,37 @@ function sanitizeAmount(raw: string): string {
 export default function SettingsPage() {
   const {
     currency,
-    setCurrency,
     showCalculator,
-    setShowCalculator,
     showEUR,
-    setShowEUR,
     showCustomRate,
-    setShowCustomRate,
     customRate,
-    setCustomRate,
+    equivalentRate,
     language,
-    setLanguage,
     transactions,
     budgets,
+    pinHash,
+    useBiometrics,
+    goals,
+    lastExportAt,
+    hasSeenTutorial,
+  } = useAppData();
+  const {
+    setCurrency,
+    setShowCalculator,
+    setShowEUR,
+    setShowCustomRate,
+    setCustomRate,
+    setEquivalentRate,
+    setLanguage,
+    setPinHash,
+    setUseBiometrics,    setLastExportAt,
     showConfirm,
     showToast,
     importState,
-    pinHash,
-    setPinHash,
-    useBiometrics,
-    setUseBiometrics,
-    goals,
-    lastExportAt,
-    setLastExportAt,
-    hasSeenTutorial,
     navigateTo,
     openTransactionModal,
     closeTransactionModal,
-  } = useApp();
+  } = useAppActions();
   useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const [customDraft, setCustomDraft] = useState(
@@ -70,6 +82,7 @@ export default function SettingsPage() {
   const [bioBusy, setBioBusy] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifBusy, setNotifBusy] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<null | "terms" | "privacy">(null);
 
   useEffect(() => {
     checkNotificationPermission().then(setNotificationsEnabled);
@@ -89,6 +102,12 @@ export default function SettingsPage() {
             "fa-circle-exclamation",
             "var(--warning)",
           );
+        } else {
+          await ensureExactAlarmPermission();
+          await scheduleDebtReminders(transactions);
+          await notifyBudgetAlerts(transactions, budgets, currency);
+          await scheduleBackupReminder(lastExportAt);
+          await scheduleMonthlySummary(transactions, currency);
         }
       } else {
         setNotificationsEnabled(false);
@@ -100,6 +119,38 @@ export default function SettingsPage() {
       }
     } finally {
       setNotifBusy(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      showToast(t("settings.notifications_off"), "fa-circle-exclamation", "var(--warning)");
+      return;
+    }
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast(t("settings.notifications_off"), "fa-circle-exclamation", "var(--warning)");
+      return;
+    }
+    const rates = loadExchangeRates();
+    const bcv = rates?.bcv;
+    const parallel = rates?.parallel;
+    const bcvText = bcv ? `Bs. ${bcv.toFixed(2)}` : "--";
+    const parText = parallel ? `Bs. ${parallel.toFixed(2)}` : "--";
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 9999,
+            title: "🧪 Test - Tasas",
+            body: `BCV: ${bcvText} | Paralelo: ${parText}`,
+            schedule: { at: new Date(Date.now() + 60 * 1000), allowWhileIdle: true },
+          },
+        ],
+      });
+      showToast("Notificación programada en 1 minuto", "fa-bell", "var(--accent)");
+    } catch {
+      showToast("Error al programar notificación", "fa-circle-exclamation", "var(--danger)");
     }
   };
 
@@ -199,30 +250,7 @@ export default function SettingsPage() {
             t("settings.confirm_import"),
             t("settings.confirm_import.body"),
             () => {
-              importState({
-                transactions: data.transactions,
-                budgets: data.budgets || {},
-                currency: data.currency || "$",
-                showCalculator: data.showCalculator ?? true,
-                showEUR: data.showEUR ?? false,
-                showCustomRate: data.showCustomRate ?? false,
-                customRate:
-                  typeof data.customRate === "number" && data.customRate > 0
-                    ? data.customRate
-                    : null,
-                language: data.language === "en" ? "en" : "es",
-                pinHash:
-                  typeof data.pinHash === "string" && data.pinHash
-                    ? data.pinHash
-                    : null,
-                useBiometrics: data.useBiometrics ?? false,
-                goals: Array.isArray(data.goals) ? data.goals : [],
-                lastExportAt:
-                  typeof data.lastExportAt === "number"
-                    ? data.lastExportAt
-                    : null,
-                hasSeenTutorial: data.hasSeenTutorial ?? false,
-              });
+              importState(normalizePersistedState(data));
               showToast(t("settings.imported"));
             },
           );
@@ -444,6 +472,7 @@ export default function SettingsPage() {
           showEUR: true,
           showCustomRate: false,
           customRate: null,
+          equivalentRate: "bcv",
           language,
           pinHash: null,
           useBiometrics: false,
@@ -469,6 +498,7 @@ export default function SettingsPage() {
           showEUR: false,
           showCustomRate: false,
           customRate: null,
+          equivalentRate: "bcv",
           language,
           pinHash: null,
           useBiometrics: false,
@@ -708,6 +738,37 @@ export default function SettingsPage() {
             <p className="settingsTextDescription">
               {t("settings.custom_hint")}
             </p>
+
+            <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0" }} />
+            <div className="menu-item" style={{ cursor: "default" }}>
+              <i className="fa-solid fa-arrow-right-arrow-left menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.equivalent_rate")}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, padding: "0 16px 8px" }}>
+              {(["bcv", "parallel", "custom"] as const).map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  onClick={() => setEquivalentRate(rate)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    borderRadius: 10,
+                    border: `1.5px solid ${equivalentRate === rate ? "var(--accent)" : "var(--border)"}`,
+                    background: equivalentRate === rate ? "var(--accent-dim)" : "transparent",
+                    color: equivalentRate === rate ? "var(--accent)" : "var(--fg-muted)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t(`settings.equiv_${rate}`)}
+                </button>
+              ))}
+            </div>
+            <p className="settingsTextDescription">
+              {t("settings.equiv_hint")}
+            </p>
           </div>
         )}
       </section>
@@ -778,27 +839,46 @@ export default function SettingsPage() {
               </label>
             </div>
             <p className="settingsTextDescription">{t("settings.notifications_hint")}</p>
+            {notificationsEnabled && (
+              <button
+                className="btn-ghost"
+                style={{ width: "100%", marginTop: 4, fontSize: 12, padding: "8px 12px" }}
+                onClick={handleTestNotification}
+              >
+                <i className="fa-solid fa-flask" style={{ marginRight: 8 }} />
+                Test notificación (1 min)
+              </button>
+            )}
           </div>
         )}
       </section>
 
-      {/* Ayuda */}
+      {/* Legal */}
       <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
         <div
           className="menu-item"
-          onClick={() =>
-            startTutorial(navigateTo, openTransactionModal, closeTransactionModal)
-          }
-          aria-label={t("settings.tutorial")}
+          onClick={() => setLegalDoc("terms")}
+          aria-label={t("legal.terms")}
         >
-          <i className="fa-solid fa-circle-question menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.tutorial")}</span>
+          <i className="fa-solid fa-file-contract menu-icon" />
+          <span style={{ flex: 1 }}>{t("legal.terms")}</span>
           <i
             className="fa-solid fa-chevron-right"
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <p className="settingsTextDescription">{t("settings.tutorial_hint")}</p>
+        <div
+          className="menu-item"
+          onClick={() => setLegalDoc("privacy")}
+          aria-label={t("legal.privacy")}
+        >
+          <i className="fa-solid fa-user-shield menu-icon" />
+          <span style={{ flex: 1 }}>{t("legal.privacy")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+          />
+        </div>
       </section>
 
       {/* Acciones */}
@@ -840,6 +920,24 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* tutorial */}
+      <section className="glass-card menu-list" style={{ marginBottom: 12 }}>
+        <div
+          className="menu-item"
+          onClick={() =>
+            startTutorial(navigateTo, openTransactionModal, closeTransactionModal)
+          }
+          aria-label={t("settings.tutorial")}
+        >
+          <i className="fa-solid fa-circle-question menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.tutorial")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+          />
+        </div>
+      </section>
+
       {/* Danger */}
       <section className="glass-card menu-list danger-list">
         <div className="menu-item" onClick={handleClearAll}>
@@ -862,12 +960,13 @@ export default function SettingsPage() {
         <p>{t("settings.storage_note")}</p>
         <p className="footer-credit">
           © {new Date().getFullYear()} Miguel Fernández
-          <br />
-          Full-stack Developer — Isla de Margarita, Venezuela
         </p>
       </footer>
 
       {pinModalOpen && <PinModal onClose={() => setPinModalOpen(false)} />}
+      {legalDoc && (
+        <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />
+      )}
     </div>
   );
 }

@@ -38,6 +38,9 @@ importers:
       '@fortawesome/fontawesome-free':
         specifier: ^7.3.1
         version: 7.3.1
+      capacitor-widget-bridge:
+        specifier: ^8.1.0
+        version: 8.1.0(@capacitor/core@8.5.0)
       driver.js:
         specifier: ^1.8.0
         version: 1.8.0
@@ -639,6 +642,11 @@ packages:
 
   caniuse-lite@1.0.30001800:
     resolution: {integrity: sha512-MMHtuAz9Ys840zAY5F4k6fV5GaivZ9sPk+nz0mY+GYVzRBnYkN0mpqkSR92oWRQ19yQWo4HvBV/FnC16AJX8MA==}
+
+  capacitor-widget-bridge@8.1.0:
+    resolution: {integrity: sha512-I0UKGrNtq59MNFIX7VuTCeyHx05H66y0hWwr3BQEKapgm2TjUBbGXhY4R0vGEMWGkW0JanoOXBhKUis8DgxrwQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   chownr@3.0.0:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
@@ -2042,6 +2050,10 @@ snapshots:
   buffer-crc32@0.2.13: {}
 
   caniuse-lite@1.0.30001800: {}
+
+  capacitor-widget-bridge@8.1.0(@capacitor/core@8.5.0):
+    dependencies:
+      '@capacitor/core': 8.5.0
 
   chownr@3.0.0: {}
 

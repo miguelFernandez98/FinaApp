@@ -19,3 +19,23 @@ export function formatMoney(amount: number, currency: string): string {
       .replace(/\./g, ".\u200B")
   );
 }
+
+/**
+ * Convierte un monto de una moneda a otra usando la tasa equivalente.
+ * Si las monedas son iguales, retorna el monto sin cambio.
+ * @param amount Monto原始.
+ * @param fromCurrency Moneda de origen ("$" o "Bs.").
+ * @param toCurrency Moneda de destino.
+ * @param rate Tasa de cambio (Bs. por $).
+ */
+export function convertAmount(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  rate: number | null,
+): number {
+  if (fromCurrency === toCurrency || rate == null || rate <= 0) return amount;
+  if (fromCurrency === "$" && toCurrency === "Bs.") return amount * rate;
+  if (fromCurrency === "Bs." && toCurrency === "$") return amount / rate;
+  return amount;
+}

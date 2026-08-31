@@ -9,6 +9,7 @@ export interface Transaction {
   description: string;
   date: string;
   createdAt: number;
+  currency?: string;
   debtStatus?: DebtStatus;
   debtPaidAmount?: number;
   debtDueDate?: string;
@@ -37,6 +38,8 @@ export interface SavingsGoal {
   deadline?: string;
 }
 
+export type EquivalentRate = "bcv" | "parallel" | "custom";
+
 export interface PersistedState {
   transactions: Transaction[];
   budgets: Record<string, number>;
@@ -45,6 +48,7 @@ export interface PersistedState {
   showEUR: boolean;
   showCustomRate: boolean;
   customRate: number | null;
+  equivalentRate: EquivalentRate;
   language: "es" | "en";
   pinHash: string | null;
   useBiometrics: boolean;

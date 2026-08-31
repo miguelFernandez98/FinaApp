@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getMonthTransactions } from "../utils/transactions";
@@ -43,8 +43,16 @@ function BarTooltip({
 }
 
 export default function BarChart() {
-  const { currentMonth, currentYear, transactions, currency } = useApp();
+  const { transactions, currency, equivalentRate, customRate } = useAppData();
+  const { currentMonth, currentYear, exchangeRates } = useAppUI();
   const { language } = useI18n();
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
 
   const chartData = useMemo(() => {
     const incomeKey = t("bar.income");
@@ -70,10 +78,24 @@ export default function BarChart() {
         name: monthName(m).substring(0, 3),
         income: monthTxns
           .filter((t) => t.type === "income")
-          .reduce((s, t) => s + t.amount, 0),
+          .reduce((s, t) => {
+            const tc = t.currency ?? "$";
+            if (equivRate != null && equivRate > 0) {
+              if (tc === "Bs." && currency === "$") return s + t.amount / equivRate;
+              if (tc === "$" && currency === "Bs.") return s + t.amount * equivRate;
+            }
+            return s + t.amount;
+          }, 0),
         expense: monthTxns
           .filter((t) => t.type === "expense")
-          .reduce((s, t) => s + t.amount, 0),
+          .reduce((s, t) => {
+            const tc = t.currency ?? "$";
+            if (equivRate != null && equivRate > 0) {
+              if (tc === "Bs." && currency === "$") return s + t.amount / equivRate;
+              if (tc === "$" && currency === "Bs.") return s + t.amount * equivRate;
+            }
+            return s + t.amount;
+          }, 0),
         incomeKey,
         expenseKey,
       });
@@ -81,7 +103,7 @@ export default function BarChart() {
 
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth, currentYear, transactions, language]);
+  }, [currentMonth, currentYear, transactions, language, currency, equivRate]);
 
   return (
     <div className="chart-wrap">
@@ -127,6 +149,9 @@ export default function BarChart() {
             fill="rgba(74, 222, 128, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
           <Bar
             dataKey="expense"
@@ -134,6 +159,9 @@ export default function BarChart() {
             fill="rgba(255, 92, 92, 0.7)"
             radius={[6, 6, 0, 0]}
             maxBarSize={18}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </RechartsBarChart>
       </ResponsiveContainer>

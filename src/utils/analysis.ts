@@ -5,7 +5,7 @@ import { getCategoryById, getMonthTransactions } from "./transactions";
 export type AdvisorQuestionId =
   | "overview"
   | "compare"
-  | "topSpending"
+  | "top_spending"
   | "improve"
   | "budgets";
 
@@ -15,33 +15,35 @@ export interface AdvisorQuestion {
   icon: string;
 }
 
-export const ADVISOR_QUESTIONS: AdvisorQuestion[] = [
-  {
-    id: "overview",
-    label: t("advisor.q_overview"),
-    icon: "fa-chart-pie",
-  },
-  {
-    id: "compare",
-    label: t("advisor.q_compare"),
-    icon: "fa-scale-balanced",
-  },
-  {
-    id: "topSpending",
-    label: t("advisor.q_top_spending"),
-    icon: "fa-trophy",
-  },
-  {
-    id: "budgets",
-    label: t("advisor.q_budgets"),
-    icon: "fa-list-check",
-  },
-  {
-    id: "improve",
-    label: t("advisor.q_improve"),
-    icon: "fa-lightbulb",
-  },
-];
+export function getAdvisorQuestions(): AdvisorQuestion[] {
+  return [
+    {
+      id: "overview",
+      label: t("advisor.q_overview"),
+      icon: "fa-chart-pie",
+    },
+    {
+      id: "compare",
+      label: t("advisor.q_compare"),
+      icon: "fa-scale-balanced",
+    },
+    {
+      id: "top_spending",
+      label: t("advisor.q_top_spending"),
+      icon: "fa-trophy",
+    },
+    {
+      id: "budgets",
+      label: t("advisor.q_budgets"),
+      icon: "fa-list-check",
+    },
+    {
+      id: "improve",
+      label: t("advisor.q_improve"),
+      icon: "fa-lightbulb",
+    },
+  ];
+}
 
 interface MonthStats {
   income: number;
@@ -122,7 +124,7 @@ export function getAnswer(
       return overviewAnswer(stats, monthName, currency);
     case "compare":
       return compareAnswer(transactions, month, year, stats, currency);
-    case "topSpending":
+    case "top_spending":
       return topSpendingAnswer(transactions, month, year, currency);
     case "budgets":
       return budgetsAnswer(transactions, month, year, budgets, currency);

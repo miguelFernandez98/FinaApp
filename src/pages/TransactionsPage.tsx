@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useApp } from "../AppContext";
+import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { parseISODate } from "../utils/date";
 import { formatMoney } from "../utils/format";
@@ -7,6 +7,7 @@ import {
   getCategoryById,
   getMonthTransactionsWithDebtCarry,
   getFutureTransactions,
+  sortByDateDesc,
 } from "../utils/transactions";
 import TransactionItem from "../components/TransactionItem";
 import MonthSelector from "../components/MonthSelector";
@@ -14,17 +15,15 @@ import AppVersion from "../components/AppVersion";
 import type { Transaction, FilterType } from "../types";
 
 export default function TransactionsPage() {
+  const { transactions, currency } = useAppData();
   const {
-    transactions,
     currentMonth,
     currentYear,
-    currency,
     currentTypeFilter,
     currentCategoryFilter,
-    setFilter,
-    setCategoryFilter,
-    openTransactionModal,
-  } = useApp();
+  } = useAppUI();
+  const { setFilter, setCategoryFilter, openTransactionModal } =
+    useAppActions();
   const { language } = useI18n();
 
   const [newestFirst, setNewestFirst] = useState(true);
@@ -75,13 +74,7 @@ export default function TransactionsPage() {
           getCategoryById(t.category).name.toLowerCase().includes(q),
       );
     }
-    return result.sort((a, b) => {
-      const dateDiff =
-        (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) *
-        (newestFirst ? 1 : -1);
-      if (dateDiff !== 0) return dateDiff;
-      return newestFirst ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
-    });
+    return sortByDateDesc(result, newestFirst ? 1 : -1);
   }, [
     visibleTransactions,
     currentTypeFilter,

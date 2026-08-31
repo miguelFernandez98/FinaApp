@@ -46,6 +46,52 @@ export function getDebtOutstandingAmount(transaction: Transaction): number {
 }
 
 /**
+ * Ordena una copia de la lista por fecha descendente,
+ * desempatando por fecha de creación.
+ * @param txns Transacciones a ordenar.
+ * @param dir 1 = más recientes primero, -1 = más antiguas primero.
+ */
+export function sortByDateDesc(
+  txns: Transaction[],
+  dir: 1 | -1 = 1,
+): Transaction[] {
+  return [...txns].sort((a, b) => {
+    const dateDiff =
+      (parseISODate(b.date).getTime() - parseISODate(a.date).getTime()) * dir;
+    if (dateDiff !== 0) return dateDiff;
+    return dir === 1 ? b.createdAt - a.createdAt : a.createdAt - b.createdAt;
+  });
+}
+
+/**
+ * Suma los montos de las transacciones de un tipo dado.
+ */
+export function sumByType(
+  txns: Transaction[],
+  type: "income" | "expense",
+  targetCurrency?: string,
+  rate?: number | null,
+): number {
+  let sum = 0;
+  for (const t of txns) {
+    if (t.type !== type) continue;
+    const txnCurrency = t.currency ?? "$";
+    if (targetCurrency && rate != null && rate > 0) {
+      if (txnCurrency === "$" && targetCurrency === "Bs.") {
+        sum += t.amount * rate;
+      } else if (txnCurrency === "Bs." && targetCurrency === "$") {
+        sum += t.amount / rate;
+      } else {
+        sum += t.amount;
+      }
+    } else {
+      sum += t.amount;
+    }
+  }
+  return sum;
+}
+
+/**
  * Determina si una deuda debe mostrarse en un mes dado.
  * Las deudas pendientes o parciales se muestran desde su mes de creación
  * hasta el mes actual.
@@ -346,9 +392,21 @@ export function calculateMonthDebtAmount(
   transactions: Transaction[],
   month: number,
   year: number,
+  targetCurrency?: string,
+  rate?: number | null,
 ): number {
   return getPendingDebtsForMonth(transactions, month, year).reduce(
-    (sum, tx) => sum + getDebtOutstandingAmount(tx),
+    (sum, tx) => {
+      const outstanding = getDebtOutstandingAmount(tx);
+      const txnCurrency = tx.currency ?? "$";
+      if (targetCurrency && rate != null && rate > 0) {
+        if (txnCurrency === "$" && targetCurrency === "Bs.")
+          return sum + outstanding * rate;
+        if (txnCurrency === "Bs." && targetCurrency === "$")
+          return sum + outstanding / rate;
+      }
+      return sum + outstanding;
+    },
     0,
   );
 }
@@ -362,7 +420,7 @@ function monthIncrement(month: number, year: number): [number, number] {
   return [month + 1, year];
 }
 
-function monthDecrement(month: number, year: number): [number, number] {
+export function monthDecrement(month: number, year: number): [number, number] {
   if (month === 0) return [11, year - 1];
   return [month - 1, year];
 }
@@ -371,11 +429,11 @@ function getEarliestTransactionMonth(
   transactions: Transaction[],
 ): [number, number] {
   if (transactions.length === 0) return [0, 0];
-  const sorted = [...transactions].sort(
-    (a, b) =>
-      parseISODate(a.date).getTime() - parseISODate(b.date).getTime(),
-  );
-  const earliest = parseISODate(sorted[0].date);
+  let earliest = parseISODate(transactions[0].date);
+  for (let i = 1; i < transactions.length; i++) {
+    const d = parseISODate(transactions[i].date);
+    if (d < earliest) earliest = d;
+  }
   return [earliest.getMonth(), earliest.getFullYear()];
 }
 
@@ -390,6 +448,8 @@ export function calculatePreviousBalance(
   transactions: Transaction[],
   month: number,
   year: number,
+  targetCurrency?: string,
+  rate?: number | null,
 ): number {
   const [startMonth, startYear] = getEarliestTransactionMonth(transactions);
   if (transactions.length === 0) return 0;
@@ -408,15 +468,31 @@ export function calculatePreviousBalance(
 
     const income = monthTransactions
       .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        const tc = t.currency ?? "$";
+        if (targetCurrency && rate != null && rate > 0) {
+          if (tc === "$" && targetCurrency === "Bs.") return sum + t.amount * rate;
+          if (tc === "Bs." && targetCurrency === "$") return sum + t.amount / rate;
+        }
+        return sum + t.amount;
+      }, 0);
     const expense = monthTransactions
       .filter((t) => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        const tc = t.currency ?? "$";
+        if (targetCurrency && rate != null && rate > 0) {
+          if (tc === "$" && targetCurrency === "Bs.") return sum + t.amount * rate;
+          if (tc === "Bs." && targetCurrency === "$") return sum + t.amount / rate;
+        }
+        return sum + t.amount;
+      }, 0);
 
     const debtAmount = calculateMonthDebtAmount(
       transactions,
       currentMonth,
       currentYear,
+      targetCurrency,
+      rate,
     );
 
     balance += income - expense - debtAmount;
