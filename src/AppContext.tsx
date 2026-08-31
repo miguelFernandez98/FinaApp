@@ -19,6 +19,7 @@ import type {
   PageId,
   FilterType,
   SavingsGoal,
+  EquivalentRate,
 } from "./types";
 import {
   loadState,
@@ -41,7 +42,10 @@ import {
   scheduleDebtReminders,
   scheduleBackupReminder,
   scheduleMonthlySummary,
+  scheduleAllOnBackground,
+  scheduleDailyReminder,
 } from "./utils/notifications";
+import { syncWidgetData } from "./utils/widgetData";
 
 /**
  * Datos persistidos: cambian solo cuando el usuario edita información.
@@ -55,6 +59,7 @@ interface AppDataContextValue {
   showEUR: boolean;
   showCustomRate: boolean;
   customRate: number | null;
+  equivalentRate: EquivalentRate;
   language: "es" | "en";
   pinHash: string | null;
   useBiometrics: boolean;
@@ -99,6 +104,7 @@ interface AppActionsContextValue {
   setShowEUR: (show: boolean) => void;
   setShowCustomRate: (show: boolean) => void;
   setCustomRate: (rate: number | null) => void;
+  setEquivalentRate: (rate: EquivalentRate) => void;
   setLanguage: (language: "es" | "en") => void;
   setPinHash: (hash: string | null) => void;
   setUseBiometrics: (use: boolean) => void;
@@ -159,6 +165,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const [customRate, setCustomRateState] = useState<number | null>(
     savedState.customRate,
+  );
+  const [equivalentRate, setEquivalentRateState] = useState<EquivalentRate>(
+    savedState.equivalentRate,
   );
   const [language, setLanguageState] = useState<"es" | "en">(
     savedState.language,
@@ -224,6 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showEUR,
     showCustomRate,
     customRate,
+    equivalentRate,
     language,
     pinHash,
     useBiometrics,
@@ -245,6 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
+      equivalentRate,
       language,
       pinHash,
       useBiometrics,
@@ -253,9 +264,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasSeenTutorial,
     };
     latestStateRef.current = state;
-    const timer = setTimeout(() => saveState(state), 1000);
+    const timer = setTimeout(() => {
+      saveState(state);
+      syncWidgetData();
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, language, pinHash, useBiometrics, goals, lastExportAt, hasSeenTutorial]);
+  }, [transactions, budgets, currency, showCalculator, showEUR, showCustomRate, customRate, equivalentRate, language, pinHash, useBiometrics, goals, lastExportAt, hasSeenTutorial]);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,6 +281,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await notifyBudgetAlerts(transactions, budgets, currency);
       await scheduleBackupReminder(lastExportAt);
       await scheduleMonthlySummary(transactions, currency);
+      await scheduleDailyReminder();
     };
     init();
     return () => {
@@ -345,6 +360,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCustomRate = useCallback((rate: number | null) => {
     setCustomRateState(rate);
+  }, []);
+
+  const setEquivalentRate = useCallback((rate: EquivalentRate) => {
+    setEquivalentRateState(rate);
   }, []);
 
   const setLanguage = useCallback((lang: "es" | "en") => {
@@ -529,6 +548,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowEUR,
       setShowCustomRate,
       setCustomRate,
+      setEquivalentRate,
       setLanguage,
       setPinHash,
       setUseBiometrics,
@@ -559,6 +579,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setShowEUR,
       setShowCustomRate,
       setCustomRate,
+      setEquivalentRate,
       setLanguage,
       setPinHash,
       setUseBiometrics,
@@ -678,9 +699,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setLocked(latestStateRef.current.pinHash !== null);
         }
         backgroundedAtRef.current = null;
+        syncWidgetData();
       } else {
         saveState(latestStateRef.current);
         backgroundedAtRef.current = Date.now();
+        scheduleAllOnBackground(
+          latestStateRef.current.transactions,
+          latestStateRef.current.budgets,
+          latestStateRef.current.currency,
+          latestStateRef.current.lastExportAt,
+        );
       }
     });
     return () => {
@@ -728,6 +756,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
+      equivalentRate,
       language,
       pinHash,
       useBiometrics,
@@ -743,6 +772,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showEUR,
       showCustomRate,
       customRate,
+      equivalentRate,
       language,
       pinHash,
       useBiometrics,

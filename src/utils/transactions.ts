@@ -69,10 +69,24 @@ export function sortByDateDesc(
 export function sumByType(
   txns: Transaction[],
   type: "income" | "expense",
+  targetCurrency?: string,
+  rate?: number | null,
 ): number {
   let sum = 0;
   for (const t of txns) {
-    if (t.type === type) sum += t.amount;
+    if (t.type !== type) continue;
+    const txnCurrency = t.currency ?? "$";
+    if (targetCurrency && rate != null && rate > 0) {
+      if (txnCurrency === "$" && targetCurrency === "Bs.") {
+        sum += t.amount * rate;
+      } else if (txnCurrency === "Bs." && targetCurrency === "$") {
+        sum += t.amount / rate;
+      } else {
+        sum += t.amount;
+      }
+    } else {
+      sum += t.amount;
+    }
   }
   return sum;
 }
@@ -378,9 +392,21 @@ export function calculateMonthDebtAmount(
   transactions: Transaction[],
   month: number,
   year: number,
+  targetCurrency?: string,
+  rate?: number | null,
 ): number {
   return getPendingDebtsForMonth(transactions, month, year).reduce(
-    (sum, tx) => sum + getDebtOutstandingAmount(tx),
+    (sum, tx) => {
+      const outstanding = getDebtOutstandingAmount(tx);
+      const txnCurrency = tx.currency ?? "$";
+      if (targetCurrency && rate != null && rate > 0) {
+        if (txnCurrency === "$" && targetCurrency === "Bs.")
+          return sum + outstanding * rate;
+        if (txnCurrency === "Bs." && targetCurrency === "$")
+          return sum + outstanding / rate;
+      }
+      return sum + outstanding;
+    },
     0,
   );
 }
@@ -422,6 +448,8 @@ export function calculatePreviousBalance(
   transactions: Transaction[],
   month: number,
   year: number,
+  targetCurrency?: string,
+  rate?: number | null,
 ): number {
   const [startMonth, startYear] = getEarliestTransactionMonth(transactions);
   if (transactions.length === 0) return 0;
@@ -440,15 +468,31 @@ export function calculatePreviousBalance(
 
     const income = monthTransactions
       .filter((t) => t.type === "income")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        const tc = t.currency ?? "$";
+        if (targetCurrency && rate != null && rate > 0) {
+          if (tc === "$" && targetCurrency === "Bs.") return sum + t.amount * rate;
+          if (tc === "Bs." && targetCurrency === "$") return sum + t.amount / rate;
+        }
+        return sum + t.amount;
+      }, 0);
     const expense = monthTransactions
       .filter((t) => t.type === "expense")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        const tc = t.currency ?? "$";
+        if (targetCurrency && rate != null && rate > 0) {
+          if (tc === "$" && targetCurrency === "Bs.") return sum + t.amount * rate;
+          if (tc === "Bs." && targetCurrency === "$") return sum + t.amount / rate;
+        }
+        return sum + t.amount;
+      }, 0);
 
     const debtAmount = calculateMonthDebtAmount(
       transactions,
       currentMonth,
       currentYear,
+      targetCurrency,
+      rate,
     );
 
     balance += income - expense - debtAmount;

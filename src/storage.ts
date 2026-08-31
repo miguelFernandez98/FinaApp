@@ -12,6 +12,7 @@ const DEFAULT_STATE: PersistedState = {
   showEUR: false,
   showCustomRate: false,
   customRate: null,
+  equivalentRate: "bcv",
   language: "es",
   pinHash: null,
   useBiometrics: false,
@@ -38,6 +39,10 @@ export function normalizePersistedState(parsed: unknown): PersistedState {
     showCustomRate: p.showCustomRate === true,
     customRate:
       typeof p.customRate === "number" && p.customRate > 0 ? p.customRate : null,
+    equivalentRate:
+      p.equivalentRate === "parallel" || p.equivalentRate === "custom"
+        ? p.equivalentRate
+        : "bcv",
     language: p.language === "en" ? "en" : "es",
     pinHash:
       typeof p.pinHash === "string" && p.pinHash ? p.pinHash : null,
@@ -81,6 +86,7 @@ export function saveState(state: PersistedState): void {
         showEUR: state.showEUR,
         showCustomRate: state.showCustomRate,
         customRate: state.customRate,
+        equivalentRate: state.equivalentRate,
         language: state.language,
         pinHash: state.pinHash,
         useBiometrics: state.useBiometrics,

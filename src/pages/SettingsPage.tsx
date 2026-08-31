@@ -6,6 +6,7 @@ import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { normalizePersistedState } from "../storage";
+import { loadExchangeRates } from "../storage";
 import { generateId } from "../utils/transactions";
 import { daysInMonth, toISODate } from "../utils/date";
 import { startTutorial } from "../utils/tutorial";
@@ -18,6 +19,7 @@ import {
   scheduleBackupReminder,
   scheduleMonthlySummary,
 } from "../utils/notifications";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import type { Transaction } from "../types";
 import { version } from "../../package.json";
 import CustomSelect from "../components/CustomSelect";
@@ -42,6 +44,7 @@ export default function SettingsPage() {
     showEUR,
     showCustomRate,
     customRate,
+    equivalentRate,
     language,
     transactions,
     budgets,
@@ -57,6 +60,7 @@ export default function SettingsPage() {
     setShowEUR,
     setShowCustomRate,
     setCustomRate,
+    setEquivalentRate,
     setLanguage,
     setPinHash,
     setUseBiometrics,    setLastExportAt,
@@ -115,6 +119,38 @@ export default function SettingsPage() {
       }
     } finally {
       setNotifBusy(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      showToast(t("settings.notifications_off"), "fa-circle-exclamation", "var(--warning)");
+      return;
+    }
+    const granted = await checkNotificationPermission();
+    if (!granted) {
+      showToast(t("settings.notifications_off"), "fa-circle-exclamation", "var(--warning)");
+      return;
+    }
+    const rates = loadExchangeRates();
+    const bcv = rates?.bcv;
+    const parallel = rates?.parallel;
+    const bcvText = bcv ? `Bs. ${bcv.toFixed(2)}` : "--";
+    const parText = parallel ? `Bs. ${parallel.toFixed(2)}` : "--";
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 9999,
+            title: "🧪 Test - Tasas",
+            body: `BCV: ${bcvText} | Paralelo: ${parText}`,
+            schedule: { at: new Date(Date.now() + 60 * 1000), allowWhileIdle: true },
+          },
+        ],
+      });
+      showToast("Notificación programada en 1 minuto", "fa-bell", "var(--accent)");
+    } catch {
+      showToast("Error al programar notificación", "fa-circle-exclamation", "var(--danger)");
     }
   };
 
@@ -436,6 +472,7 @@ export default function SettingsPage() {
           showEUR: true,
           showCustomRate: false,
           customRate: null,
+          equivalentRate: "bcv",
           language,
           pinHash: null,
           useBiometrics: false,
@@ -461,6 +498,7 @@ export default function SettingsPage() {
           showEUR: false,
           showCustomRate: false,
           customRate: null,
+          equivalentRate: "bcv",
           language,
           pinHash: null,
           useBiometrics: false,
@@ -700,6 +738,37 @@ export default function SettingsPage() {
             <p className="settingsTextDescription">
               {t("settings.custom_hint")}
             </p>
+
+            <div style={{ borderTop: "1px solid var(--border)", margin: "8px 0" }} />
+            <div className="menu-item" style={{ cursor: "default" }}>
+              <i className="fa-solid fa-arrow-right-arrow-left menu-icon" />
+              <span style={{ flex: 1 }}>{t("settings.equivalent_rate")}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, padding: "0 16px 8px" }}>
+              {(["bcv", "parallel", "custom"] as const).map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  onClick={() => setEquivalentRate(rate)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    borderRadius: 10,
+                    border: `1.5px solid ${equivalentRate === rate ? "var(--accent)" : "var(--border)"}`,
+                    background: equivalentRate === rate ? "var(--accent-dim)" : "transparent",
+                    color: equivalentRate === rate ? "var(--accent)" : "var(--fg-muted)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t(`settings.equiv_${rate}`)}
+                </button>
+              ))}
+            </div>
+            <p className="settingsTextDescription">
+              {t("settings.equiv_hint")}
+            </p>
           </div>
         )}
       </section>
@@ -770,6 +839,16 @@ export default function SettingsPage() {
               </label>
             </div>
             <p className="settingsTextDescription">{t("settings.notifications_hint")}</p>
+            {notificationsEnabled && (
+              <button
+                className="btn-ghost"
+                style={{ width: "100%", marginTop: 4, fontSize: 12, padding: "8px 12px" }}
+                onClick={handleTestNotification}
+              >
+                <i className="fa-solid fa-flask" style={{ marginRight: 8 }} />
+                Test notificación (1 min)
+              </button>
+            )}
           </div>
         )}
       </section>

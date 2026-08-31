@@ -43,9 +43,16 @@ function BarTooltip({
 }
 
 export default function BarChart() {
-  const { transactions, currency } = useAppData();
-  const { currentMonth, currentYear } = useAppUI();
+  const { transactions, currency, equivalentRate, customRate } = useAppData();
+  const { currentMonth, currentYear, exchangeRates } = useAppUI();
   const { language } = useI18n();
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
 
   const chartData = useMemo(() => {
     const incomeKey = t("bar.income");
@@ -71,10 +78,24 @@ export default function BarChart() {
         name: monthName(m).substring(0, 3),
         income: monthTxns
           .filter((t) => t.type === "income")
-          .reduce((s, t) => s + t.amount, 0),
+          .reduce((s, t) => {
+            const tc = t.currency ?? "$";
+            if (equivRate != null && equivRate > 0) {
+              if (tc === "Bs." && currency === "$") return s + t.amount / equivRate;
+              if (tc === "$" && currency === "Bs.") return s + t.amount * equivRate;
+            }
+            return s + t.amount;
+          }, 0),
         expense: monthTxns
           .filter((t) => t.type === "expense")
-          .reduce((s, t) => s + t.amount, 0),
+          .reduce((s, t) => {
+            const tc = t.currency ?? "$";
+            if (equivRate != null && equivRate > 0) {
+              if (tc === "Bs." && currency === "$") return s + t.amount / equivRate;
+              if (tc === "$" && currency === "Bs.") return s + t.amount * equivRate;
+            }
+            return s + t.amount;
+          }, 0),
         incomeKey,
         expenseKey,
       });
@@ -82,7 +103,7 @@ export default function BarChart() {
 
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth, currentYear, transactions, language]);
+  }, [currentMonth, currentYear, transactions, language, currency, equivRate]);
 
   return (
     <div className="chart-wrap">

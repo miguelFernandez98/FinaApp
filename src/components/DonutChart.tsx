@@ -6,7 +6,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { useAppData } from "../AppContext";
+import { useAppData, useAppUI } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
 import { getCategoryById } from "../utils/transactions";
@@ -50,16 +50,30 @@ function DonutTooltip({
 }
 
 export default function DonutChart({ transactions, type }: DonutChartProps) {
-  const { currency } = useAppData();
+  const { currency, equivalentRate, customRate } = useAppData();
+  const { exchangeRates } = useAppUI();
   const { language } = useI18n();
   const [hovered, setHovered] = useState<number | null>(null);
+
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
 
   const { chartData, total } = useMemo(() => {
     const ofType = transactions.filter((t) => t.type === type);
 
     const catMap: Record<string, number> = {};
     ofType.forEach((t) => {
-      catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+      const txnCurrency = t.currency ?? "$";
+      let amt = t.amount;
+      if (equivRate != null && equivRate > 0) {
+        if (txnCurrency === "Bs." && currency === "$") amt = t.amount / equivRate;
+        else if (txnCurrency === "$" && currency === "Bs.") amt = t.amount * equivRate;
+      }
+      catMap[t.category] = (catMap[t.category] || 0) + amt;
     });
 
     const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
@@ -72,7 +86,7 @@ export default function DonutChart({ transactions, type }: DonutChartProps) {
     const sum = data.reduce((acc, d) => acc + d.value, 0);
     return { chartData: data, total: sum };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, type, language]);
+  }, [transactions, type, language, currency, equivRate]);
 
   if (!chartData.length) {
     return (

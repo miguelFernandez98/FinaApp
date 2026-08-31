@@ -23,14 +23,17 @@ import fLogo from "../assets/f-logo.svg";
 export default function HomePage() {
   const [donutType, setDonutType] = useState<"expense" | "income">("expense");
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const [showBs, setShowBs] = useState(false);
   useI18n();
   const {
     transactions,
     currency,
     showCalculator,
     goals,
+    equivalentRate,
+    customRate,
   } = useAppData();
-  const { currentMonth, currentYear } = useAppUI();
+  const { currentMonth, currentYear, exchangeRates } = useAppUI();
   const {
     getMonthTransactions,
     navigateTo,
@@ -39,26 +42,33 @@ export default function HomePage() {
     openTransactionModal,
   } = useAppActions();
 
+  const equivRate =
+    equivalentRate === "custom"
+      ? customRate
+      : equivalentRate === "parallel"
+        ? exchangeRates.parallel
+        : exchangeRates.bcv;
+
   const visibleTransactions = useMemo(
     () => getMonthTransactions(currentMonth, currentYear),
     [getMonthTransactions, currentMonth, currentYear],
   );
 
   const income = useMemo(
-    () => sumByType(visibleTransactions, "income"),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "income", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const expense = useMemo(
-    () => sumByType(visibleTransactions, "expense"),
-    [visibleTransactions],
+    () => sumByType(visibleTransactions, "expense", currency, equivRate),
+    [visibleTransactions, currency, equivRate],
   );
   const previousBalance = useMemo(
-    () => calculatePreviousBalance(transactions, currentMonth, currentYear),
-    [transactions, currentMonth, currentYear],
+    () => calculatePreviousBalance(transactions, currentMonth, currentYear, currency, equivRate),
+    [transactions, currentMonth, currentYear, currency, equivRate],
   );
   const debtAmount = useMemo(
-    () => calculateMonthDebtAmount(transactions, currentMonth, currentYear),
-    [transactions, currentMonth, currentYear],
+    () => calculateMonthDebtAmount(transactions, currentMonth, currentYear, currency, equivRate),
+    [transactions, currentMonth, currentYear, currency, equivRate],
   );
   const balance = previousBalance + income - expense - debtAmount;
   const pendingDebts = useMemo(
@@ -122,28 +132,40 @@ export default function HomePage() {
       <section
         className="balance-hero"
         aria-label={t("home.aria.balance")}
+        onClick={() => equivRate != null && setShowBs((v) => !v)}
+        style={{ cursor: equivRate != null ? "pointer" : undefined }}
       >
         <p className="balance-label">{t("home.balance")}</p>
         <div
           className="balance-amount"
           style={{ color: balance >= 0 ? "var(--accent)" : "var(--danger)" }}
         >
-          {balance < 0 ? "-" : ""}
-          {formatMoney(balance, currency)}
+          {showBs && equivRate != null
+            ? `Bs. ${(Math.abs(balance) * equivRate).toFixed(2)}`
+            : `${balance < 0 ? "-" : ""}${formatMoney(balance, currency)}`}
         </div>
+        {showBs && equivRate != null && (
+          <p className="bs-hint">
+            {balance < 0 ? "-" : ""}{formatMoney(balance, currency)}
+          </p>
+        )}
         <div className="balance-row">
           <div className="balance-detail">
             <span className="balance-dot income" />
             <span className="balance-text">{t("home.income")}</span>
             <span className="balance-value income">
-              {formatMoney(income, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(income * equivRate).toFixed(2)}`
+                : formatMoney(income, currency)}
             </span>
           </div>
           <div className="balance-detail">
             <span className="balance-dot expense" />
             <span className="balance-text">{t("home.expense")}</span>
             <span className="balance-value expense">
-              {formatMoney(expense, currency)}
+              {showBs && equivRate != null
+                ? `Bs. ${(expense * equivRate).toFixed(2)}`
+                : formatMoney(expense, currency)}
             </span>
           </div>
         </div>
@@ -329,7 +351,7 @@ const done = goal.saved >= goal.target && goal.target > 0;
         </span>
       </div>
 
-      <section className="glass-card" aria-label={t("home.aria.recent")}>
+      <section id="recent-section" className="glass-card" aria-label={t("home.aria.recent")}>
         {recent.length === 0 ? (
           <div className="empty-state">
             <i className="fa-solid fa-receipt" />
