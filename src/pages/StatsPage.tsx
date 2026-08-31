@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
-import { formatMoney } from "../utils/format";
+import { formatMoney, convertAmount } from "../utils/format";
 import {
   getCategoryById,
   sumByType,
@@ -168,7 +168,7 @@ export default function StatsPage() {
             <span className="compare-label">{t("stats.compare_income")}</span>
             <span className="compare-value" style={{ color: "var(--success)" }}>
               {showBs && equivRate != null
-                ? `Bs. ${(income * equivRate).toFixed(2)}`
+                ? formatMoney(convertAmount(income, currency, "Bs.", equivRate), "Bs.")
                 : formatMoney(income, currency)}
             </span>
             {prevComparison && (
@@ -186,7 +186,7 @@ export default function StatsPage() {
             <span className="compare-label">{t("stats.compare_expense")}</span>
             <span className="compare-value" style={{ color: "var(--danger)" }}>
               {showBs && equivRate != null
-                ? `Bs. ${(expense * equivRate).toFixed(2)}`
+                ? formatMoney(convertAmount(expense, currency, "Bs.", equivRate), "Bs.")
                 : formatMoney(expense, currency)}
             </span>
             {prevComparison && (
@@ -209,7 +209,7 @@ export default function StatsPage() {
               }}
             >
               {showBs && equivRate != null
-                ? `Bs. ${(Math.abs(balance) * equivRate).toFixed(2)}`
+                ? `${balance < 0 ? "-" : ""}${formatMoney(convertAmount(Math.abs(balance), currency, "Bs.", equivRate), "Bs.")}`
                 : `${balance < 0 ? "-" : ""}${formatMoney(balance, currency)}`}
             </span>
             {prevComparison && (

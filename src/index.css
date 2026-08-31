@@ -1947,8 +1947,10 @@ body.driver-active .bottom-nav {
   border-radius: 14px;
   background: var(--card);
   border: 1px solid var(--border);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   min-width: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .compare-label {
@@ -1959,10 +1961,7 @@ body.driver-active .bottom-nav {
 .compare-value {
   font-size: 14px;
   font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
   text-align: center;
 }
 

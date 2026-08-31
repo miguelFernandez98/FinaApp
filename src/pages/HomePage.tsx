@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { monthName, t, useI18n } from "../i18n";
-import { formatMoney } from "../utils/format";
+import { formatMoney, convertAmount } from "../utils/format";
 import {
   getCategoryById,
   getTimeBasedGreeting,
@@ -141,7 +141,7 @@ export default function HomePage() {
           style={{ color: balance >= 0 ? "var(--accent)" : "var(--danger)" }}
         >
           {showBs && equivRate != null
-            ? `Bs. ${(Math.abs(balance) * equivRate).toFixed(2)}`
+            ? `${balance < 0 ? "-" : ""}${formatMoney(convertAmount(Math.abs(balance), currency, "Bs.", equivRate), "Bs.")}`
             : `${balance < 0 ? "-" : ""}${formatMoney(balance, currency)}`}
         </div>
         {showBs && equivRate != null && (
@@ -155,7 +155,7 @@ export default function HomePage() {
             <span className="balance-text">{t("home.income")}</span>
             <span className="balance-value income">
               {showBs && equivRate != null
-                ? `Bs. ${(income * equivRate).toFixed(2)}`
+                ? formatMoney(convertAmount(income, currency, "Bs.", equivRate), "Bs.")
                 : formatMoney(income, currency)}
             </span>
           </div>
@@ -164,7 +164,7 @@ export default function HomePage() {
             <span className="balance-text">{t("home.expense")}</span>
             <span className="balance-value expense">
               {showBs && equivRate != null
-                ? `Bs. ${(expense * equivRate).toFixed(2)}`
+                ? formatMoney(convertAmount(expense, currency, "Bs.", equivRate), "Bs.")
                 : formatMoney(expense, currency)}
             </span>
           </div>
