@@ -14,7 +14,8 @@ const DEBT_MID_DAYS = 3;
 const BUDGET_APPROACH_THRESHOLD = 0.8;
 const BACKUP_REMINDER_ID = 9001;
 const MONTHLY_SUMMARY_ID = 9002;
-const DAILY_REMINDER_ID = 9003;
+const REMINDER_BASE_ID = 9003;
+const REMINDER_COUNT = 3;
 const BACKUP_REMINDER_DAYS = 30;
 const BACKUP_REMINDER_HOUR = 10;
 const MONTHLY_SUMMARY_HOUR = 20;
@@ -35,8 +36,31 @@ function notificationId(): number {
 let lastRateNotifyAt = 0;
 let lastNotifiedRates: { bcv: number | null; parallel: number | null } | null =
   null;
-
 let budgetNotifyAt = 0;
+
+const NOTIFIED_RATES_KEY = "finanzapp_notified_rates";
+
+function loadNotifiedRates(): { bcv: number | null; parallel: number | null } | null {
+  try {
+    const raw = localStorage.getItem(NOTIFIED_RATES_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveNotifiedRates(rates: { bcv: number | null; parallel: number | null }): void {
+  try {
+    localStorage.setItem(NOTIFIED_RATES_KEY, JSON.stringify(rates));
+  } catch { /* ignore */ }
+}
+
+function initNotifiedRates(): void {
+  if (lastNotifiedRates === null) {
+    lastNotifiedRates = loadNotifiedRates();
+  }
+}
 let permissionRequestInProgress = false;
 
 function isNative(): boolean {
@@ -127,6 +151,7 @@ export async function notifyRateChanges(
   current: ExchangeRates,
 ): Promise<void> {
   if (!isNative()) return;
+  initNotifiedRates();
   if (Date.now() - lastRateNotifyAt < RATE_NOTIFY_COOLDOWN_MS) return;
 
   const baseline = lastNotifiedRates ?? {
@@ -189,6 +214,7 @@ export async function notifyRateChanges(
       bcv: current.bcv,
       parallel: current.parallel,
     };
+    saveNotifiedRates(lastNotifiedRates);
   } catch (error) {
     console.error("Error scheduling rate notification:", error);
   }
@@ -521,40 +547,51 @@ export async function scheduleMonthlySummary(
 export async function scheduleDailyReminder(): Promise<void> {
   if (!isNative()) return;
 
+  let pendingIds: number[] = [];
   try {
     const pending = await LocalNotifications.getPending();
-    if (pending.notifications.some((n) => n.id === DAILY_REMINDER_ID)) {
-      return;
-    }
+    pendingIds = pending.notifications.map((n) => n.id);
   } catch (error) {
     console.error("Error checking pending daily reminder:", error);
   }
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(DAILY_REMINDER_HOUR, 0, 0, 0);
-
   const now = new Date();
-  let summaryBody: string;
-  if (getLanguage() === "en") {
-    summaryBody = `Good morning! Check your finances. It's ${now.toLocaleDateString("en", { weekday: "long" })}.`;
-  } else {
-    summaryBody = `¡Buenos días! Revisa tus finanzas. Es ${now.toLocaleDateString("es-VE", { weekday: "long" })}.`;
+  const notifications: Array<{
+    id: number;
+    title: string;
+    body: string;
+    schedule: { at: Date; allowWhileIdle: boolean };
+  }> = [];
+
+  for (let i = 0; i < REMINDER_COUNT; i++) {
+    const id = REMINDER_BASE_ID + i;
+    if (pendingIds.includes(id)) continue;
+
+    const target = new Date(now);
+    target.setDate(target.getDate() + i + 1);
+    target.setHours(DAILY_REMINDER_HOUR, 0, 0, 0);
+
+    let body: string;
+    if (getLanguage() === "en") {
+      body = `Good morning! Check your finances. It's ${now.toLocaleDateString("en", { weekday: "long" })}.`;
+    } else {
+      body = `¡Buenos días! Revisa tus finanzas. Es ${now.toLocaleDateString("es-VE", { weekday: "long" })}.`;
+    }
+
+    notifications.push({
+      id,
+      title: t("notif.daily_title"),
+      body,
+      schedule: { at: futureScheduleAt(target), allowWhileIdle: true },
+    });
   }
 
+  if (notifications.length === 0) return;
+
   try {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: DAILY_REMINDER_ID,
-          title: t("notif.daily_title"),
-          body: summaryBody,
-          schedule: { at: futureScheduleAt(tomorrow), allowWhileIdle: true },
-        },
-      ],
-    });
+    await LocalNotifications.schedule({ notifications });
   } catch (error) {
-    console.error("Error scheduling daily reminder:", error);
+    console.error("Error scheduling daily reminders:", error);
   }
 }
 
@@ -586,5 +623,27 @@ export async function scheduleAllOnBackground(
     await scheduleDailyReminder();
   } catch (error) {
     console.error("Error scheduling notifications on background:", error);
+  }
+}
+
+/**
+ * Programa notificaciones al iniciar la app. Re-programa debt reminders
+ * y daily reminders para que siempre haya notificaciones pendientes
+ * aunque la app nunca haya ido a background.
+ * @param transactions Todas las transacciones.
+ */
+export async function scheduleOnStartup(
+  transactions: Transaction[],
+): Promise<void> {
+  if (!isNative()) return;
+
+  try {
+    const granted = await checkNotificationPermission();
+    if (!granted) return;
+    await ensureExactAlarmPermission();
+    await scheduleDebtReminders(transactions);
+    await scheduleDailyReminder();
+  } catch (error) {
+    console.error("Error scheduling notifications on startup:", error);
   }
 }

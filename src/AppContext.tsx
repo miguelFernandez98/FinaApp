@@ -43,6 +43,7 @@ import {
   scheduleBackupReminder,
   scheduleMonthlySummary,
   scheduleAllOnBackground,
+  scheduleOnStartup,
   scheduleDailyReminder,
 } from "./utils/notifications";
 import { syncWidgetData } from "./utils/widgetData";
@@ -714,6 +715,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       listener.then((l) => l.remove());
     };
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    scheduleOnStartup(latestStateRef.current.transactions);
   }, []);
 
   useEffect(() => {

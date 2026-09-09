@@ -1,11 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { WidgetBridgePlugin } from "capacitor-widget-bridge";
-import { loadState, loadExchangeRates } from "../storage";
-import {
-  getMonthTransactions,
-  sumByType,
-  calculateMonthDebtAmount,
-} from "./transactions";
+import { loadExchangeRates } from "../storage";
 
 const WIDGET_GROUP = "com.finaapp.app";
 const WIDGET_KEY = "widget_data";
@@ -19,30 +14,11 @@ export async function syncWidgetData(): Promise<void> {
   if (Date.now() - lastSyncAt < SYNC_THROTTLE_MS) return;
 
   try {
-    const state = loadState();
     const rates = loadExchangeRates();
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-
-    const monthTxns = getMonthTransactions(
-      state.transactions,
-      month,
-      year,
-    ).filter((t) => t.type !== "debt");
-
-    const income = sumByType(monthTxns, "income");
-    const expenses = sumByType(monthTxns, "expense");
-    const debt = calculateMonthDebtAmount(state.transactions, month, year);
-    const balance = income - expenses - debt;
 
     const data = {
-      balance,
-      income,
-      expenses,
       bcv: rates?.bcv ?? null,
       parallel: rates?.parallel ?? null,
-      currency: state.currency,
       lastUpdated: new Date().toISOString(),
     };
 
