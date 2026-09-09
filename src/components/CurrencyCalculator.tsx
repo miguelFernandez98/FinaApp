@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
 import { formatMoney } from "../utils/format";
+import type { ExchangeRates } from "../utils/exchangeRates";
 import CustomSelect from "./CustomSelect";
 
 type CurrencyType = "VES" | "USD_BCV" | "USD_PARALLEL" | "EUR" | "CUSTOM";
@@ -40,6 +41,8 @@ export default function CurrencyCalculator() {
   const [parAnimating, setParAnimating] = useState(false);
   const bcvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevRatesRef = useRef<ExchangeRates | null>(null);
+  const [rateChanges, setRateChanges] = useState<{ bcv: number | null; parallel: number | null }>({ bcv: null, parallel: null });
 
   const triggerBcvAnim = useCallback(() => {
     if (bcvTimerRef.current) clearTimeout(bcvTimerRef.current);
@@ -65,6 +68,25 @@ export default function CurrencyCalculator() {
       if (parTimerRef.current) clearTimeout(parTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!exchangeRates.lastUpdated) return;
+    const prev = prevRatesRef.current;
+    if (prev === null) {
+      prevRatesRef.current = { ...exchangeRates };
+      return;
+    }
+    const calc = (cur: number | null, old: number | null) => {
+      if (cur == null || old == null || old === 0) return null;
+      return ((cur - old) / old) * 100;
+    };
+    const bcvChange = calc(exchangeRates.bcv, prev.bcv);
+    const parChange = calc(exchangeRates.parallel, prev.parallel);
+    if (bcvChange !== null || parChange !== null) {
+      setRateChanges({ bcv: bcvChange, parallel: parChange });
+    }
+    prevRatesRef.current = { ...exchangeRates };
+  }, [exchangeRates]);
 
   const effectiveFrom: CurrencyType =
     fromCurrency === "CUSTOM" && !showCustomRate ? "VES" : fromCurrency;
@@ -419,6 +441,16 @@ export default function CurrencyCalculator() {
               {effectiveBcvDisplay === "EUR"
                 ? rateDisplay(exchangeRates.eur)
                 : rateDisplay(exchangeRates.bcv)}
+              {rateChanges.bcv != null && Math.abs(rateChanges.bcv) >= 0.01 && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  marginLeft: 4,
+                  color: rateChanges.bcv > 0 ? "var(--danger)" : "var(--success)",
+                }}>
+                  {rateChanges.bcv > 0 ? "+" : ""}{rateChanges.bcv.toFixed(2)}%
+                </span>
+              )}
             </div>
           </div>
           <div
@@ -447,6 +479,16 @@ export default function CurrencyCalculator() {
               className="rate-swap"
             >
               {parallelRate === null ? rateDisplay(null) : rateDisplay(parallelRate)}
+              {rateChanges.parallel != null && Math.abs(rateChanges.parallel) >= 0.01 && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  marginLeft: 4,
+                  color: rateChanges.parallel > 0 ? "var(--danger)" : "var(--success)",
+                }}>
+                  {rateChanges.parallel > 0 ? "+" : ""}{rateChanges.parallel.toFixed(2)}%
+                </span>
+              )}
             </div>
           </div>
         </div>

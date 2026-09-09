@@ -322,10 +322,7 @@ export function getFutureTransactions(
           }
         }
       }
-      return;
     }
-
-    if (parseISODate(t.date) > today) result.push(t);
   });
 
   return result;

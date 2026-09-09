@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
@@ -8,15 +8,14 @@ import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
 
-function formatDisplayAmount(raw: string): string {
+function formatWithSeparators(raw: string): string {
   if (!raw) return "";
-  const cleaned = raw.replace(/[^0-9.,]/g, "").replace(",", ".");
-  const parts = cleaned.split(".");
+  const parts = raw.split(".");
   const intPart = parts[0] || "";
-  const decPart = parts.length > 1 ? "." + parts[1].slice(0, 2) : "";
+  const decPart = parts.length > 1 ? "." + parts[1] : "";
+  if (!intPart) return decPart ? "0" + decPart : "";
   const locale = navigator.language?.startsWith("es") ? "es" : "en";
-  const intFormatted = parseInt(intPart || "0", 10).toLocaleString(locale);
-  return intFormatted + decPart;
+  return parseInt(intPart, 10).toLocaleString(locale) + decPart;
 }
 
 export default function TransactionModal() {
@@ -74,6 +73,49 @@ export default function TransactionModal() {
   const [txnCurrency, setTxnCurrency] = useState(
     editingTransaction?.currency ?? "$",
   );
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cursorRef = useRef<{ start: number; end: number } | null>(null);
+
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = inputRef.current;
+    if (input) {
+      cursorRef.current = { start: input.selectionStart ?? 0, end: input.selectionEnd ?? 0 };
+    }
+    const raw = e.target.value;
+    const typedChar = raw[cursorRef.current?.start ? cursorRef.current.start - 1 : 0];
+    const isDecimalSeparator = typedChar === "." || typedChar === ",";
+
+    if (isDecimalSeparator) {
+      const cleaned = raw.replace(/[^\d.,-]/g, "");
+      setAmount(cleaned);
+    } else {
+      const digits = raw.replace(/[^\d]/g, "");
+      const existingParts = amount.split(".");
+      if (existingParts.length > 1 && existingParts[1].length > 0) {
+        setAmount(digits + "." + existingParts[1]);
+      } else {
+        setAmount(digits);
+      }
+    }
+  }, [amount]);
+
+  const formattedAmount = formatWithSeparators(amount);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input || !cursorRef.current) return;
+    const { start } = cursorRef.current;
+    const rawLen = amount.length;
+    const formattedLen = formattedAmount.length;
+    let newStart = start;
+    for (let i = 0; i < Math.min(start, rawLen); i++) {
+      if (",.".includes(amount[i]) && !",.".includes(formattedAmount[Math.max(0, newStart - 1)])) newStart++;
+    }
+    if (newStart > formattedLen) newStart = formattedLen;
+    input.setSelectionRange(newStart, newStart);
+    cursorRef.current = null;
+  });
 
   const filteredCats = CATEGORIES.filter(
     (c) => c.type === transactionType && !c.hidden,
@@ -310,15 +352,13 @@ export default function TransactionModal() {
               {txnCurrency}
             </button>
             <input
+              ref={inputRef}
               type="text"
               className="input-field input-amount"
               placeholder={t("modal.amount_placeholder")}
               inputMode="decimal"
-              value={formatDisplayAmount(amount)}
-              onChange={(e) => {
-                const cleaned = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
-                setAmount(cleaned);
-              }}
+              value={formattedAmount}
+              onChange={handleAmountChange}
               style={{ paddingLeft: 56 }}
             />
           </div>

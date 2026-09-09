@@ -15,7 +15,7 @@ import AppVersion from "../components/AppVersion";
 import { exportTransactionsToCSV } from "../utils/export";
 
 export default function StatsPage() {
-  const { currency, budgets, equivalentRate, customRate } = useAppData();
+  const { currency, budgets, equivalentRate, customRate, goals } = useAppData();
   const { currentMonth, currentYear, exchangeRates } = useAppUI();
   const { getMonthTransactions } = useAppActions();
   useI18n();
@@ -348,6 +348,53 @@ export default function StatsPage() {
           ))
         )}
       </section>
+
+      {/* Metas de ahorro */}
+      {goals.length > 0 && (
+        <section className="glass-card" id="stats-goals">
+          <h3 className="card-title" style={{ marginBottom: 16 }}>
+            {t("home.goals")}
+          </h3>
+          {goals.map((goal) => {
+            const pct = goal.target > 0 ? Math.min((goal.saved / goal.target) * 100, 100) : 0;
+            const done = goal.saved >= goal.target && goal.target > 0;
+            const remaining = Math.max(goal.target - goal.saved, 0);
+            return (
+              <div key={goal.id} style={{ marginBottom: 16 }}>
+                <div className="budget-header">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <i
+                      className={`fa-solid ${done ? "fa-circle-check" : "fa-piggy-bank"}`}
+                      style={{ fontSize: 12, color: done ? "var(--success)" : "var(--accent)" }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{goal.name}</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: done ? "var(--success)" : "var(--fg-muted)" }}>
+                    {formatMoney(goal.saved, currency)} / {formatMoney(goal.target, currency)}
+                  </span>
+                </div>
+                <div className="budget-bar-track">
+                  <div
+                    className="budget-bar-fill"
+                    style={{
+                      width: `${pct}%`,
+                      background: done ? "var(--success)" : "var(--accent)",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 11, color: "var(--fg-muted)" }}>
+                  <span>{pct.toFixed(1)}%</span>
+                  {done ? (
+                    <span style={{ color: "var(--success)" }}>{t("goals.completed")}</span>
+                  ) : (
+                    <span>{formatMoney(remaining, currency)} {t("goals.remaining")}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {budgetModalOpen && (
         <BudgetModal onClose={() => setBudgetModalOpen(false)} />
