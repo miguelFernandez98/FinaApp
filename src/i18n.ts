@@ -1175,6 +1175,7 @@ const CATEGORY_NAMES: Record<string, Record<Language, string>> = {
   loan_personal: { es: "Préstamo personal", en: "Personal loan" },
   loan_business: { es: "Préstamo negocio", en: "Business loan" },
   credit_card: { es: "Tarjeta de crédito", en: "Credit card" },
+  financiamiento: { es: "Financiamiento", en: "Financing" },
   other_debt: { es: "Otra deuda", en: "Other debt" },
   debt_paid: { es: "Deudas", en: "Debts" },
   other_expense: { es: "Otro gasto", en: "Other expense" },

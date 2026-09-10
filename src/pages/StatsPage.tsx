@@ -9,6 +9,7 @@ import {
 } from "../utils/transactions";
 import BarChart from "../components/BarChart";
 import BudgetModal from "../components/BudgetModal";
+import GoalsModal from "../components/GoalsModal";
 import MonthSelector from "../components/MonthSelector";
 import FinanceAdvisor from "../components/FinanceAdvisor";
 import AppVersion from "../components/AppVersion";
@@ -20,6 +21,7 @@ export default function StatsPage() {
   const { getMonthTransactions } = useAppActions();
   useI18n();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showBs, setShowBs] = useState(false);
@@ -350,12 +352,21 @@ export default function StatsPage() {
       </section>
 
       {/* Metas de ahorro */}
-      {goals.length > 0 && (
-        <section className="glass-card" id="stats-goals">
-          <h3 className="card-title" style={{ marginBottom: 16 }}>
-            {t("home.goals")}
-          </h3>
-          {goals.map((goal) => {
+      <section className="glass-card" id="stats-goals">
+        <div className="card-header">
+          <h3 className="card-title">{t("home.goals")}</h3>
+          <span className="section-link" onClick={() => setGoalsOpen(true)}>
+            {t("home.goals_manage")}
+          </span>
+        </div>
+        {goals.length === 0 ? (
+          <div className="empty-state" style={{ padding: "20px 16px" }}>
+            <i className="fa-solid fa-piggy-bank" />
+            <div className="empty-state-title">{t("home.goals_empty")}</div>
+            <p>{t("home.goals_empty.body")}</p>
+          </div>
+        ) : (
+          goals.map((goal) => {
             const pct = goal.target > 0 ? Math.min((goal.saved / goal.target) * 100, 100) : 0;
             const done = goal.saved >= goal.target && goal.target > 0;
             const remaining = Math.max(goal.target - goal.saved, 0);
@@ -392,13 +403,15 @@ export default function StatsPage() {
                 </div>
               </div>
             );
-          })}
-        </section>
-      )}
+          })
+        )}
+      </section>
 
       {budgetModalOpen && (
         <BudgetModal onClose={() => setBudgetModalOpen(false)} />
       )}
+
+      {goalsOpen && <GoalsModal onClose={() => setGoalsOpen(false)} />}
 
       {advisorOpen && <FinanceAdvisor onClose={() => setAdvisorOpen(false)} />}
     </div>
