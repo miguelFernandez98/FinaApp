@@ -392,20 +392,48 @@ export function calculateMonthDebtAmount(
   targetCurrency?: string,
   rate?: number | null,
 ): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return getPendingDebtsForMonth(transactions, month, year).reduce(
     (sum, tx) => {
-      const outstanding = getDebtOutstandingAmount(tx);
-      const txnCurrency = tx.currency ?? "$";
-      if (targetCurrency && rate != null && rate > 0) {
-        if (txnCurrency === "$" && targetCurrency === "Bs.")
-          return sum + outstanding * rate;
-        if (txnCurrency === "Bs." && targetCurrency === "$")
-          return sum + outstanding / rate;
+      if (tx.debtStatus === "paid") {
+        const outstanding = getDebtOutstandingAmount(tx);
+        return sum + convertDebtAmount(outstanding, tx, targetCurrency, rate);
       }
-      return sum + outstanding;
+
+      if (tx.debtStatus === "partial") {
+        const outstanding = getDebtOutstandingAmount(tx);
+        return sum + convertDebtAmount(outstanding, tx, targetCurrency, rate);
+      }
+
+      if (tx.debtDueDate) {
+        const [dy, dm, dd] = tx.debtDueDate.split("-").map(Number);
+        const dueDate = new Date(dy, dm - 1, dd);
+        if (dueDate <= today) {
+          const outstanding = getDebtOutstandingAmount(tx);
+          return sum + convertDebtAmount(outstanding, tx, targetCurrency, rate);
+        }
+      }
+
+      return sum;
     },
     0,
   );
+}
+
+function convertDebtAmount(
+  amount: number,
+  tx: Transaction,
+  targetCurrency?: string,
+  rate?: number | null,
+): number {
+  const txnCurrency = tx.currency ?? "$";
+  if (targetCurrency && rate != null && rate > 0) {
+    if (txnCurrency === "$" && targetCurrency === "Bs.") return amount * rate;
+    if (txnCurrency === "Bs." && targetCurrency === "$") return amount / rate;
+  }
+  return amount;
 }
 
 function monthKey(month: number, year: number) {

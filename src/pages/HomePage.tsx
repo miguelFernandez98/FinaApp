@@ -17,12 +17,10 @@ import DonutChart from "../components/DonutChart";
 import CurrencyCalculator from "../components/CurrencyCalculator";
 import MonthSelector from "../components/MonthSelector";
 import AppVersion from "../components/AppVersion";
-import GoalsModal from "../components/GoalsModal";
 import fLogo from "../assets/f-logo.svg";
 
 export default function HomePage() {
   const [donutType, setDonutType] = useState<"expense" | "income">("expense");
-  const [goalsOpen, setGoalsOpen] = useState(false);
   const [showBs, setShowBs] = useState(false);
   useI18n();
   const {
@@ -287,9 +285,6 @@ export default function HomePage() {
       >
         <div className="card-header">
           <h3 className="card-title">{t("home.goals")}</h3>
-          <span className="section-link" onClick={() => setGoalsOpen(true)}>
-            {t("home.goals_manage")}
-          </span>
         </div>
         {goals.length === 0 ? (
           <div className="empty-state" style={{ padding: "20px 16px" }}>
@@ -368,8 +363,6 @@ const done = goal.saved >= goal.target && goal.target > 0;
           ))
         )}
       </section>
-
-      {goalsOpen && <GoalsModal onClose={() => setGoalsOpen(false)} />}
     </div>
   );
 }

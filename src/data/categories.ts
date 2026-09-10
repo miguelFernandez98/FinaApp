@@ -107,6 +107,13 @@ export const CATEGORIES: Category[] = [
     type: "debt",
   },
   {
+    id: "financiamiento",
+    name: "Financiamiento",
+    icon: "fa-file-invoice-dollar",
+    color: "#f59e0b",
+    type: "debt",
+  },
+  {
     id: "other_debt",
     name: "Otra deuda",
     icon: "fa-ellipsis",

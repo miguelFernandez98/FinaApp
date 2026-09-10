@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAppData, useAppUI, useAppActions } from "../AppContext";
 import { CATEGORIES } from "../data/categories";
 import { categoryName, t, useI18n } from "../i18n";
@@ -7,16 +7,6 @@ import { convertAmount, formatMoney } from "../utils/format";
 import type { Transaction, TransactionType, DebtStatus } from "../types";
 import CustomSelect from "./CustomSelect";
 import ModalSheet from "./ModalSheet";
-
-function formatWithSeparators(raw: string): string {
-  if (!raw) return "";
-  const parts = raw.split(".");
-  const intPart = parts[0] || "";
-  const decPart = parts.length > 1 ? "." + parts[1] : "";
-  if (!intPart) return decPart ? "0" + decPart : "";
-  const locale = navigator.language?.startsWith("es") ? "es" : "en";
-  return parseInt(intPart, 10).toLocaleString(locale) + decPart;
-}
 
 export default function TransactionModal() {
   const { transactions, equivalentRate, customRate } = useAppData();
@@ -75,47 +65,25 @@ export default function TransactionModal() {
   );
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const cursorRef = useRef<{ start: number; end: number } | null>(null);
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = inputRef.current;
-    if (input) {
-      cursorRef.current = { start: input.selectionStart ?? 0, end: input.selectionEnd ?? 0 };
-    }
     const raw = e.target.value;
-    const typedChar = raw[cursorRef.current?.start ? cursorRef.current.start - 1 : 0];
-    const isDecimalSeparator = typedChar === "." || typedChar === ",";
+    const lastDot = raw.lastIndexOf(".");
+    const lastComma = raw.lastIndexOf(",");
+    const lastSep = Math.max(lastDot, lastComma);
 
-    if (isDecimalSeparator) {
-      const cleaned = raw.replace(/[^\d.,-]/g, "");
-      setAmount(cleaned);
-    } else {
-      const digits = raw.replace(/[^\d]/g, "");
-      const existingParts = amount.split(".");
-      if (existingParts.length > 1 && existingParts[1].length > 0) {
-        setAmount(digits + "." + existingParts[1]);
+    if (lastSep >= 0) {
+      const intRaw = raw.slice(0, lastSep).replace(/[^\d]/g, "");
+      const decRaw = raw.slice(lastSep + 1).replace(/[^\d]/g, "").slice(0, 2);
+      if (intRaw || decRaw) {
+        setAmount(intRaw + "." + decRaw);
       } else {
-        setAmount(digits);
+        setAmount("");
       }
+    } else {
+      setAmount(raw.replace(/[^\d]/g, ""));
     }
-  }, [amount]);
-
-  const formattedAmount = formatWithSeparators(amount);
-
-  useEffect(() => {
-    const input = inputRef.current;
-    if (!input || !cursorRef.current) return;
-    const { start } = cursorRef.current;
-    const rawLen = amount.length;
-    const formattedLen = formattedAmount.length;
-    let newStart = start;
-    for (let i = 0; i < Math.min(start, rawLen); i++) {
-      if (",.".includes(amount[i]) && !",.".includes(formattedAmount[Math.max(0, newStart - 1)])) newStart++;
-    }
-    if (newStart > formattedLen) newStart = formattedLen;
-    input.setSelectionRange(newStart, newStart);
-    cursorRef.current = null;
-  });
+  }, []);
 
   const filteredCats = CATEGORIES.filter(
     (c) => c.type === transactionType && !c.hidden,
@@ -357,7 +325,7 @@ export default function TransactionModal() {
               className="input-field input-amount"
               placeholder={t("modal.amount_placeholder")}
               inputMode="decimal"
-              value={formattedAmount}
+              value={amount}
               onChange={handleAmountChange}
               style={{ paddingLeft: 56 }}
             />
