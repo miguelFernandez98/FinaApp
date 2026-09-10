@@ -298,6 +298,9 @@ export default function SettingsPage() {
         };
         const prevD = (day: number) => toISODate(new Date(y, m - 1, day));
 
+        const recurId1 = generateId();
+        const recurId2 = generateId();
+
         const sampleTxns: Transaction[] = [
           {
             id: generateId(),
@@ -315,6 +318,15 @@ export default function SettingsPage() {
             category: "freelance",
             description: "Diseño landing page",
             date: d(5),
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "income",
+            amount: 50,
+            category: "gift",
+            description: "Cumpleaños abuela",
+            date: d(14),
             createdAt: Date.now(),
           },
           {
@@ -409,20 +421,31 @@ export default function SettingsPage() {
           },
           {
             id: generateId(),
-            type: "income",
-            amount: 50,
-            category: "gift",
-            description: "Cumpleaños abuela",
-            date: d(14),
-            createdAt: Date.now(),
-          },
-          {
-            id: generateId(),
             type: "expense",
             amount: 38,
             category: "transport",
             description: "Uber semana",
             date: d(15),
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "expense",
+            amount: 25,
+            category: "food",
+            description: "Arepera",
+            date: d(6),
+            currency: "Bs.",
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "expense",
+            amount: 180,
+            category: "services",
+            description: "Electricidad",
+            date: d(10),
+            currency: "Bs.",
             createdAt: Date.now(),
           },
           {
@@ -461,6 +484,88 @@ export default function SettingsPage() {
             date: prevD(15),
             createdAt: Date.now(),
           },
+          {
+            id: generateId(),
+            type: "expense",
+            amount: 350,
+            category: "food",
+            description: "Súper mes anterior",
+            date: prevD(5),
+            currency: "Bs.",
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "income",
+            amount: 30000,
+            category: "freelance",
+            description: "Proyecto freelance",
+            date: prevD(20),
+            currency: "Bs.",
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "debt",
+            amount: 500,
+            category: "credit_card",
+            description: "Tarjeta BD Visa",
+            date: d(1),
+            debtStatus: "pending",
+            debtPaidAmount: 0,
+            debtDueDate: d(20),
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "debt",
+            amount: 150,
+            category: "loan_personal",
+            description: "Préstamo Juan",
+            date: prevD(10),
+            debtStatus: "partial",
+            debtPaidAmount: 80,
+            debtDueDate: d(15),
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "debt",
+            amount: 200,
+            category: "financiamiento",
+            description: "Financiamiento sandbox",
+            date: prevD(25),
+            debtStatus: "paid",
+            debtPaidAmount: 200,
+            debtDueDate: prevD(30),
+            debtPaidDate: prevD(28),
+            createdAt: Date.now(),
+          },
+          {
+            id: generateId(),
+            type: "expense",
+            amount: 4500,
+            category: "debt_paid",
+            description: "Pago TC enero",
+            date: prevD(15),
+            createdAt: Date.now(),
+            isRecurring: true,
+            recurrenceDays: [1, 15],
+            recurringId: recurId1,
+          },
+          {
+            id: generateId(),
+            type: "expense",
+            amount: 15000,
+            category: "services",
+            description: "Alquiler mensual",
+            date: d(1),
+            currency: "Bs.",
+            createdAt: Date.now(),
+            isRecurring: true,
+            recurrenceDays: [1],
+            recurringId: recurId2,
+          },
         ];
 
         const sampleBudgets: Record<string, number> = {
@@ -471,8 +576,30 @@ export default function SettingsPage() {
           health: 60,
           education: 50,
           home: 150,
-          services: 70,
+          services: 80,
         };
+
+        const sampleGoals = [
+          {
+            id: generateId(),
+            name: "Fondo de emergencia",
+            target: 2000,
+            saved: 850,
+          },
+          {
+            id: generateId(),
+            name: "Viaje a la playa",
+            target: 500,
+            saved: 120,
+            deadline: toISODate(new Date(y, m + 3, 1)),
+          },
+          {
+            id: generateId(),
+            name: "Laptop nueva",
+            target: 1200,
+            saved: 340,
+          },
+        ];
 
         importState({
           transactions: sampleTxns,
@@ -486,7 +613,7 @@ export default function SettingsPage() {
           language,
           pinHash: null,
           useBiometrics: false,
-          goals: [],
+          goals: sampleGoals,
           lastExportAt: null,
           hasSeenTutorial: false,
         });
