@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 export interface ExchangeRates {
   parallel: number | null;
@@ -114,36 +114,45 @@ export async function fetchBinanceRate(): Promise<number | null> {
  */
 async function fetchExchangeMonitorRate(): Promise<number | null> {
   if (!Capacitor.isNativePlatform()) {
+    console.log("[EM] Skipped: not native platform");
     return null;
   }
 
   try {
-    const response = await fetchWithTimeout(
-      "https://exchangemonitor.net/venezuela/dolar-binance",
-      { headers: { Accept: "text/html" } },
-    );
-    const html = await response.text();
-    if (!html) return null;
+    const response = await CapacitorHttp.get({
+      url: "https://exchangemonitor.net/venezuela/dolar-binance",
+      headers: { Accept: "text/html" },
+    });
+    const html = response.data as string;
+    console.log("[EM] Status:", response.status);
+    if (!html) {
+      console.log("[EM] Empty response");
+      return null;
+    }
+    console.log("[EM] HTML length:", html.length);
 
     const patterns = [
-      /es de ([\d.,]+)\s*VES\/USD/,
-      /history-rate[^>]*>.*?<span[^>]*>([\d.,]+)<\/span>/s,
-      /"price"\s*:\s*"?([\d.,]+)"?/,
-      /Bs\.\s*<\/span>\s*<span[^>]*>([\d.,]+)<\/span>/,
-      /custom-text-number[^>]*>([\d.,]+)<\/span>/,
-      /([\d]{2,5}[.,]\d{2})/,
+      { re: /es de ([\d.,]+)\s*VES\/USD/, name: "meta-desc" },
+      { re: /Bs\.\s*<\/span>\s*<span[^>]*>([\d.,]+)<\/span>/, name: "history-rate" },
+      { re: /"price"\s*:\s*"?([\d.,]+)"?/, name: "json-price" },
+      { re: /custom-text-number[^>]*>([\d.,]+)<\/span>/, name: "custom-text" },
+      { re: /([\d]{2,5}[.,]\d{2})/, name: "generic-number" },
     ];
-    for (const pattern of patterns) {
-      const match = html.match(pattern);
+    for (const { re, name } of patterns) {
+      const match = html.match(re);
       if (match) {
-        const price = parseFloat(match[1].replace(/\./g, "").replace(",", "."));
+        const raw = match[1];
+        const price = parseFloat(raw.replace(/\./g, "").replace(",", "."));
+        console.log(`[EM] Pattern "${name}" matched: raw="${raw}" parsed=${price}`);
         if (Number.isFinite(price) && price > 1 && price < 100000) {
+          console.log("[EM] Returning:", price);
           return price;
         }
       }
     }
+    console.log("[EM] No pattern matched. Snippet:", html.slice(0, 500));
   } catch (error) {
-    console.error("Error scraping Exchange Monitor:", error);
+    console.error("[EM] Error:", error);
   }
   return null;
 }
@@ -195,6 +204,8 @@ export async function fetchParallelRate(): Promise<number | null> {
       fetchYadioRate(),
       fetchDolarApiParallelRate(),
     ]);
+
+  console.log("[Rate] exchangemonitor:", exchangemonitor, "binance:", binance, "pricePage:", pricePage, "yadio:", yadio, "dolarapi:", dolarapi);
 
   if (exchangemonitor !== null) return exchangemonitor;
   if (binance !== null) return binance;
