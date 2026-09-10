@@ -62,6 +62,7 @@ function initNotifiedRates(): void {
   }
 }
 let permissionRequestInProgress = false;
+let permissionResult: boolean | null = null;
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -73,9 +74,11 @@ function isNative(): boolean {
  */
 export async function checkNotificationPermission(): Promise<boolean> {
   if (!isNative()) return false;
+  if (permissionResult !== null) return permissionResult;
   try {
     const { display } = await LocalNotifications.checkPermissions();
-    return display === "granted";
+    permissionResult = display === "granted";
+    return permissionResult;
   } catch {
     return false;
   }
@@ -89,15 +92,22 @@ export async function checkNotificationPermission(): Promise<boolean> {
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!isNative()) return false;
-  if (permissionRequestInProgress) return false;
+  if (permissionRequestInProgress) return permissionResult ?? false;
   permissionRequestInProgress = true;
   try {
     const { display } = await LocalNotifications.checkPermissions();
-    if (display === "granted") return true;
+    if (display === "granted") {
+      permissionResult = true;
+      return true;
+    }
     if (display === "prompt" || display === "prompt-with-rationale") {
       const { display: result } = await LocalNotifications.requestPermissions();
-      if (result !== "granted") return false;
+      if (result !== "granted") {
+        permissionResult = false;
+        return false;
+      }
     } else {
+      permissionResult = false;
       return false;
     }
   } catch (error) {
@@ -106,6 +116,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
   } finally {
     permissionRequestInProgress = false;
   }
+  permissionResult = true;
   return true;
 }
 
