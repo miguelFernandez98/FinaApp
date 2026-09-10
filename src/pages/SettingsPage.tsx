@@ -189,6 +189,7 @@ export default function SettingsPage() {
         showEUR,
         showCustomRate,
         customRate,
+        equivalentRate,
         language,
         pinHash,
         useBiometrics,
@@ -250,8 +251,17 @@ export default function SettingsPage() {
             t("settings.confirm_import"),
             t("settings.confirm_import.body"),
             () => {
-              importState(normalizePersistedState(data));
-              showToast(t("settings.imported"));
+              try {
+                importState(normalizePersistedState(data));
+                showToast(t("settings.imported"));
+              } catch (err) {
+                console.error("Error importing state:", err);
+                showToast(
+                  t("settings.read_error"),
+                  "fa-circle-exclamation",
+                  "var(--danger)",
+                );
+              }
             },
           );
         } else {

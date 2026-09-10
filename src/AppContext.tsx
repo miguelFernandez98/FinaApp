@@ -527,6 +527,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowEURState(newState.showEUR);
     setShowCustomRateState(newState.showCustomRate ?? false);
     setCustomRateState(newState.customRate ?? null);
+    setEquivalentRate(
+      newState.equivalentRate === "parallel" || newState.equivalentRate === "custom"
+        ? newState.equivalentRate
+        : "bcv",
+    );
     setLanguageState(newState.language === "en" ? "en" : "es");
     setPinHashState(newState.pinHash ?? null);
     setUseBiometricsState(newState.useBiometrics ?? false);
