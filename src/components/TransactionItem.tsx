@@ -30,7 +30,10 @@ function TransactionItem({
       ? "var(--success-dim)"
       : `${category.color}18`;
   const locale = getLanguage() === "en" ? "en" : "es";
-  const dateStr = parseISODate(transaction.date).toLocaleDateString(locale, {
+  const displayDate = isDebt && transaction.debtDueDate
+    ? transaction.debtDueDate
+    : transaction.date;
+  const dateStr = parseISODate(displayDate).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });

@@ -107,6 +107,47 @@ export async function fetchBinanceRate(): Promise<number | null> {
   return null;
 }
 
+/**
+ * Obtiene el precio del dólar Binance desde exchangemonitor.net.
+ * Es la fuente más precisa para la tasa paralela en Venezuela.
+ * Solo funciona en plataforma nativa (CORS bloquea desde web).
+ */
+async function fetchExchangeMonitorRate(): Promise<number | null> {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+
+  try {
+    const response = await fetchWithTimeout(
+      "https://exchangemonitor.net/venezuela/dolar-binance",
+      { headers: { Accept: "text/html" } },
+    );
+    const html = await response.text();
+    if (!html) return null;
+
+    const patterns = [
+      /es de ([\d.,]+)\s*VES\/USD/,
+      /history-rate[^>]*>.*?<span[^>]*>([\d.,]+)<\/span>/s,
+      /"price"\s*:\s*"?([\d.,]+)"?/,
+      /Bs\.\s*<\/span>\s*<span[^>]*>([\d.,]+)<\/span>/,
+      /custom-text-number[^>]*>([\d.,]+)<\/span>/,
+      /([\d]{2,5}[.,]\d{2})/,
+    ];
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        const price = parseFloat(match[1].replace(/\./g, "").replace(",", "."));
+        if (Number.isFinite(price) && price > 1 && price < 100000) {
+          return price;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error scraping Exchange Monitor:", error);
+  }
+  return null;
+}
+
 const BINANCE_PRICE_URL = "https://www.binance.com/es-LA/price/tether/VES";
 
 /**
@@ -146,13 +187,16 @@ export async function fetchBinancePricePageRate(): Promise<number | null> {
 }
 
 export async function fetchParallelRate(): Promise<number | null> {
-  const [binance, pricePage, yadio, dolarapi] = await Promise.all([
-    fetchBinanceRate(),
-    fetchBinancePricePageRate(),
-    fetchYadioRate(),
-    fetchDolarApiParallelRate(),
-  ]);
+  const [exchangemonitor, binance, pricePage, yadio, dolarapi] =
+    await Promise.all([
+      fetchExchangeMonitorRate(),
+      fetchBinanceRate(),
+      fetchBinancePricePageRate(),
+      fetchYadioRate(),
+      fetchDolarApiParallelRate(),
+    ]);
 
+  if (exchangemonitor !== null) return exchangemonitor;
   if (binance !== null) return binance;
   if (pricePage !== null) return pricePage;
   const rates = [yadio, dolarapi].filter(
