@@ -240,6 +240,19 @@ interface DebtReminder {
 }
 
 /**
+ * Genera un ID numérico determinístico a partir de un string.
+ * Usa un hash simple (djb2) para que la misma deuda + tier siempre
+ * produzca el mismo ID, evitando duplicados al reprogramar.
+ */
+function deterministicId(key: string): number {
+  let hash = 5381;
+  for (let i = 0; i < key.length; i++) {
+    hash = ((hash << 5) + hash + key.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 100000 + 10000;
+}
+
+/**
  * Garantiza que el horario de una notificación sea en el futuro.
  * Si el tiempo calculado ya pasó (ej: se abrió la app después de las
  * 9 AM del día del recordatorio), programa para ~2 segundos para que
@@ -258,6 +271,8 @@ function formatDebtAmount(amount: number): string {
   })}`;
 }
 
+let debtReminderLock = false;
+
 /**
  * Programa recordatorios para las deudas pendientes o parciales con fecha límite:
  * - 7 días antes del vencimiento (aviso de aproximación).
@@ -266,12 +281,15 @@ function formatDebtAmount(amount: number): string {
  * Cada notificación incluye el id de la deuda en `extra` para que al tocarla
  * la app abra esa deuda directamente.
  * Cancela notificaciones previas de deudas para evitar duplicados.
+ * Usa IDs determinísticos para que reprogramar sobreescriba en vez de duplicar.
  * @param transactions Todas las transacciones.
  */
 export async function scheduleDebtReminders(
   transactions: Transaction[],
 ): Promise<void> {
   if (!isNative()) return;
+  if (debtReminderLock) return;
+  debtReminderLock = true;
 
   const pendingDebts = transactions.filter(
     (t) =>
@@ -299,7 +317,7 @@ export async function scheduleDebtReminders(
 
     if (daysUntil === 0) {
       reminders.push({
-        id: notificationId(),
+        id: deterministicId(`${debt.id}:today`),
         title: t("notif.debt_today"),
         body: t("notif.debt_today_body", {
           description,
@@ -317,7 +335,7 @@ export async function scheduleDebtReminders(
           ? t("notif.tomorrow")
           : t("notif.in_days", { count: daysUntil });
       reminders.push({
-        id: notificationId(),
+        id: deterministicId(`${debt.id}:mid`),
         title: t("notif.debt_soon"),
         body: t("notif.debt_days_body", {
           description,
@@ -334,7 +352,7 @@ export async function scheduleDebtReminders(
       });
     } else if (daysUntil <= DEBT_WARNING_DAYS) {
       reminders.push({
-        id: notificationId(),
+        id: deterministicId(`${debt.id}:warn`),
         title: t("notif.debt_soon"),
         body: t("notif.week_body", {
           description,
@@ -363,12 +381,17 @@ export async function scheduleDebtReminders(
     console.error("Error canceling pending debt notifications:", error);
   }
 
-  if (reminders.length === 0) return;
+  if (reminders.length === 0) {
+    debtReminderLock = false;
+    return;
+  }
 
   try {
     await LocalNotifications.schedule({ notifications: reminders });
   } catch (error) {
     console.error("Error scheduling debt reminders:", error);
+  } finally {
+    debtReminderLock = false;
   }
 }
 

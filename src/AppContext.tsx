@@ -540,7 +540,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       typeof newState.lastExportAt === "number" ? newState.lastExportAt : null,
     );
     setHasSeenTutorialState(newState.hasSeenTutorial ?? false);
-  }, []);
+  }, [setEquivalentRate]);
 
   const actionsValue = useMemo<AppActionsContextValue>(
     () => ({
