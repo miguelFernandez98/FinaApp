@@ -173,6 +173,12 @@ export const messages: Record<
     "settings.custom_enter": "Ingresa una tasa válida",
     "settings.custom_saved": "Tasa personalizada guardada",
     "settings.custom_removed": "Tasa personalizada eliminada",
+    "settings.test_notif_title": "🧪 Test - Tasas",
+    "settings.test_notif_scheduled": "Notificación programada en 1 minuto",
+    "settings.test_notif_error": "Error al programar notificación",
+    "advisor.positive": "positivo",
+    "advisor.negative": "negativo",
+    "calc.clipboard_error": "Error al copiar",
     "settings.eur_hint":
       "La tasa se actualiza junto con el dólar. Sin conexión se muestra la última guardada.",
     "settings.custom_hint":
@@ -708,6 +714,12 @@ export const messages: Record<
     "settings.custom_enter": "Enter a valid rate",
     "settings.custom_saved": "Custom rate saved",
     "settings.custom_removed": "Custom rate removed",
+    "settings.test_notif_title": "🧪 Test - Rates",
+    "settings.test_notif_scheduled": "Notification scheduled in 1 minute",
+    "settings.test_notif_error": "Error scheduling notification",
+    "advisor.positive": "positive",
+    "advisor.negative": "negative",
+    "calc.clipboard_error": "Failed to copy",
     "settings.eur_hint":
       "The rate updates together with the dollar. Offline it shows the last saved one.",
     "settings.custom_hint":

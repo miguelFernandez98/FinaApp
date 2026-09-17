@@ -136,7 +136,7 @@ export function getAnswer(
 }
 
 function overviewAnswer(stats: MonthStats, monthName: string, currency: string) {
-  const balanceWord = stats.balance >= 0 ? "positivo" : "negativo";
+  const balanceWord = stats.balance >= 0 ? t("advisor.positive") : t("advisor.negative");
   const lines: string[] = [
     pick([
       t("advisor.overview_line1", { monthName, balanceWord, amount: fmt(stats.balance, currency) }),
