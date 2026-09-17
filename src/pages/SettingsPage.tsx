@@ -142,15 +142,15 @@ export default function SettingsPage() {
         notifications: [
           {
             id: 9999,
-            title: "🧪 Test - Tasas",
+            title: t("settings.test_notif_title"),
             body: `BCV: ${bcvText} | Paralelo: ${parText}`,
             schedule: { at: new Date(Date.now() + 60 * 1000), allowWhileIdle: true },
           },
         ],
       });
-      showToast("Notificación programada en 1 minuto", "fa-bell", "var(--accent)");
+      showToast(t("settings.test_notif_scheduled"), "fa-bell", "var(--accent)");
     } catch {
-      showToast("Error al programar notificación", "fa-circle-exclamation", "var(--danger)");
+      showToast(t("settings.test_notif_error"), "fa-circle-exclamation", "var(--danger)");
     }
   };
 
@@ -240,12 +240,29 @@ export default function SettingsPage() {
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
     const reader = new FileReader();
+    reader.onerror = () => {
+      showToast(
+        t("settings.read_error"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+    };
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target?.result as string);
+        const raw = ev.target?.result as string;
+        if (!raw) {
+          showToast(
+            t("settings.read_error"),
+            "fa-circle-exclamation",
+            "var(--danger)",
+          );
+          return;
+        }
+        const data = JSON.parse(raw);
         if (data.transactions && Array.isArray(data.transactions)) {
           showConfirm(
             t("settings.confirm_import"),
@@ -254,8 +271,7 @@ export default function SettingsPage() {
               try {
                 importState(normalizePersistedState(data));
                 showToast(t("settings.imported"));
-              } catch (err) {
-                console.error("Error importing state:", err);
+              } catch {
                 showToast(
                   t("settings.read_error"),
                   "fa-circle-exclamation",
@@ -1044,7 +1060,14 @@ export default function SettingsPage() {
           ref={fileRef}
           type="file"
           accept=".json"
-          style={{ display: "none" }}
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            opacity: 0,
+            overflow: "hidden",
+            pointerEvents: "none",
+          }}
           onChange={handleImport}
         />
         <div className="menu-item" onClick={handleLoadSample}>
