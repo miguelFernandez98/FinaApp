@@ -397,11 +397,6 @@ export function calculateMonthDebtAmount(
 
   return getPendingDebtsForMonth(transactions, month, year).reduce(
     (sum, tx) => {
-      if (tx.debtStatus === "paid") {
-        const outstanding = getDebtOutstandingAmount(tx);
-        return sum + convertDebtAmount(outstanding, tx, targetCurrency, rate);
-      }
-
       if (tx.debtStatus === "partial") {
         const outstanding = getDebtOutstandingAmount(tx);
         return sum + convertDebtAmount(outstanding, tx, targetCurrency, rate);

@@ -249,7 +249,7 @@ export default function CurrencyCalculator() {
       await navigator.clipboard.writeText(numStr);
       showToast(t("calc.copied"));
     } catch {
-      showToast(t("calc.copied"));
+      showToast(t("calc.clipboard_error"), "fa-circle-exclamation", "var(--danger)");
     }
   };
 

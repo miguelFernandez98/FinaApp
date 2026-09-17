@@ -18,7 +18,7 @@ import { exportTransactionsToCSV } from "../utils/export";
 export default function StatsPage() {
   const { currency, budgets, equivalentRate, customRate, goals } = useAppData();
   const { currentMonth, currentYear, exchangeRates } = useAppUI();
-  const { getMonthTransactions } = useAppActions();
+  const { getMonthTransactions, showToast } = useAppActions();
   useI18n();
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
@@ -44,7 +44,7 @@ export default function StatsPage() {
     );
     setExporting(false);
     if (!ok) {
-      alert(t("stats.export_error"));
+      showToast(t("stats.export_error"), "fa-circle-exclamation", "var(--danger)");
     }
   };
 
