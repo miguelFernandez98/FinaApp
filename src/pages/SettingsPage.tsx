@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -72,7 +72,7 @@ export default function SettingsPage() {
     closeTransactionModal,
   } = useAppActions();
   useI18n();
-  const fileRef = useRef<HTMLInputElement>(null);
+
   const [customDraft, setCustomDraft] = useState(
     customRate !== null ? String(customRate) : "",
   );
@@ -241,64 +241,77 @@ export default function SettingsPage() {
     showToast(t("settings.exported"));
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    const reader = new FileReader();
-    reader.onerror = () => {
-      showToast(
-        t("settings.read_error"),
-        "fa-circle-exclamation",
-        "var(--danger)",
-      );
-    };
-    reader.onload = (ev) => {
-      try {
-        const raw = ev.target?.result as string;
-        if (!raw) {
-          showToast(
-            t("settings.read_error"),
-            "fa-circle-exclamation",
-            "var(--danger)",
-          );
-          return;
-        }
-        const data = JSON.parse(raw);
-        if (data.transactions && Array.isArray(data.transactions)) {
-          showConfirm(
-            t("settings.confirm_import"),
-            t("settings.confirm_import.body"),
-            () => {
-              try {
-                importState(normalizePersistedState(data));
-                showToast(t("settings.imported"));
-              } catch {
-                showToast(
-                  t("settings.read_error"),
-                  "fa-circle-exclamation",
-                  "var(--danger)",
-                );
-              }
-            },
-          );
-        } else {
-          showToast(
-            t("settings.invalid_file"),
-            "fa-circle-exclamation",
-            "var(--danger)",
-          );
-        }
-      } catch {
+  const handleImportClick = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.style.display = "none";
+    document.body.appendChild(input);
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => {
+        document.body.removeChild(input);
         showToast(
           t("settings.read_error"),
           "fa-circle-exclamation",
           "var(--danger)",
         );
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
+      };
+      reader.onload = (ev) => {
+        document.body.removeChild(input);
+        try {
+          const raw = ev.target?.result as string;
+          if (!raw) {
+            showToast(
+              t("settings.read_error"),
+              "fa-circle-exclamation",
+              "var(--danger)",
+            );
+            return;
+          }
+          const data = JSON.parse(raw);
+          if (data.transactions && Array.isArray(data.transactions)) {
+            showConfirm(
+              t("settings.confirm_import"),
+              t("settings.confirm_import.body"),
+              () => {
+                try {
+                  importState(normalizePersistedState(data));
+                  showToast(t("settings.imported"));
+                } catch {
+                  showToast(
+                    t("settings.read_error"),
+                    "fa-circle-exclamation",
+                    "var(--danger)",
+                  );
+                }
+              },
+            );
+          } else {
+            showToast(
+              t("settings.invalid_file"),
+              "fa-circle-exclamation",
+              "var(--danger)",
+            );
+          }
+        } catch {
+          showToast(
+            t("settings.read_error"),
+            "fa-circle-exclamation",
+            "var(--danger)",
+          );
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    input.click();
   };
 
   const handleLoadSample = () => {
@@ -1050,26 +1063,12 @@ export default function SettingsPage() {
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <div style={{ position: "relative" }}>
-          <div className="menu-item">
-            <i className="fa-solid fa-file-import menu-icon" />
-            <span style={{ flex: 1 }}>{t("settings.import")}</span>
-            <i
-              className="fa-solid fa-chevron-right"
-              style={{ fontSize: 12, color: "var(--fg-muted)" }}
-            />
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json"
-            style={{
-              position: "absolute",
-              inset: 0,
-              opacity: 0,
-              cursor: "pointer",
-            }}
-            onChange={handleImport}
+        <div className="menu-item" onClick={handleImportClick}>
+          <i className="fa-solid fa-file-import menu-icon" />
+          <span style={{ flex: 1 }}>{t("settings.import")}</span>
+          <i
+            className="fa-solid fa-chevron-right"
+            style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
         <div className="menu-item" onClick={handleLoadSample}>
