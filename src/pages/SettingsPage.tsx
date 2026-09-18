@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { CapgoFilePicker } from "@capgo/capacitor-file-picker";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
@@ -241,7 +242,67 @@ export default function SettingsPage() {
     showToast(t("settings.exported"));
   };
 
-  const handleImportClick = () => {
+  const processImportFile = (raw: string) => {
+    try {
+      const data = JSON.parse(raw);
+      if (data.transactions && Array.isArray(data.transactions)) {
+        showConfirm(
+          t("settings.confirm_import"),
+          t("settings.confirm_import.body"),
+          () => {
+            try {
+              importState(normalizePersistedState(data));
+              showToast(t("settings.imported"));
+            } catch {
+              showToast(
+                t("settings.read_error"),
+                "fa-circle-exclamation",
+                "var(--danger)",
+              );
+            }
+          },
+        );
+      } else {
+        showToast(
+          t("settings.invalid_file"),
+          "fa-circle-exclamation",
+          "var(--danger)",
+        );
+      }
+    } catch {
+      showToast(
+        t("settings.read_error"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+    }
+  };
+
+  const handleImportClick = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await CapgoFilePicker.pickFiles({
+          types: [".json", "application/json"],
+          limit: 1,
+          readData: true,
+        });
+        const file = result.files?.[0];
+        if (!file?.data) return;
+        const binary = atob(file.data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const raw = new TextDecoder("utf-8").decode(bytes);
+        processImportFile(raw);
+      } catch {
+        showToast(
+          t("settings.read_error"),
+          "fa-circle-exclamation",
+          "var(--danger)",
+        );
+      }
+      return;
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json";
@@ -265,48 +326,16 @@ export default function SettingsPage() {
       };
       reader.onload = (ev) => {
         document.body.removeChild(input);
-        try {
-          const raw = ev.target?.result as string;
-          if (!raw) {
-            showToast(
-              t("settings.read_error"),
-              "fa-circle-exclamation",
-              "var(--danger)",
-            );
-            return;
-          }
-          const data = JSON.parse(raw);
-          if (data.transactions && Array.isArray(data.transactions)) {
-            showConfirm(
-              t("settings.confirm_import"),
-              t("settings.confirm_import.body"),
-              () => {
-                try {
-                  importState(normalizePersistedState(data));
-                  showToast(t("settings.imported"));
-                } catch {
-                  showToast(
-                    t("settings.read_error"),
-                    "fa-circle-exclamation",
-                    "var(--danger)",
-                  );
-                }
-              },
-            );
-          } else {
-            showToast(
-              t("settings.invalid_file"),
-              "fa-circle-exclamation",
-              "var(--danger)",
-            );
-          }
-        } catch {
+        const raw = ev.target?.result as string;
+        if (!raw) {
           showToast(
             t("settings.read_error"),
             "fa-circle-exclamation",
             "var(--danger)",
           );
+          return;
         }
+        processImportFile(raw);
       };
       reader.readAsText(file);
     });

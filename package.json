@@ -23,6 +23,7 @@
     "@capacitor/local-notifications": "^8.0.0",
     "@capacitor/share": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
+    "@capgo/capacitor-file-picker": "^8.2.0",
     "@capgo/capacitor-native-biometric": "^8.6.6",
     "@fortawesome/fontawesome-free": "^7.3.1",
     "capacitor-widget-bridge": "^8.1.0",
