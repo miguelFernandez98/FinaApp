@@ -217,7 +217,9 @@ export default function SettingsPage() {
         });
         setLastExportAt(Date.now());
         showToast(t("settings.exported"));
-      } catch (error) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("canceled") || msg.includes("cancelled")) return;
         console.error("Error exporting data on native:", error);
         showToast(
           t("settings.export_fail"),
@@ -1048,28 +1050,28 @@ export default function SettingsPage() {
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <div className="menu-item" onClick={() => fileRef.current?.click()}>
-          <i className="fa-solid fa-file-import menu-icon" />
-          <span style={{ flex: 1 }}>{t("settings.import")}</span>
-          <i
-            className="fa-solid fa-chevron-right"
-            style={{ fontSize: 12, color: "var(--fg-muted)" }}
+        <div style={{ position: "relative" }}>
+          <div className="menu-item">
+            <i className="fa-solid fa-file-import menu-icon" />
+            <span style={{ flex: 1 }}>{t("settings.import")}</span>
+            <i
+              className="fa-solid fa-chevron-right"
+              style={{ fontSize: 12, color: "var(--fg-muted)" }}
+            />
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json"
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: 0,
+              cursor: "pointer",
+            }}
+            onChange={handleImport}
           />
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json"
-          style={{
-            position: "absolute",
-            width: 1,
-            height: 1,
-            opacity: 0,
-            overflow: "hidden",
-            pointerEvents: "none",
-          }}
-          onChange={handleImport}
-        />
         <div className="menu-item" onClick={handleLoadSample}>
           <i className="fa-solid fa-database menu-icon" />
           <span style={{ flex: 1 }}>{t("settings.load_sample")}</span>
