@@ -86,10 +86,10 @@ export default function PinModal({ onClose }: PinModalProps) {
         </div>
 
         <button className="btn-primary" onClick={handleSave}>
-          {t("goals.save")}
+          {t("modal.save")}
         </button>
         <button className="btn-ghost" onClick={onClose}>
-          {t("goals.cancel")}
+          {t("modal.cancel")}
         </button>
     </ModalSheet>
   );
