@@ -1,7 +1,8 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, FilesystemDirectory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { CapgoFilePicker } from "@capgo/capacitor-file-picker";
 import { NativeBiometric } from "@capgo/capacitor-native-biometric";
 import { useAppData, useAppActions } from "../AppContext";
 import { t, useI18n } from "../i18n";
@@ -72,7 +73,7 @@ export default function SettingsPage() {
     closeTransactionModal,
   } = useAppActions();
   useI18n();
-  const fileRef = useRef<HTMLInputElement>(null);
+
   const [customDraft, setCustomDraft] = useState(
     customRate !== null ? String(customRate) : "",
   );
@@ -142,15 +143,15 @@ export default function SettingsPage() {
         notifications: [
           {
             id: 9999,
-            title: "🧪 Test - Tasas",
+            title: t("settings.test_notif_title"),
             body: `BCV: ${bcvText} | Paralelo: ${parText}`,
             schedule: { at: new Date(Date.now() + 60 * 1000), allowWhileIdle: true },
           },
         ],
       });
-      showToast("Notificación programada en 1 minuto", "fa-bell", "var(--accent)");
+      showToast(t("settings.test_notif_scheduled"), "fa-bell", "var(--accent)");
     } catch {
-      showToast("Error al programar notificación", "fa-circle-exclamation", "var(--danger)");
+      showToast(t("settings.test_notif_error"), "fa-circle-exclamation", "var(--danger)");
     }
   };
 
@@ -217,7 +218,9 @@ export default function SettingsPage() {
         });
         setLastExportAt(Date.now());
         showToast(t("settings.exported"));
-      } catch (error) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("canceled") || msg.includes("cancelled")) return;
         console.error("Error exporting data on native:", error);
         showToast(
           t("settings.export_fail"),
@@ -239,38 +242,62 @@ export default function SettingsPage() {
     showToast(t("settings.exported"));
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+  const processImportFile = (raw: string) => {
+    try {
+      const data = JSON.parse(raw);
+      if (data.transactions && Array.isArray(data.transactions)) {
+        showConfirm(
+          t("settings.confirm_import"),
+          t("settings.confirm_import.body"),
+          () => {
+            try {
+              importState(normalizePersistedState(data));
+              showToast(t("settings.imported"));
+            } catch {
+              showToast(
+                t("settings.read_error"),
+                "fa-circle-exclamation",
+                "var(--danger)",
+              );
+            }
+          },
+        );
+      } else {
+        showToast(
+          t("settings.invalid_file"),
+          "fa-circle-exclamation",
+          "var(--danger)",
+        );
+      }
+    } catch {
+      showToast(
+        t("settings.read_error"),
+        "fa-circle-exclamation",
+        "var(--danger)",
+      );
+    }
+  };
+
+  const handleImportClick = async () => {
+    if (Capacitor.isNativePlatform()) {
       try {
-        const data = JSON.parse(ev.target?.result as string);
-        if (data.transactions && Array.isArray(data.transactions)) {
-          showConfirm(
-            t("settings.confirm_import"),
-            t("settings.confirm_import.body"),
-            () => {
-              try {
-                importState(normalizePersistedState(data));
-                showToast(t("settings.imported"));
-              } catch (err) {
-                console.error("Error importing state:", err);
-                showToast(
-                  t("settings.read_error"),
-                  "fa-circle-exclamation",
-                  "var(--danger)",
-                );
-              }
-            },
-          );
-        } else {
-          showToast(
-            t("settings.invalid_file"),
-            "fa-circle-exclamation",
-            "var(--danger)",
-          );
+        const result = await CapgoFilePicker.pickFiles({
+          types: [".json", "application/json"],
+          limit: 1,
+          readData: true,
+        });
+        const file = result.files?.[0];
+        if (!file?.data) return;
+        let raw: string;
+        try {
+          const binary = atob(file.data);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          raw = new TextDecoder("utf-8").decode(bytes);
+        } catch {
+          raw = file.data;
         }
+        processImportFile(raw);
       } catch {
         showToast(
           t("settings.read_error"),
@@ -278,9 +305,47 @@ export default function SettingsPage() {
           "var(--danger)",
         );
       }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.style.display = "none";
+    document.body.appendChild(input);
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => {
+        document.body.removeChild(input);
+        showToast(
+          t("settings.read_error"),
+          "fa-circle-exclamation",
+          "var(--danger)",
+        );
+      };
+      reader.onload = (ev) => {
+        document.body.removeChild(input);
+        const raw = ev.target?.result as string;
+        if (!raw) {
+          showToast(
+            t("settings.read_error"),
+            "fa-circle-exclamation",
+            "var(--danger)",
+          );
+          return;
+        }
+        processImportFile(raw);
+      };
+      reader.readAsText(file);
+    });
+
+    input.click();
   };
 
   const handleLoadSample = () => {
@@ -1032,7 +1097,7 @@ export default function SettingsPage() {
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <div className="menu-item" onClick={() => fileRef.current?.click()}>
+        <div className="menu-item" onClick={handleImportClick}>
           <i className="fa-solid fa-file-import menu-icon" />
           <span style={{ flex: 1 }}>{t("settings.import")}</span>
           <i
@@ -1040,13 +1105,6 @@ export default function SettingsPage() {
             style={{ fontSize: 12, color: "var(--fg-muted)" }}
           />
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json"
-          style={{ display: "none" }}
-          onChange={handleImport}
-        />
         <div className="menu-item" onClick={handleLoadSample}>
           <i className="fa-solid fa-database menu-icon" />
           <span style={{ flex: 1 }}>{t("settings.load_sample")}</span>

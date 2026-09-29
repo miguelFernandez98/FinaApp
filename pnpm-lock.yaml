@@ -32,6 +32,9 @@ importers:
       '@capacitor/status-bar':
         specifier: ^8.0.0
         version: 8.0.3(@capacitor/core@8.5.0)
+      '@capgo/capacitor-file-picker':
+        specifier: ^8.2.0
+        version: 8.2.0(@capacitor/core@8.5.0)
       '@capgo/capacitor-native-biometric':
         specifier: ^8.6.6
         version: 8.6.6(@capacitor/core@8.5.0)
@@ -205,6 +208,11 @@ packages:
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
+
+  '@capgo/capacitor-file-picker@8.2.0':
+    resolution: {integrity: sha512-ZcOfn/hri3NbFzGSTCtzCoM5nf9fKAib0RcbN0Y+QK1dthtng8RwDSdIlJktc+3XiDqRe+LfbQsom3me55pDcA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capgo/capacitor-native-biometric@8.6.6':
     resolution: {integrity: sha512-nKTBnH+vieZyJLAch9qrJkpM7/CJogvG/Kci19erGhvsWI9+f0WWEx4YeMkoQSNZ0oSziYqee8WS2SXkRbfnAw==}
@@ -1626,6 +1634,10 @@ snapshots:
       '@capacitor/core': 8.5.0
 
   '@capacitor/synapse@1.0.4': {}
+
+  '@capgo/capacitor-file-picker@8.2.0(@capacitor/core@8.5.0)':
+    dependencies:
+      '@capacitor/core': 8.5.0
 
   '@capgo/capacitor-native-biometric@8.6.6(@capacitor/core@8.5.0)':
     dependencies:
